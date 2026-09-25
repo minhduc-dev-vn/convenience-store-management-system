@@ -25,6 +25,10 @@ GO
 :r .\schema\02_catalog.sql
 :r .\schema\03_inventory.sql
 :r .\schema\04_sales_returns_audit.sql
+:r .\constraints\01_enforce_and_validate.sql
+:r .\indexes\01_lookup_indexes.sql
+:r .\seed\01_roles.sql
+:r .\seed\02_development_data.sql
 
-PRINT 'Core schema initialization completed: 23 tables created.';
+PRINT 'Database initialization completed: 23 tables, integrity guards, lookup indexes and baseline seed are ready.';
 GO

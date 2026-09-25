@@ -1,6 +1,6 @@
 # SQL Server core schema
 
-Thư mục này chứa lược đồ 23 bảng cốt lõi của hệ thống quản lý cửa hàng tiện lợi. Script không tạo database, không chứa credential, không seed dữ liệu và chưa triển khai stored procedure nghiệp vụ.
+Thư mục này chứa lược đồ 23 bảng cốt lõi của hệ thống quản lý cửa hàng tiện lợi. Script không tạo database, không chứa credential và chưa triển khai stored procedure nghiệp vụ. Runner có seed nền tối thiểu dành cho development/smoke test.
 
 ## Yêu cầu
 
@@ -17,6 +17,10 @@ Thư mục này chứa lược đồ 23 bảng cốt lõi của hệ thống qu�
 3. `schema/02_catalog.sql`: loại sản phẩm, sản phẩm, khuyến mãi và nhà cung cấp.
 4. `schema/03_inventory.sql`: ca làm việc, nhập hàng, lô, kiểm kê và giao dịch kho.
 5. `schema/04_sales_returns_audit.sql`: hóa đơn, thanh toán, trả hàng và nhật ký.
+6. `constraints/01_enforce_and_validate.sql`: bật, trust và xác minh các constraint/default quan trọng.
+7. `indexes/01_lookup_indexes.sql`: bổ sung index lookup/filter và xác minh unique index nền.
+8. `seed/01_roles.sql`: seed bốn vai trò chuẩn.
+9. `seed/02_development_data.sql`: seed tối thiểu một nhân viên, danh mục, sản phẩm, nhà cung cấp và lô hàng development.
 
 > `init.sql` dựng lại toàn bộ 23 bảng core và sẽ xóa dữ liệu hiện có trong các bảng này. Chỉ chạy trên database rỗng hoặc database development/test đã được chọn rõ ràng.
 
@@ -73,3 +77,15 @@ ORDER BY ChildTable, ForeignKeyName, fkc.constraint_column_id;
 ```
 
 Không có bảng `LICH_SU_GIA` hoặc `DON_VI_TINH`; `DonViTinh` là thuộc tính của `SAN_PHAM`.
+
+## Baseline seed
+
+Runner seed đúng bốn role `CUSTOMER`, `CASHIER`, `WAREHOUSE`, `MANAGER` và một bộ dữ liệu có mã chứa `DEV` để smoke test lookup. Seed không tạo tài khoản demo, không chứa password/hash hoặc production secret.
+
+Có thể kiểm tra nhanh sau khi chạy init:
+
+```sql
+SELECT MaVaiTro, TenVaiTro FROM dbo.VAI_TRO ORDER BY MaVaiTro;
+SELECT MaSP, TenSP, MaVach, GiaBan FROM dbo.SAN_PHAM WHERE MaSP = 'SPDEV001';
+SELECT MaLo, MaSP, SoLo, HanSuDung, SoLuongTon FROM dbo.LO_HANG WHERE MaLo = 'LODEV001';
+```
