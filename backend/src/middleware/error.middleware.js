@@ -1,5 +1,7 @@
 'use strict';
 
+const { AppError } = require('../utils/app-error');
+
 function notFoundHandler(request, response) {
   response.status(404).json({
     success: false,
@@ -10,12 +12,14 @@ function notFoundHandler(request, response) {
   });
 }
 
-function errorHandler(_error, _request, response, _next) {
-  response.status(500).json({
+function errorHandler(error, _request, response, _next) {
+  const isOperational = error instanceof AppError && error.isOperational;
+
+  response.status(isOperational ? error.statusCode : 500).json({
     success: false,
     error: {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'An unexpected error occurred',
+      code: isOperational ? error.code : 'INTERNAL_SERVER_ERROR',
+      message: isOperational ? error.message : 'An unexpected error occurred',
     },
   });
 }

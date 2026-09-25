@@ -2,7 +2,7 @@
 
 const dotenv = require('dotenv');
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const DEFAULT_PORT = 3000;
 const parsedPort = Number.parseInt(process.env.PORT, 10);
