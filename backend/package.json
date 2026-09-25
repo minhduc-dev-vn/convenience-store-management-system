@@ -1,0 +1,19 @@
+{
+  "name": "convenience-store-management-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "REST API for the convenience store management system",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.3",
+    "express": "^5.2.1"
+  }
+}
