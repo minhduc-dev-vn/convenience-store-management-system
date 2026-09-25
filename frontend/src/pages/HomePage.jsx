@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { HealthCheckPanel } from '../components';
 
 const workspaces = [
   { to: '/customer', code: '01', title: 'Khách hàng', caption: 'Thông tin và lịch sử cá nhân' },
@@ -56,6 +57,8 @@ function HomePage() {
           ))}
         </div>
       </section>
+
+      <HealthCheckPanel />
     </>
   );
 }
