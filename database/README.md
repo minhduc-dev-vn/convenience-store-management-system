@@ -1,6 +1,6 @@
 # SQL Server core schema
 
-Thư mục này chứa lược đồ 23 bảng cốt lõi của hệ thống quản lý cửa hàng tiện lợi. Script không tạo database, không chứa credential và chưa triển khai stored procedure nghiệp vụ. Runner có seed nền tối thiểu dành cho development/smoke test.
+Thư mục này chứa lược đồ 23 bảng cốt lõi của hệ thống quản lý cửa hàng tiện lợi. Script không tạo database, không chứa credential hoặc JWT. Runner có seed nền tối thiểu và các stored object hỗ trợ authentication lookup, account/role query và audit dùng chung.
 
 ## Yêu cầu
 
@@ -18,9 +18,14 @@ Thư mục này chứa lược đồ 23 bảng cốt lõi của hệ thống qu�
 4. `schema/03_inventory.sql`: ca làm việc, nhập hàng, lô, kiểm kê và giao dịch kho.
 5. `schema/04_sales_returns_audit.sql`: hóa đơn, thanh toán, trả hàng và nhật ký.
 6. `constraints/01_enforce_and_validate.sql`: bật, trust và xác minh các constraint/default quan trọng.
-7. `indexes/01_lookup_indexes.sql`: bổ sung index lookup/filter và xác minh unique index nền.
-8. `seed/01_roles.sql`: seed bốn vai trò chuẩn.
-9. `seed/02_development_data.sql`: seed tối thiểu một nhân viên, danh mục, sản phẩm, nhà cung cấp và lô hàng development.
+7. `constraints/02_auth_account_audit.sql`: buộc account gắn đúng loại chủ sở hữu/role và chặn dữ liệu xác thực nhạy cảm trong audit payload.
+8. `indexes/01_lookup_indexes.sql`: bổ sung index lookup/filter và xác minh unique index nền.
+9. `indexes/02_auth_audit_indexes.sql`: xác minh covering index login và thêm index tra cứu audit theo bản ghi.
+10. `views/01_account_role.sql`: view account/role không lộ password hash.
+11. `procedures/01_get_account_for_authentication.sql`: lookup chính xác một username bằng tham số cho backend authentication.
+12. `procedures/02_write_audit_log.sql`: entry point ghi audit dùng chung, từ chối password/token/secret.
+13. `seed/01_roles.sql`: seed bốn vai trò chuẩn.
+14. `seed/02_development_data.sql`: seed tối thiểu một nhân viên, danh mục, sản phẩm, nhà cung cấp và lô hàng development.
 
 > `init.sql` dựng lại toàn bộ 23 bảng core và sẽ xóa dữ liệu hiện có trong các bảng này. Chỉ chạy trên database rỗng hoặc database development/test đã được chọn rõ ràng.
 
@@ -89,3 +94,18 @@ SELECT MaVaiTro, TenVaiTro FROM dbo.VAI_TRO ORDER BY MaVaiTro;
 SELECT MaSP, TenSP, MaVach, GiaBan FROM dbo.SAN_PHAM WHERE MaSP = 'SPDEV001';
 SELECT MaLo, MaSP, SoLo, HanSuDung, SoLuongTon FROM dbo.LO_HANG WHERE MaLo = 'LODEV001';
 ```
+
+## Authentication và audit support
+
+- `dbo.vw_TAI_KHOAN_VAI_TRO` phục vụ tra cứu account/role/owner nhưng cố ý không trả `MatKhauHash`.
+- `dbo.usp_TAI_KHOAN_LayTheoTenDangNhap` là lookup parameterized dành cho luồng đăng nhập và có trả hash để backend kiểm tra mật khẩu.
+- `dbo.usp_NHAT_KY_HE_THONG_Ghi` ghi audit dùng chung; procedure và CHECK constraint đều từ chối payload có tên trường password/token/secret/JWT.
+- JWT được tạo và xác minh tại backend, không được lưu hoặc xử lý trong SQL Server.
+
+Chạy test C07 trên database test đã init, từ thư mục `database/`:
+
+```powershell
+sqlcmd -S ".\SQLEXPRESS" -E -I -d "ConvenienceStoreTest" -b -f 65001 -i ".\tests\01_auth_audit_tests.sql"
+```
+
+Test tạo dữ liệu tạm trong transaction và rollback sau khi kiểm tra username unique, account-owner-role, lookup và audit. Các chuỗi nhạy cảm trong negative tests chỉ là marker tổng hợp, không phải credential thật.

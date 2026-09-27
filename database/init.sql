@@ -26,9 +26,14 @@ GO
 :r .\schema\03_inventory.sql
 :r .\schema\04_sales_returns_audit.sql
 :r .\constraints\01_enforce_and_validate.sql
+:r .\constraints\02_auth_account_audit.sql
 :r .\indexes\01_lookup_indexes.sql
+:r .\indexes\02_auth_audit_indexes.sql
+:r .\views\01_account_role.sql
+:r .\procedures\01_get_account_for_authentication.sql
+:r .\procedures\02_write_audit_log.sql
 :r .\seed\01_roles.sql
 :r .\seed\02_development_data.sql
 
-PRINT 'Database initialization completed: 23 tables, integrity guards, lookup indexes and baseline seed are ready.';
+PRINT 'Database initialization completed: 23 tables, auth/audit objects, integrity guards, indexes and baseline seed are ready.';
 GO
