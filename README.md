@@ -4,9 +4,9 @@ Hệ thống web quản lý một cửa hàng tiện lợi, phục vụ bán hà
 
 ## Technology stack
 
-- Frontend: ReactJS, JavaScript, Vite, React Router (sẽ được triển khai ở các prompt sau).
+- Frontend: ReactJS, JavaScript, Vite, React Router.
 - Backend: Node.js, ExpressJS, REST API, JSON.
-- Database: Microsoft SQL Server (sẽ được triển khai ở các prompt sau).
+- Database: Microsoft SQL Server.
 
 ## Run the backend
 
