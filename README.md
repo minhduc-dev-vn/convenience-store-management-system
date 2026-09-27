@@ -96,7 +96,9 @@ Backend được tổ chức theo luồng `Route -> Middleware -> Controller -> 
 │   ├── seed/
 │   ├── tests/
 │   ├── views/
-│   └── init.sql
+│   ├── create_database.sql
+│   ├── init.sql
+│   └── README.md
 ├── .gitignore
 └── README.md
 ```
@@ -171,6 +173,8 @@ Các nhóm biến chính:
 | `DB_TRUSTED_CONNECTION` | Bật Windows trusted connection với `msnodesqlv8` |
 | `DB_ENCRYPT`, `DB_TRUST_SERVER_CERTIFICATE` | Thiết lập mã hóa kết nối |
 | `DB_POOL_MAX`, `DB_POOL_MIN`, `DB_POOL_IDLE_TIMEOUT_MS` | Cấu hình connection pool |
+| `JWT_SECRET`, `JWT_EXPIRES_IN` | Khóa bí mật và thời hạn JWT token (`JWT_SECRET` tối thiểu 32 ký tự) |
+| `BCRYPT_ROUNDS` | Số vòng salt băm mật khẩu bcrypt (mặc định 12) |
 
 ### Frontend
 
@@ -196,13 +200,21 @@ Copy-Item .env.example .env
 
 ### Bước 1: Khởi tạo database
 
-Tạo trước một database development hoặc test, sau đó mở terminal tại thư mục `database/` và chạy:
+Mở terminal tại thư mục `database/`:
 
-```powershell
-sqlcmd -S ".\SQLEXPRESS" -E -I -d "ConvenienceStore" -b -f 65001 -i ".\init.sql"
-```
+1. **Tạo database `ConvenienceStore` (nếu chưa có):**
+   ```powershell
+   sqlcmd -S "localhost" -E -C -i ".\create_database.sql"
+   ```
+   *(Nếu dùng SQL Server Express: `-S ".\SQLEXPRESS"`. Nếu dùng SQL Authentication: thay `-E` bằng `-U "sa" -P "mat_khau"`).*
 
-Thay server và tên database theo môi trường của bạn. Xem hướng dẫn SQL Server đầy đủ tại [database/README.md](database/README.md).
+2. **Dựng schema, constraints, stored procedures và seed dữ liệu:**
+   ```powershell
+   sqlcmd -S "localhost" -E -C -I -d "ConvenienceStore" -b -f 65001 -i ".\init.sql"
+   ```
+   *(Với SQL Authentication: `sqlcmd -S "localhost" -U "sa" -P "mat_khau" -C -I -d "ConvenienceStore" -b -f 65001 -i ".\init.sql"`).*
+
+> **Lưu ý:** Flag `-C` (Trust Server Certificate) cần thiết khi môi trường sử dụng ODBC Driver 18 trở lên; flag `-I` bật `QUOTED_IDENTIFIER` bắt buộc khi tạo filtered indexes. Xem hướng dẫn SQL Server đầy đủ tại [database/README.md](database/README.md).
 
 ### Bước 2: Chạy backend
 

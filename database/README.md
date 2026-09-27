@@ -29,15 +29,25 @@ Thư mục này chứa lược đồ 23 bảng cốt lõi của hệ thống qu�
 
 > `init.sql` dựng lại toàn bộ 23 bảng core và sẽ xóa dữ liệu hiện có trong các bảng này. Chỉ chạy trên database rỗng hoặc database development/test đã được chọn rõ ràng.
 
-## Khởi tạo schema
+## Tạo cơ sở dữ liệu
 
-Mở terminal tại thư mục `database/`, sau đó chạy bằng Windows Authentication:
+Nếu cơ sở dữ liệu chưa tồn tại trên SQL Server, chạy script `create_database.sql`:
 
 ```powershell
-sqlcmd -S ".\SQLEXPRESS" -E -I -d "ConvenienceStore" -b -f 65001 -i ".\init.sql"
+sqlcmd -S "localhost" -E -C -i ".\create_database.sql"
 ```
 
-Thay server và database bằng môi trường của bạn. Tùy chọn `-I` bật `QUOTED_IDENTIFIER`, cần thiết khi thao tác với filtered index. Credential không được lưu trong repository; nếu môi trường không dùng Windows Authentication, truyền thông tin kết nối bằng cơ chế bảo mật của môi trường triển khai.
+*(Hoặc `-S ".\SQLEXPRESS"` nếu dùng SQL Server Express).*
+
+## Khởi tạo schema
+
+Mở terminal tại thư mục `database/`, sau đó chạy:
+
+```powershell
+sqlcmd -S "localhost" -E -C -I -d "ConvenienceStore" -b -f 65001 -i ".\init.sql"
+```
+
+Thay server và database bằng môi trường của bạn (ví dụ `-S ".\SQLEXPRESS"` hoặc `-U "sa" -P "mat_khau"` nếu dùng SQL Authentication). Tùy chọn `-C` dùng cho mã hóa tin cậy trên ODBC Driver 18 trở lên; tùy chọn `-I` bật `QUOTED_IDENTIFIER`, cần thiết khi thao tác với filtered index. Credential không được lưu trong repository; nếu môi trường không dùng Windows Authentication, truyền thông tin kết nối bằng cơ chế bảo mật của môi trường triển khai.
 
 ## Kiểm tra số bảng
 
