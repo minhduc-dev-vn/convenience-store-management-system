@@ -33,6 +33,23 @@ function validateBody({ required = [], optional = [], atLeastOne = [] }) {
   };
 }
 
+function validateQuery({ allowed = [] }) {
+  const allowedFields = new Set(allowed);
+
+  return function queryValidator(request, _response, next) {
+    const unknownFields = Object.keys(request.query)
+      .filter((field) => !allowedFields.has(field));
+
+    if (unknownFields.length > 0) {
+      next(validationError(`Unsupported query field: ${unknownFields[0]}`));
+      return;
+    }
+
+    next();
+  };
+}
+
 module.exports = {
   validateBody,
+  validateQuery,
 };
