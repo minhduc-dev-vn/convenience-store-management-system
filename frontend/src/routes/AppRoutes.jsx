@@ -2,12 +2,16 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { ROLES } from '../auth/roles';
 import AppLayout from '../layouts/AppLayout';
 import CustomerLayout from '../layouts/CustomerLayout';
+import ManagerLayout from '../layouts/ManagerLayout';
 import ChangePasswordPage from '../pages/ChangePasswordPage';
 import CustomerHistoryPage from '../pages/CustomerHistoryPage';
 import CustomerOverviewPage from '../pages/CustomerOverviewPage';
 import CustomerProfilePage from '../pages/CustomerProfilePage';
 import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
+import AccountManagementPage from '../pages/manager/AccountManagementPage';
+import EmployeeManagementPage from '../pages/manager/EmployeeManagementPage';
+import ManagerDashboardPage from '../pages/manager/ManagerDashboardPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import RegisterPage from '../pages/RegisterPage';
 import StaffWorkspacePage from '../pages/StaffWorkspacePage';
@@ -37,7 +41,15 @@ function AppRoutes() {
           </Route>
         </Route>
 
-        {ROLES.filter((role) => role !== 'CUSTOMER').map((role) => (
+        <Route element={<ProtectedRoute allowedRoles={['MANAGER']} />}>
+          <Route path="manager" element={<ManagerLayout />}>
+            <Route index element={<ManagerDashboardPage />} />
+            <Route path="employees" element={<EmployeeManagementPage />} />
+            <Route path="accounts" element={<AccountManagementPage />} />
+          </Route>
+        </Route>
+
+        {ROLES.filter((role) => !['CUSTOMER', 'MANAGER'].includes(role)).map((role) => (
           <Route key={role} element={<ProtectedRoute allowedRoles={[role]} />}>
             <Route path={role.toLowerCase()} element={<StaffWorkspacePage />} />
           </Route>
