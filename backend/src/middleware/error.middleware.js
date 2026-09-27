@@ -13,13 +13,25 @@ function notFoundHandler(request, response) {
 }
 
 function errorHandler(error, _request, response, _next) {
-  const isOperational = error instanceof AppError && error.isOperational;
+  const isMalformedJson = error instanceof SyntaxError && error.type === 'entity.parse.failed';
+  const normalizedError = isMalformedJson
+    ? new AppError('Request body contains invalid JSON', {
+      code: 'INVALID_JSON',
+      statusCode: 400,
+      cause: error,
+    })
+    : error;
+  const isOperational = normalizedError instanceof AppError && normalizedError.isOperational;
 
-  response.status(isOperational ? error.statusCode : 500).json({
+  if (isOperational && normalizedError.statusCode === 401) {
+    response.set('WWW-Authenticate', 'Bearer');
+  }
+
+  response.status(isOperational ? normalizedError.statusCode : 500).json({
     success: false,
     error: {
-      code: isOperational ? error.code : 'INTERNAL_SERVER_ERROR',
-      message: isOperational ? error.message : 'An unexpected error occurred',
+      code: isOperational ? normalizedError.code : 'INTERNAL_SERVER_ERROR',
+      message: isOperational ? normalizedError.message : 'An unexpected error occurred',
     },
   });
 }
