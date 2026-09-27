@@ -1,2 +1,8 @@
-export { apiClient, apiConfig, buildApiUrl, setAccessTokenProvider } from './client';
+export {
+  apiClient,
+  apiConfig,
+  buildApiUrl,
+  setAccessTokenProvider,
+  setUnauthorizedHandler,
+} from './client';
 export { ApiError, getErrorMessage } from './errors';

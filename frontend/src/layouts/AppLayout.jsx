@@ -1,15 +1,20 @@
 import { NavLink, Outlet } from 'react-router-dom';
-
-const navigation = [
-  { to: '/', label: 'Tổng quan', end: true },
-  { to: '/auth', label: 'Đăng nhập' },
-  { to: '/customer', label: 'Khách hàng' },
-  { to: '/cashier', label: 'Thu ngân' },
-  { to: '/warehouse', label: 'Kho' },
-  { to: '/manager', label: 'Quản lý' },
-];
+import { useAuth } from '../auth/AuthContext';
+import { getRoleHomePath } from '../auth/roles';
 
 function AppLayout() {
+  const { isAuthenticated, logout, user } = useAuth();
+  const navigation = isAuthenticated
+    ? [
+      { to: getRoleHomePath(user.role), label: 'Không gian của tôi' },
+      { to: '/account/change-password', label: 'Đổi mật khẩu' },
+    ]
+    : [
+      { to: '/', label: 'Tổng quan', end: true },
+      { to: '/auth/login', label: 'Đăng nhập' },
+      { to: '/auth/register', label: 'Đăng ký' },
+    ];
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -32,6 +37,9 @@ function AppLayout() {
               {item.label}
             </NavLink>
           ))}
+          {isAuthenticated && (
+            <button className="nav-button" type="button" onClick={logout}>Đăng xuất</button>
+          )}
         </nav>
       </header>
 

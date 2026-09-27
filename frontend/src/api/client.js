@@ -2,8 +2,10 @@ import { ApiError } from './errors';
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? '';
 const EMPTY_TOKEN_PROVIDER = () => null;
+const EMPTY_UNAUTHORIZED_HANDLER = () => {};
 
 let accessTokenProvider = EMPTY_TOKEN_PROVIDER;
+let unauthorizedHandler = EMPTY_UNAUTHORIZED_HANDLER;
 
 export const apiConfig = Object.freeze({
   baseUrl: configuredBaseUrl.replace(/\/$/, ''),
@@ -15,6 +17,14 @@ export function setAccessTokenProvider(provider) {
   }
 
   accessTokenProvider = provider ?? EMPTY_TOKEN_PROVIDER;
+}
+
+export function setUnauthorizedHandler(handler) {
+  if (handler !== null && typeof handler !== 'function') {
+    throw new TypeError('Unauthorized handler must be a function or null');
+  }
+
+  unauthorizedHandler = handler ?? EMPTY_UNAUTHORIZED_HANDLER;
 }
 
 export function buildApiUrl(path) {
@@ -104,7 +114,10 @@ async function request(path, options = {}) {
   }
 
   const payload = await parseResponse(response);
-  if (!response.ok) throw mapResponseError(response, payload);
+  if (!response.ok) {
+    if (response.status === 401 && includeAuthorization) unauthorizedHandler();
+    throw mapResponseError(response, payload);
+  }
 
   if (payload && Object.hasOwn(payload, 'success')) {
     if (payload.success !== true) throw mapResponseError(response, payload);
