@@ -37,6 +37,52 @@ async function updateEmployee(request, response) {
   });
 }
 
+async function listCustomers(request, response) {
+  response.status(200).json({
+    success: true,
+    data: await adminService.listCustomers(request.query),
+  });
+}
+
+async function getCustomer(request, response) {
+  response.status(200).json({
+    success: true,
+    data: await adminService.getCustomer(request.params.customerId),
+  });
+}
+
+async function listCustomerInvoices(request, response) {
+  response.status(200).json({
+    success: true,
+    data: await adminService.listCustomerInvoices(
+      request.params.customerId,
+      request.query,
+    ),
+  });
+}
+
+async function getCustomerInvoiceDetail(request, response) {
+  response.status(200).json({
+    success: true,
+    data: await adminService.getCustomerInvoiceDetail(
+      request.params.customerId,
+      request.params.invoiceId,
+    ),
+  });
+}
+
+async function updateCustomerAccountStatus(request, response) {
+  response.status(200).json({
+    success: true,
+    data: await adminService.updateCustomerAccountStatus(
+      request.auth,
+      request.params.customerId,
+      request.body,
+      request.ip ?? null,
+    ),
+  });
+}
+
 async function listAccounts(request, response) {
   response.status(200).json({
     success: true,
@@ -98,11 +144,16 @@ module.exports = {
   createAccount,
   createEmployee,
   getAccount,
+  getCustomer,
+  getCustomerInvoiceDetail,
   getEmployee,
   listAccounts,
+  listCustomerInvoices,
+  listCustomers,
   listEmployees,
   resetEmployeePassword,
   updateAccountRole,
   updateAccountStatus,
+  updateCustomerAccountStatus,
   updateEmployee,
 };

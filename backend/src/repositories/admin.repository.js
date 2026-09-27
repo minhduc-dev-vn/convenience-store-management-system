@@ -59,6 +59,121 @@ class AdminRepository extends BaseRepository {
     };
   }
 
+  async listCustomers(
+    { membershipTier, page, pageSize, searchPattern, status },
+    transaction = null,
+  ) {
+    const result = await this.query({
+      text: `
+        SELECT
+          customer.MaKH,
+          customer.HoTen,
+          customer.SDT,
+          customer.Email,
+          customer.DiaChi,
+          customer.NgaySinh,
+          customer.DiemTichLuy,
+          customer.HangThanhVien,
+          customer.NgayDangKy,
+          customer.TrangThai,
+          account.MaTK,
+          account.TenDangNhap,
+          account.MaVaiTro,
+          account.TrangThai AS TrangThaiTaiKhoan,
+          account.LanDangNhapCuoi,
+          account.NgayTao,
+          COUNT_BIG(*) OVER () AS TotalItems
+        FROM dbo.KHACH_HANG AS customer
+        LEFT JOIN dbo.TAI_KHOAN AS account ON account.MaKH = customer.MaKH
+        WHERE (@MembershipTier IS NULL OR customer.HangThanhVien = @MembershipTier)
+          AND (@Status IS NULL OR customer.TrangThai = @Status)
+          AND (
+            @SearchPattern IS NULL
+            OR customer.MaKH LIKE @SearchPattern ESCAPE '~'
+            OR customer.HoTen LIKE @SearchPattern ESCAPE '~'
+            OR customer.SDT LIKE @SearchPattern ESCAPE '~'
+            OR customer.Email LIKE @SearchPattern ESCAPE '~'
+          )
+        ORDER BY customer.NgayDangKy DESC, customer.MaKH
+        OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
+      `,
+      parameters: {
+        MembershipTier: { type: this.sql.VarChar(20), value: membershipTier },
+        Offset: { type: this.sql.Int, value: (page - 1) * pageSize },
+        PageSize: { type: this.sql.Int, value: pageSize },
+        SearchPattern: { type: this.sql.NVarChar(210), value: searchPattern },
+        Status: { type: this.sql.VarChar(20), value: status },
+      },
+      transaction,
+    });
+
+    return {
+      items: result.recordset,
+      totalItems: Number(result.recordset[0]?.TotalItems ?? 0),
+    };
+  }
+
+  async findCustomerById(customerId, transaction = null) {
+    const result = await this.query({
+      text: `
+        SELECT
+          customer.MaKH,
+          customer.HoTen,
+          customer.SDT,
+          customer.Email,
+          customer.DiaChi,
+          customer.NgaySinh,
+          customer.DiemTichLuy,
+          customer.HangThanhVien,
+          customer.NgayDangKy,
+          customer.TrangThai,
+          account.MaTK,
+          account.TenDangNhap,
+          account.MaVaiTro,
+          account.TrangThai AS TrangThaiTaiKhoan,
+          account.LanDangNhapCuoi,
+          account.NgayTao
+        FROM dbo.KHACH_HANG AS customer
+        LEFT JOIN dbo.TAI_KHOAN AS account ON account.MaKH = customer.MaKH
+        WHERE customer.MaKH = @CustomerId
+      `,
+      parameters: {
+        CustomerId: { type: this.sql.VarChar(10), value: customerId },
+      },
+      transaction,
+    });
+    return result.recordset[0] ?? null;
+  }
+
+  async findCustomerAccountForUpdate(customerId, transaction) {
+    const result = await this.query({
+      text: `
+        SELECT
+          account.MaTK,
+          account.TenDangNhap,
+          account.MaVaiTro,
+          account.MaNV,
+          account.MaKH,
+          account.TrangThai,
+          account.LanDangNhapCuoi,
+          account.NgayTao,
+          'CUSTOMER' AS LoaiChuSoHuu,
+          customer.MaKH AS MaChuSoHuu,
+          customer.HoTen AS TenChuSoHuu,
+          customer.TrangThai AS TrangThaiChuSoHuu
+        FROM dbo.TAI_KHOAN AS account WITH (UPDLOCK, HOLDLOCK)
+        JOIN dbo.KHACH_HANG AS customer ON customer.MaKH = account.MaKH
+        WHERE customer.MaKH = @CustomerId
+          AND account.MaVaiTro = 'CUSTOMER'
+      `,
+      parameters: {
+        CustomerId: { type: this.sql.VarChar(10), value: customerId },
+      },
+      transaction,
+    });
+    return result.recordset[0] ?? null;
+  }
+
   async findEmployeeById(employeeId, transaction = null, { lock = false } = {}) {
     const lockHint = lock ? 'WITH (UPDLOCK, HOLDLOCK)' : '';
     const result = await this.query({

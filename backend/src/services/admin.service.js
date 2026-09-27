@@ -4,6 +4,12 @@ const crypto = require('node:crypto');
 const bcrypt = require('bcrypt');
 const { getAuthSettings } = require('../config/auth.config');
 const { AdminRepository } = require('../repositories/admin.repository');
+const { CustomerRepository } = require('../repositories/customer.repository');
+const {
+  normalizeInvoiceListQuery,
+  serializeInvoiceDetail,
+  serializeInvoiceSummary,
+} = require('./customer.service');
 const { AppError } = require('../utils/app-error');
 const {
   assertPasswordsMatch,
@@ -23,6 +29,8 @@ const ACCOUNT_ROLES = Object.freeze(['CUSTOMER', 'CASHIER', 'WAREHOUSE', 'MANAGE
 const EMPLOYEE_ROLES = Object.freeze(['CASHIER', 'WAREHOUSE', 'MANAGER']);
 const ACCOUNT_STATUSES = Object.freeze(['ACTIVE', 'LOCKED', 'INACTIVE']);
 const EMPLOYEE_STATUSES = Object.freeze(['ACTIVE', 'INACTIVE']);
+const CUSTOMER_STATUSES = Object.freeze(['ACTIVE', 'INACTIVE']);
+const MEMBERSHIP_TIERS = Object.freeze(['BRONZE', 'SILVER', 'GOLD', 'DIAMOND']);
 const GENDERS = Object.freeze(['MALE', 'FEMALE', 'OTHER']);
 const OWNER_TYPES = Object.freeze(['CUSTOMER', 'EMPLOYEE']);
 const DEFAULT_PAGE = 1;
@@ -148,6 +156,29 @@ function serializeAccount(row) {
   };
 }
 
+function serializeManagedCustomer(row) {
+  return {
+    account: row.MaTK == null ? null : {
+      accountId: Number(row.MaTK),
+      createdAt: timestamp(row.NgayTao),
+      lastLoginAt: timestamp(row.LanDangNhapCuoi),
+      role: row.MaVaiTro,
+      status: row.TrangThaiTaiKhoan,
+      username: row.TenDangNhap,
+    },
+    address: row.DiaChi,
+    customerId: row.MaKH,
+    dateOfBirth: dateOnly(row.NgaySinh),
+    email: row.Email,
+    fullName: row.HoTen,
+    loyaltyPoints: row.DiemTichLuy,
+    membershipTier: row.HangThanhVien,
+    phone: row.SDT,
+    registeredAt: timestamp(row.NgayDangKy),
+    status: row.TrangThai,
+  };
+}
+
 function paginationResult(items, page, pageSize, totalItems) {
   return {
     items,
@@ -189,12 +220,14 @@ function accountRoleForOwner(ownerType, role) {
 class AdminService {
   constructor({
     adminRepository = new AdminRepository(),
+    customerRepository = new CustomerRepository(),
     employeeIdGenerator = createEmployeeId,
     passwordHasher = bcrypt,
     settingsProvider = getAuthSettings,
     transactionRunner = withTransaction,
   } = {}) {
     this.adminRepository = adminRepository;
+    this.customerRepository = customerRepository;
     this.employeeIdGenerator = employeeIdGenerator;
     this.passwordHasher = passwordHasher;
     this.settingsProvider = settingsProvider;
@@ -219,6 +252,58 @@ class AdminService {
     const employee = await this.adminRepository.findEmployeeById(employeeId);
     if (!employee) throw notFound('EMPLOYEE');
     return serializeEmployee(employee);
+  }
+
+  async listCustomers(query = {}) {
+    const filters = normalizeListQuery(query, {
+      membershipTier: normalizeEnum(
+        query.membershipTier,
+        'membershipTier',
+        MEMBERSHIP_TIERS,
+        { optional: true },
+      ),
+      status: normalizeEnum(query.status, 'status', CUSTOMER_STATUSES, { optional: true }),
+    });
+    const result = await this.adminRepository.listCustomers(filters);
+    return paginationResult(
+      result.items.map(serializeManagedCustomer),
+      filters.page,
+      filters.pageSize,
+      result.totalItems,
+    );
+  }
+
+  async getCustomer(customerIdInput) {
+    const customerId = normalizeId(customerIdInput, 'customerId');
+    const customer = await this.adminRepository.findCustomerById(customerId);
+    if (!customer) throw notFound('CUSTOMER');
+    return serializeManagedCustomer(customer);
+  }
+
+  async listCustomerInvoices(customerIdInput, query = {}) {
+    const customerId = normalizeId(customerIdInput, 'customerId');
+    if (!await this.adminRepository.findCustomerById(customerId)) {
+      throw notFound('CUSTOMER');
+    }
+    const filters = normalizeInvoiceListQuery(query);
+    const result = await this.customerRepository.listInvoices({ customerId, ...filters });
+    return paginationResult(
+      result.items.map(serializeInvoiceSummary),
+      filters.page,
+      filters.pageSize,
+      result.totalItems,
+    );
+  }
+
+  async getCustomerInvoiceDetail(customerIdInput, invoiceIdInput) {
+    const customerId = normalizeId(customerIdInput, 'customerId');
+    const invoiceId = requireString(invoiceIdInput, 'invoiceId', { maxLength: 15 });
+    if (!await this.adminRepository.findCustomerById(customerId)) {
+      throw notFound('CUSTOMER');
+    }
+    const result = await this.customerRepository.findInvoiceDetail(customerId, invoiceId);
+    if (!result) throw notFound('INVOICE');
+    return serializeInvoiceDetail(result);
   }
 
   async createEmployee(identity, input, ipAddress = null) {
@@ -452,22 +537,45 @@ class AdminService {
     return this.transactionRunner(async (transaction) => {
       const account = await this.adminRepository.findAccountForUpdate(accountId, transaction);
       if (!account) throw notFound('ACCOUNT');
-      if (account.TrangThai === status) {
-        return serializeAccount(await this.adminRepository.findAccountById(accountId, transaction));
-      }
-
-      await this.adminRepository.updateAccountStatus(accountId, status, transaction);
-      await this.adminRepository.writeAudit({
-        action: status === 'LOCKED' ? 'ACCOUNT_LOCKED' : 'ACCOUNT_UNLOCKED',
-        actorAccountId: identity.accountId,
-        ipAddress: normalizeIpAddress(ipAddress),
-        newData: JSON.stringify({ status }),
-        oldData: JSON.stringify({ status: account.TrangThai }),
-        recordId: accountId,
-        tableName: 'TAI_KHOAN',
-      }, transaction);
-      return serializeAccount(await this.adminRepository.findAccountById(accountId, transaction));
+      return this.applyAccountStatus(identity, account, status, ipAddress, transaction);
     });
+  }
+
+  async updateCustomerAccountStatus(
+    identity,
+    customerIdInput,
+    input,
+    ipAddress = null,
+  ) {
+    const customerId = normalizeId(customerIdInput, 'customerId');
+    const status = normalizeEnum(input.status, 'status', ['ACTIVE', 'LOCKED']);
+    return this.transactionRunner(async (transaction) => {
+      const account = await this.adminRepository.findCustomerAccountForUpdate(
+        customerId,
+        transaction,
+      );
+      if (!account) throw notFound('CUSTOMER_ACCOUNT');
+      return this.applyAccountStatus(identity, account, status, ipAddress, transaction);
+    });
+  }
+
+  async applyAccountStatus(identity, account, status, ipAddress, transaction) {
+    const accountId = Number(account.MaTK);
+    if (account.TrangThai === status) {
+      return serializeAccount(await this.adminRepository.findAccountById(accountId, transaction));
+    }
+
+    await this.adminRepository.updateAccountStatus(accountId, status, transaction);
+    await this.adminRepository.writeAudit({
+      action: status === 'LOCKED' ? 'ACCOUNT_LOCKED' : 'ACCOUNT_UNLOCKED',
+      actorAccountId: identity.accountId,
+      ipAddress: normalizeIpAddress(ipAddress),
+      newData: JSON.stringify({ status }),
+      oldData: JSON.stringify({ status: account.TrangThai }),
+      recordId: accountId,
+      tableName: 'TAI_KHOAN',
+    }, transaction);
+    return serializeAccount(await this.adminRepository.findAccountById(accountId, transaction));
   }
 
   async resetEmployeePassword(identity, accountIdInput, input, ipAddress = null) {
@@ -509,8 +617,10 @@ module.exports = {
   ACCOUNT_ROLES,
   AdminService,
   EMPLOYEE_ROLES,
+  MEMBERSHIP_TIERS,
   createEmployeeId,
   normalizeListQuery,
   serializeAccount,
   serializeEmployee,
+  serializeManagedCustomer,
 };

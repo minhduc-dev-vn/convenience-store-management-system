@@ -234,4 +234,5 @@ module.exports = {
   normalizeInvoiceListQuery,
   serializeCustomer,
   serializeInvoiceDetail,
+  serializeInvoiceSummary,
 };

@@ -62,7 +62,10 @@ async function cleanupTestRows() {
         WHERE account.TenDangNhap LIKE 'c11.%'
            OR customer.SDT LIKE '08181%';
         DELETE FROM dbo.KHACH_HANG WHERE SDT LIKE '08181%';
-        DELETE FROM dbo.NHAN_VIEN WHERE MaNV LIKE 'C11%';
+        DELETE FROM dbo.NHAN_VIEN
+        WHERE MaNV LIKE 'C11%'
+           OR SDT LIKE '08181%'
+           OR Email LIKE 'c11.%@example.test';
       `,
     });
   } finally {

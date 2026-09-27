@@ -46,6 +46,28 @@ function accountRow(overrides = {}) {
   };
 }
 
+function customerRow(overrides = {}) {
+  return {
+    MaKH: 'KHTEST001',
+    HoTen: 'Test Customer',
+    SDT: '0900000022',
+    Email: 'customer@example.test',
+    DiaChi: 'Customer address',
+    NgaySinh: new Date('1997-03-04T00:00:00.000Z'),
+    DiemTichLuy: 250,
+    HangThanhVien: 'GOLD',
+    NgayDangKy: new Date('2026-02-01T10:00:00.000Z'),
+    TrangThai: 'ACTIVE',
+    MaTK: 43,
+    TenDangNhap: 'test.customer',
+    MaVaiTro: 'CUSTOMER',
+    TrangThaiTaiKhoan: 'ACTIVE',
+    LanDangNhapCuoi: null,
+    NgayTao: new Date('2026-02-01T10:00:00.000Z'),
+    ...overrides,
+  };
+}
+
 test('employee list normalizes filters and never exposes database-only fields', async () => {
   let receivedFilters;
   const service = new AdminService({
@@ -141,6 +163,151 @@ test('employee update uses status instead of deletion and audits before/after va
   assert.equal(auditRecord.action, 'EMPLOYEE_UPDATED');
   assert.equal(JSON.parse(auditRecord.oldData).status, 'ACTIVE');
   assert.equal(JSON.parse(auditRecord.newData).status, 'INACTIVE');
+});
+
+test('manager customer list supports member filters without exposing account secrets', async () => {
+  let receivedFilters;
+  const service = new AdminService({
+    adminRepository: {
+      async listCustomers(filters) {
+        receivedFilters = filters;
+        return {
+          items: [customerRow({ MatKhauHash: 'must-never-leak' })],
+          totalItems: 1,
+        };
+      },
+    },
+  });
+
+  const result = await service.listCustomers({
+    membershipTier: 'gold', page: '2', pageSize: '5', search: '50%_member', status: 'active',
+  });
+
+  assert.equal(receivedFilters.membershipTier, 'GOLD');
+  assert.equal(receivedFilters.searchPattern, '%50~%~_member%');
+  assert.equal(receivedFilters.status, 'ACTIVE');
+  assert.equal(result.items[0].customerId, 'KHTEST001');
+  assert.equal(result.items[0].account.status, 'ACTIVE');
+  assert.equal(JSON.stringify(result).includes('must-never-leak'), false);
+  assert.deepEqual(result.pagination, { page: 2, pageSize: 5, totalItems: 1, totalPages: 1 });
+});
+
+test('manager customer detail and history use explicit customer id rather than self ownership', async () => {
+  const customerRepositoryCalls = [];
+  const service = new AdminService({
+    adminRepository: {
+      async findCustomerById(customerId) {
+        assert.equal(customerId, 'KHTEST001');
+        return customerRow();
+      },
+    },
+    customerRepository: {
+      async listInvoices(filters) {
+        customerRepositoryCalls.push(filters);
+        return {
+          items: [{
+            MaHD: 'HDTEST001',
+            NgayLap: new Date('2026-03-01T09:00:00.000Z'),
+            TongThanhToan: 120000,
+            TrangThai: 'PAID',
+          }],
+          totalItems: 1,
+        };
+      },
+      async findInvoiceDetail(customerId, invoiceId) {
+        assert.equal(customerId, 'KHTEST001');
+        assert.equal(invoiceId, 'HDTEST001');
+        return {
+          invoice: {
+            MaHD: invoiceId,
+            NgayLap: new Date('2026-03-01T09:00:00.000Z'),
+            TongTienHang: 120000,
+            TongGiamGia: 0,
+            TongThanhToan: 120000,
+            TrangThai: 'PAID',
+          },
+          items: [{
+            MaSP: 'SPTEST001', TenSP: 'Test product', SoLuong: 2,
+            DonGiaBan: 60000, TienGiam: 0, ThanhTien: 120000,
+          }],
+        };
+      },
+    },
+  });
+
+  const detail = await service.getCustomer('KHTEST001');
+  const history = await service.listCustomerInvoices('KHTEST001', {
+    page: '1', pageSize: '10', from: '2026-03-01', to: '2026-03-31',
+  });
+  const invoice = await service.getCustomerInvoiceDetail('KHTEST001', 'HDTEST001');
+
+  assert.equal(detail.loyaltyPoints, 250);
+  assert.equal(customerRepositoryCalls[0].customerId, 'KHTEST001');
+  assert.equal(history.items[0].invoiceId, 'HDTEST001');
+  assert.equal(invoice.items[0].productId, 'SPTEST001');
+});
+
+test('customer account lock uses shared status rules and writes a secret-free audit', async () => {
+  let updatedStatus;
+  let audit;
+  const service = new AdminService({
+    adminRepository: {
+      async findCustomerAccountForUpdate(customerId) {
+        assert.equal(customerId, 'KHTEST001');
+        return accountRow({
+          MaTK: 43,
+          MaVaiTro: 'CUSTOMER',
+          LoaiChuSoHuu: 'CUSTOMER',
+          MaChuSoHuu: 'KHTEST001',
+          TenChuSoHuu: 'Test Customer',
+        });
+      },
+      async updateAccountStatus(_accountId, status) { updatedStatus = status; },
+      async writeAudit(value) { audit = value; },
+      async findAccountById() {
+        return accountRow({
+          MaTK: 43,
+          MaVaiTro: 'CUSTOMER',
+          LoaiChuSoHuu: 'CUSTOMER',
+          MaChuSoHuu: 'KHTEST001',
+          TenChuSoHuu: 'Test Customer',
+          TrangThai: 'LOCKED',
+        });
+      },
+    },
+    transactionRunner,
+  });
+
+  const result = await service.updateCustomerAccountStatus(
+    manager,
+    'KHTEST001',
+    { status: 'LOCKED' },
+    '127.0.0.1',
+  );
+
+  assert.equal(updatedStatus, 'LOCKED');
+  assert.equal(result.status, 'LOCKED');
+  assert.equal(audit.action, 'ACCOUNT_LOCKED');
+  assert.equal(audit.recordId, 43);
+  assert.equal(JSON.stringify(audit).toLowerCase().includes('password'), false);
+});
+
+test('manager customer API rejects unsupported tiers and missing customer accounts', async () => {
+  const service = new AdminService({
+    adminRepository: {
+      async findCustomerAccountForUpdate() { return null; },
+    },
+    transactionRunner,
+  });
+
+  await assert.rejects(
+    service.listCustomers({ membershipTier: 'PLATINUM' }),
+    (error) => error.code === 'VALIDATION_ERROR' && error.statusCode === 400,
+  );
+  await assert.rejects(
+    service.updateCustomerAccountStatus(manager, 'KHTEST001', { status: 'LOCKED' }),
+    (error) => error.code === 'CUSTOMER_ACCOUNT_NOT_FOUND' && error.statusCode === 404,
+  );
 });
 
 test('account creation supports either owner type while enforcing the owner-role invariant', async () => {

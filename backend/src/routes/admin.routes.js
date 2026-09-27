@@ -36,6 +36,12 @@ const validateStatusUpdate = validateBody({ required: ['status'] });
 const validatePasswordReset = validateBody({
   required: ['newPassword', 'newPasswordConfirmation'],
 });
+const validateCustomerList = validateQuery({
+  allowed: ['page', 'pageSize', 'search', 'membershipTier', 'status'],
+});
+const validateCustomerInvoiceList = validateQuery({
+  allowed: ['page', 'pageSize', 'from', 'to'],
+});
 
 router.use(authenticate, authorize('MANAGER'));
 
@@ -47,6 +53,23 @@ router.patch(
   validateEmployeeUpdate,
   asyncHandler(adminController.updateEmployee),
 );
+
+router.get('/customers', validateCustomerList, asyncHandler(adminController.listCustomers));
+router.get(
+  '/customers/:customerId/invoices',
+  validateCustomerInvoiceList,
+  asyncHandler(adminController.listCustomerInvoices),
+);
+router.get(
+  '/customers/:customerId/invoices/:invoiceId',
+  asyncHandler(adminController.getCustomerInvoiceDetail),
+);
+router.patch(
+  '/customers/:customerId/account/status',
+  validateStatusUpdate,
+  asyncHandler(adminController.updateCustomerAccountStatus),
+);
+router.get('/customers/:customerId', asyncHandler(adminController.getCustomer));
 
 router.get('/accounts', validateAccountList, asyncHandler(adminController.listAccounts));
 router.post('/accounts', validateAccountCreate, asyncHandler(adminController.createAccount));
