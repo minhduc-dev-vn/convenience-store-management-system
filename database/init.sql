@@ -29,9 +29,15 @@ GO
 :r .\constraints\02_auth_account_audit.sql
 :r .\indexes\01_lookup_indexes.sql
 :r .\indexes\02_auth_audit_indexes.sql
+:r .\indexes\03_catalog_promotion_supplier_indexes.sql
 :r .\views\01_account_role.sql
+:r .\views\02_catalog_promotion.sql
 :r .\procedures\01_get_account_for_authentication.sql
 :r .\procedures\02_write_audit_log.sql
+:r .\procedures\03_product_lookup.sql
+:r .\procedures\04_active_promotions.sql
+:r .\procedures\05_supplier_lookup.sql
+:r .\procedures\06_product_price_history.sql
 :r .\seed\01_roles.sql
 :r .\seed\02_development_data.sql
 
