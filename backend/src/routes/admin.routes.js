@@ -4,6 +4,7 @@ const express = require('express');
 const adminController = require('../controllers/admin.controller');
 const productController = require('../controllers/product.controller');
 const promotionController = require('../controllers/promotion.controller');
+const supplierController = require('../controllers/supplier.controller');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { validateBody, validateQuery } = require('../middleware/validation.middleware');
 const { asyncHandler } = require('../utils/async-handler');
@@ -86,6 +87,18 @@ const promotionUpdateFields = [
 const validatePromotionUpdate = validateBody({
   optional: promotionUpdateFields,
   atLeastOne: promotionUpdateFields,
+});
+const validateSupplierList = validateQuery({
+  allowed: ['page', 'pageSize', 'search', 'status'],
+});
+const validateSupplierCreate = validateBody({
+  required: ['supplierId', 'name', 'phone'],
+  optional: ['email', 'address', 'taxCode', 'status'],
+});
+const supplierUpdateFields = ['name', 'phone', 'email', 'address', 'taxCode'];
+const validateSupplierUpdate = validateBody({
+  optional: supplierUpdateFields,
+  atLeastOne: supplierUpdateFields,
 });
 
 router.use(authenticate, authorize('MANAGER'));
@@ -178,6 +191,20 @@ router.patch(
   '/promotions/:promotionId',
   validatePromotionUpdate,
   asyncHandler(promotionController.updatePromotion),
+);
+
+router.get('/suppliers', validateSupplierList, asyncHandler(supplierController.listSuppliers));
+router.post('/suppliers', validateSupplierCreate, asyncHandler(supplierController.createSupplier));
+router.patch(
+  '/suppliers/:supplierId/status',
+  validateStatusUpdate,
+  asyncHandler(supplierController.updateSupplierStatus),
+);
+router.get('/suppliers/:supplierId', asyncHandler(supplierController.getSupplier));
+router.patch(
+  '/suppliers/:supplierId',
+  validateSupplierUpdate,
+  asyncHandler(supplierController.updateSupplier),
 );
 
 router.get('/accounts', validateAccountList, asyncHandler(adminController.listAccounts));
