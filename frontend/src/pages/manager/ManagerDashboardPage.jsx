@@ -7,7 +7,7 @@ function ManagerDashboardPage() {
       <PageHeader
         eyebrow="MANAGER"
         title="Trung tâm quản trị"
-        description="Quản lý hồ sơ nhân viên, tài khoản, quyền truy cập và khách hàng thành viên từ một khu vực thống nhất."
+        description="Quản lý nhân sự, tài khoản, khách hàng, hàng hóa, khuyến mãi và đối tác cung cấp từ một khu vực thống nhất."
       />
       <div className="dashboard-grid dashboard-grid--compact">
         <article className="action-card">
@@ -45,6 +45,12 @@ function ManagerDashboardPage() {
           <h2>Chương trình khuyến mãi</h2>
           <p>Tạo, cập nhật, kích hoạt chương trình và quản lý danh sách sản phẩm áp dụng.</p>
           <Link className="button button--primary" to="/manager/promotions">Mở quản lý khuyến mãi</Link>
+        </article>
+        <article className="action-card">
+          <p className="eyebrow">MH-10 · F19</p>
+          <h2>Nhà cung cấp</h2>
+          <p>Tra cứu, thêm và cập nhật hồ sơ đối tác; thay đổi trạng thái hợp tác mà không xóa dữ liệu đã phát sinh.</p>
+          <Link className="button button--primary" to="/manager/suppliers">Mở quản lý nhà cung cấp</Link>
         </article>
       </div>
     </section>

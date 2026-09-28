@@ -16,6 +16,7 @@ import ManagerDashboardPage from '../pages/manager/ManagerDashboardPage';
 import ProductManagementPage from '../pages/manager/ProductManagementPage';
 import ProductPricingPage from '../pages/manager/ProductPricingPage';
 import PromotionManagementPage from '../pages/manager/PromotionManagementPage';
+import SupplierManagementPage from '../pages/manager/SupplierManagementPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import ProductCatalogPage from '../pages/customer/ProductCatalogPage';
 import PromotionPage from '../pages/customer/PromotionPage';
@@ -58,6 +59,7 @@ function AppRoutes() {
             <Route path="products" element={<ProductManagementPage />} />
             <Route path="products/pricing" element={<ProductPricingPage />} />
             <Route path="promotions" element={<PromotionManagementPage />} />
+            <Route path="suppliers" element={<SupplierManagementPage />} />
           </Route>
         </Route>
 
