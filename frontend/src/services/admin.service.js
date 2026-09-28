@@ -1,5 +1,13 @@
 import { apiClient } from '../api';
-import { buildAdminQuery, encodeAdminId } from './adminQuery';
+import {
+  buildAdminQuery,
+  buildCustomerAccountStatusPath,
+  buildCustomerDetailPath,
+  buildCustomerInvoiceDetailPath,
+  buildCustomerInvoicesPath,
+  buildCustomerListPath,
+  encodeAdminId,
+} from './adminQuery';
 
 export { buildAdminQuery } from './adminQuery';
 
@@ -48,4 +56,24 @@ export function resetEmployeePassword(accountId, payload, options = {}) {
     payload,
     options,
   );
+}
+
+export function listCustomers(filters = {}, options = {}) {
+  return apiClient.get(buildCustomerListPath(filters), options);
+}
+
+export function getCustomer(customerId, options = {}) {
+  return apiClient.get(buildCustomerDetailPath(customerId), options);
+}
+
+export function listCustomerInvoices(customerId, filters = {}, options = {}) {
+  return apiClient.get(buildCustomerInvoicesPath(customerId, filters), options);
+}
+
+export function getCustomerInvoice(customerId, invoiceId, options = {}) {
+  return apiClient.get(buildCustomerInvoiceDetailPath(customerId, invoiceId), options);
+}
+
+export function updateCustomerAccountStatus(customerId, status, options = {}) {
+  return apiClient.patch(buildCustomerAccountStatusPath(customerId), { status }, options);
 }

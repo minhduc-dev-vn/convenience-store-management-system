@@ -10,6 +10,7 @@ import CustomerProfilePage from '../pages/CustomerProfilePage';
 import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
 import AccountManagementPage from '../pages/manager/AccountManagementPage';
+import CustomerMemberManagementPage from '../pages/manager/CustomerMemberManagementPage';
 import EmployeeManagementPage from '../pages/manager/EmployeeManagementPage';
 import ManagerDashboardPage from '../pages/manager/ManagerDashboardPage';
 import NotFoundPage from '../pages/NotFoundPage';
@@ -46,6 +47,7 @@ function AppRoutes() {
             <Route index element={<ManagerDashboardPage />} />
             <Route path="employees" element={<EmployeeManagementPage />} />
             <Route path="accounts" element={<AccountManagementPage />} />
+            <Route path="customers" element={<CustomerMemberManagementPage />} />
           </Route>
         </Route>
 

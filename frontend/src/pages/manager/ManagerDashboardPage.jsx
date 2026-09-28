@@ -7,7 +7,7 @@ function ManagerDashboardPage() {
       <PageHeader
         eyebrow="MANAGER"
         title="Trung tâm quản trị"
-        description="Quản lý hồ sơ nhân viên, tài khoản và quyền truy cập từ một khu vực thống nhất."
+        description="Quản lý hồ sơ nhân viên, tài khoản, quyền truy cập và khách hàng thành viên từ một khu vực thống nhất."
       />
       <div className="dashboard-grid dashboard-grid--compact">
         <article className="action-card">
@@ -21,6 +21,12 @@ function ManagerDashboardPage() {
           <h2>Tài khoản và phân quyền</h2>
           <p>Tạo tài khoản, gán role, khóa/mở khóa và cấp lại mật khẩu nhân viên.</p>
           <Link className="button button--primary" to="/manager/accounts">Mở quản lý tài khoản</Link>
+        </article>
+        <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-21 · F16/F32</p>
+          <h2>Khách hàng thành viên</h2>
+          <p>Tra cứu thành viên, theo dõi điểm và hạng, xem lịch sử hóa đơn, khóa hoặc mở tài khoản khách hàng.</p>
+          <Link className="button button--primary" to="/manager/customers">Mở danh sách khách hàng</Link>
         </article>
       </div>
     </section>

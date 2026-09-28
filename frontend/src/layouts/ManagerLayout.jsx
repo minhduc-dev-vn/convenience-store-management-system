@@ -5,6 +5,7 @@ const managerNavigation = [
   { to: '/manager', label: 'Tổng quan', end: true },
   { to: '/manager/employees', label: 'Quản lý nhân viên' },
   { to: '/manager/accounts', label: 'Tài khoản và phân quyền' },
+  { to: '/manager/customers', label: 'Khách hàng thành viên' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 

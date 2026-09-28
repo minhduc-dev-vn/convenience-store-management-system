@@ -15,6 +15,8 @@ const ERROR_MESSAGES = Object.freeze({
   AUTHENTICATION_REQUIRED: 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.',
   CURRENT_PASSWORD_INCORRECT: 'Mật khẩu hiện tại không chính xác.',
   CUSTOMER_PROFILE_UNAVAILABLE: 'Hồ sơ khách hàng hiện không khả dụng.',
+  CUSTOMER_NOT_FOUND: 'Không tìm thấy khách hàng.',
+  CUSTOMER_ACCOUNT_NOT_FOUND: 'Khách hàng chưa có tài khoản phù hợp để thực hiện thao tác.',
   DATABASE_UNAVAILABLE: 'Không thể kết nối đến cơ sở dữ liệu.',
   EMPLOYEE_NOT_FOUND: 'Không tìm thấy nhân viên.',
   EMPLOYEE_CONFLICT: 'Số điện thoại hoặc email nhân viên đã được sử dụng.',
