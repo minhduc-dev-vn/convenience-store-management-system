@@ -3,6 +3,7 @@
 const express = require('express');
 const adminController = require('../controllers/admin.controller');
 const productController = require('../controllers/product.controller');
+const promotionController = require('../controllers/promotion.controller');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { validateBody, validateQuery } = require('../middleware/validation.middleware');
 const { asyncHandler } = require('../utils/async-handler');
@@ -68,6 +69,23 @@ const categoryUpdateFields = ['name', 'description'];
 const validateCategoryUpdate = validateBody({
   optional: categoryUpdateFields,
   atLeastOne: categoryUpdateFields,
+});
+const validatePromotionList = validateQuery({
+  allowed: ['page', 'pageSize', 'search', 'status', 'type'],
+});
+const validatePromotionCreate = validateBody({
+  required: [
+    'promotionId', 'name', 'type', 'value', 'startAt', 'endAt', 'productIds',
+  ],
+  optional: ['minimumOrderValue', 'maximumDiscount', 'status'],
+});
+const promotionUpdateFields = [
+  'name', 'type', 'value', 'minimumOrderValue', 'maximumDiscount',
+  'startAt', 'endAt', 'productIds',
+];
+const validatePromotionUpdate = validateBody({
+  optional: promotionUpdateFields,
+  atLeastOne: promotionUpdateFields,
 });
 
 router.use(authenticate, authorize('MANAGER'));
@@ -138,6 +156,28 @@ router.patch(
   '/categories/:categoryId',
   validateCategoryUpdate,
   asyncHandler(productController.updateCategory),
+);
+
+router.get(
+  '/promotions',
+  validatePromotionList,
+  asyncHandler(promotionController.listPromotions),
+);
+router.post(
+  '/promotions',
+  validatePromotionCreate,
+  asyncHandler(promotionController.createPromotion),
+);
+router.patch(
+  '/promotions/:promotionId/status',
+  validateStatusUpdate,
+  asyncHandler(promotionController.updatePromotionStatus),
+);
+router.get('/promotions/:promotionId', asyncHandler(promotionController.getPromotion));
+router.patch(
+  '/promotions/:promotionId',
+  validatePromotionUpdate,
+  asyncHandler(promotionController.updatePromotion),
 );
 
 router.get('/accounts', validateAccountList, asyncHandler(adminController.listAccounts));
