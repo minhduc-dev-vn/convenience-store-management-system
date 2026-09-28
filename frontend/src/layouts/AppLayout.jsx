@@ -7,10 +7,12 @@ function AppLayout() {
   const navigation = isAuthenticated
     ? [
       { to: getRoleHomePath(user.role), label: 'Không gian của tôi' },
+      { to: '/products', label: 'Sản phẩm' },
       { to: '/account/change-password', label: 'Đổi mật khẩu' },
     ]
     : [
       { to: '/', label: 'Tổng quan', end: true },
+      { to: '/products', label: 'Sản phẩm' },
       { to: '/auth/login', label: 'Đăng nhập' },
       { to: '/auth/register', label: 'Đăng ký' },
     ];

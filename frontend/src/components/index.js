@@ -7,4 +7,5 @@ export { default as Notice } from './Notice';
 export { default as PageHeader } from './PageHeader';
 export { default as Pagination } from './Pagination';
 export { default as Modal } from './Modal';
+export { default as ProductCard } from './ProductCard';
 export { EmptyState, ErrorState, LoadingState } from './StateViews';

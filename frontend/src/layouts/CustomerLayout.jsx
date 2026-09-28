@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext';
 
 const customerNavigation = [
   { to: '/customer', label: 'Tổng quan', end: true },
+  { to: '/products', label: 'Sản phẩm' },
   { to: '/customer/history', label: 'Lịch sử và điểm' },
   { to: '/customer/profile', label: 'Hồ sơ cá nhân' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },

@@ -22,11 +22,23 @@ function ManagerDashboardPage() {
           <p>Tạo tài khoản, gán role, khóa/mở khóa và cấp lại mật khẩu nhân viên.</p>
           <Link className="button button--primary" to="/manager/accounts">Mở quản lý tài khoản</Link>
         </article>
-        <article className="action-card action-card--wide">
+        <article className="action-card">
           <p className="eyebrow">MH-21 · F16/F32</p>
           <h2>Khách hàng thành viên</h2>
           <p>Tra cứu thành viên, theo dõi điểm và hạng, xem lịch sử hóa đơn, khóa hoặc mở tài khoản khách hàng.</p>
           <Link className="button button--primary" to="/manager/customers">Mở danh sách khách hàng</Link>
+        </article>
+        <article className="action-card">
+          <p className="eyebrow">MH-16 · F28</p>
+          <h2>Sản phẩm và loại hàng</h2>
+          <p>Tra cứu, thêm, cập nhật và chuyển trạng thái sản phẩm, đồng thời duy trì danh mục loại hàng.</p>
+          <Link className="button button--primary" to="/manager/products">Mở quản lý sản phẩm</Link>
+        </article>
+        <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-17 · F29</p>
+          <h2>Giá bán và lịch sử</h2>
+          <p>Cập nhật giá có xác nhận, lý do và theo dõi lịch sử audit cho từng sản phẩm.</p>
+          <Link className="button button--primary" to="/manager/products/pricing">Mở quản lý giá</Link>
         </article>
       </div>
     </section>

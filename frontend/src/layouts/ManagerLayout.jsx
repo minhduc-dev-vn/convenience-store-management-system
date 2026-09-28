@@ -6,6 +6,8 @@ const managerNavigation = [
   { to: '/manager/employees', label: 'Quản lý nhân viên' },
   { to: '/manager/accounts', label: 'Tài khoản và phân quyền' },
   { to: '/manager/customers', label: 'Khách hàng thành viên' },
+  { to: '/manager/products', label: 'Quản lý sản phẩm', end: true },
+  { to: '/manager/products/pricing', label: 'Cập nhật giá bán' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 
