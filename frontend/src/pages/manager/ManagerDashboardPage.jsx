@@ -40,6 +40,12 @@ function ManagerDashboardPage() {
           <p>Cập nhật giá có xác nhận, lý do và theo dõi lịch sử audit cho từng sản phẩm.</p>
           <Link className="button button--primary" to="/manager/products/pricing">Mở quản lý giá</Link>
         </article>
+        <article className="action-card">
+          <p className="eyebrow">MH-18 · F30</p>
+          <h2>Chương trình khuyến mãi</h2>
+          <p>Tạo, cập nhật, kích hoạt chương trình và quản lý danh sách sản phẩm áp dụng.</p>
+          <Link className="button button--primary" to="/manager/promotions">Mở quản lý khuyến mãi</Link>
+        </article>
       </div>
     </section>
   );

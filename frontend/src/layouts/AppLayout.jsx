@@ -8,11 +8,13 @@ function AppLayout() {
     ? [
       { to: getRoleHomePath(user.role), label: 'Không gian của tôi' },
       { to: '/products', label: 'Sản phẩm' },
+      { to: '/promotions', label: 'Khuyến mãi' },
       { to: '/account/change-password', label: 'Đổi mật khẩu' },
     ]
     : [
       { to: '/', label: 'Tổng quan', end: true },
       { to: '/products', label: 'Sản phẩm' },
+      { to: '/promotions', label: 'Khuyến mãi' },
       { to: '/auth/login', label: 'Đăng nhập' },
       { to: '/auth/register', label: 'Đăng ký' },
     ];

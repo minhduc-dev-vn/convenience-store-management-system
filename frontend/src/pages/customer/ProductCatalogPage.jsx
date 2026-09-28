@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
-import { AsyncContent, FormField, Modal, PageHeader, Pagination, ProductCard } from '../../components';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AsyncContent, FormField, Modal, PageHeader, Pagination, ProductCard, PromotionCard } from '../../components';
 import {
   getPublicProduct,
   listPublicCategories,
   listPublicProducts,
 } from '../../services/product.service';
+import { listPublicPromotions } from '../../services/promotion.service';
 
 const PAGE_SIZE = 12;
 const money = new Intl.NumberFormat('vi-VN', {
@@ -20,6 +22,8 @@ function ProductCatalogPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState({ data: null, error: null, isLoading: true });
   const [categories, setCategories] = useState({ data: [], error: null });
+  const [promotionReloadKey, setPromotionReloadKey] = useState(0);
+  const [promotions, setPromotions] = useState({ data: [], error: null, isLoading: true });
   const [detail, setDetail] = useState({ data: null, error: null, isLoading: false });
 
   const loadProducts = useCallback(async (signal) => {
@@ -51,6 +55,28 @@ function ProductCatalogPage() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    setPromotions((current) => ({ ...current, error: null, isLoading: true }));
+    listPublicPromotions({}, { signal: controller.signal })
+      .then((data) => setPromotions({ data, error: null, isLoading: false }))
+      .catch((error) => {
+        if (error.name !== 'AbortError') setPromotions({ data: [], error, isLoading: false });
+      });
+    return () => controller.abort();
+  }, [promotionReloadKey]);
+
+  const promotionsByProduct = useMemo(() => {
+    const mapping = new Map();
+    for (const promotion of promotions.data) {
+      for (const product of promotion.products) {
+        const current = mapping.get(product.productId) ?? [];
+        mapping.set(product.productId, [...current, promotion]);
+      }
+    }
+    return mapping;
+  }, [promotions.data]);
+
   const openDetail = async (product) => {
     setDetail({ data: product, error: null, isLoading: true });
     try {
@@ -79,10 +105,35 @@ function ProductCatalogPage() {
   return (
     <section className="workspace-page catalog-page">
       <PageHeader
-        eyebrow="MH-26 · F05 · PUBLIC"
+        eyebrow="MH-26 · F05/F06 · PUBLIC"
         title="Danh mục sản phẩm"
         description="Tra cứu sản phẩm đang kinh doanh và giá bán công khai. Bạn không cần đăng nhập để sử dụng trang này."
       />
+
+      <section className="promotion-highlights" aria-labelledby="promotion-highlights-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Ưu đãi nổi bật</p>
+            <h2 id="promotion-highlights-title">Khuyến mãi hiện hành</h2>
+          </div>
+          <Link className="button button--ghost" to="/promotions">Xem tất cả ưu đãi</Link>
+        </div>
+        <AsyncContent
+          error={promotions.error}
+          isLoading={promotions.isLoading}
+          loadingMessage="Đang tải ưu đãi hiện hành…"
+          onRetry={() => setPromotionReloadKey((value) => value + 1)}
+          isEmpty={promotions.data.length === 0}
+          emptyTitle="Chưa có ưu đãi đang diễn ra"
+          emptyMessage="Danh mục sản phẩm vẫn sẵn sàng để tra cứu."
+        >
+          <div className="promotion-grid promotion-grid--highlights">
+            {promotions.data.slice(0, 4).map((promotion) => (
+              <PromotionCard key={promotion.promotionId} compact promotion={promotion} />
+            ))}
+          </div>
+        </AsyncContent>
+      </section>
 
       <form className="filter-bar catalog-filter" onSubmit={submitFilters}>
         <FormField htmlFor="catalogSearch" label="Tên hoặc mã sản phẩm">
@@ -127,7 +178,12 @@ function ProductCatalogPage() {
           <>
             <div className="product-grid">
               {state.data.items.map((product) => (
-                <ProductCard key={product.productId} product={product} onView={openDetail} />
+                <ProductCard
+                  key={product.productId}
+                  product={product}
+                  promotions={promotionsByProduct.get(product.productId) ?? []}
+                  onView={openDetail}
+                />
               ))}
             </div>
             <Pagination

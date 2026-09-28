@@ -15,8 +15,10 @@ import EmployeeManagementPage from '../pages/manager/EmployeeManagementPage';
 import ManagerDashboardPage from '../pages/manager/ManagerDashboardPage';
 import ProductManagementPage from '../pages/manager/ProductManagementPage';
 import ProductPricingPage from '../pages/manager/ProductPricingPage';
+import PromotionManagementPage from '../pages/manager/PromotionManagementPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import ProductCatalogPage from '../pages/customer/ProductCatalogPage';
+import PromotionPage from '../pages/customer/PromotionPage';
 import RegisterPage from '../pages/RegisterPage';
 import StaffWorkspacePage from '../pages/StaffWorkspacePage';
 import { ProtectedRoute, PublicOnlyRoute } from './RouteGuards';
@@ -28,6 +30,7 @@ function AppRoutes() {
         <Route index element={<HomePage />} />
         <Route path="public" element={<HomePage />} />
         <Route path="products" element={<ProductCatalogPage />} />
+        <Route path="promotions" element={<PromotionPage />} />
         <Route path="auth" element={<Navigate replace to="/auth/login" />} />
         <Route element={<PublicOnlyRoute />}>
           <Route path="auth/login" element={<LoginPage />} />
@@ -54,6 +57,7 @@ function AppRoutes() {
             <Route path="customers" element={<CustomerMemberManagementPage />} />
             <Route path="products" element={<ProductManagementPage />} />
             <Route path="products/pricing" element={<ProductPricingPage />} />
+            <Route path="promotions" element={<PromotionManagementPage />} />
           </Route>
         </Route>
 

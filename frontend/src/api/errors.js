@@ -34,6 +34,8 @@ const ERROR_MESSAGES = Object.freeze({
   PRODUCT_ID_CONFLICT: 'Mã sản phẩm đã được sử dụng.',
   PRODUCT_BARCODE_CONFLICT: 'Mã vạch đã được sử dụng cho sản phẩm khác.',
   PRODUCT_CONFLICT: 'Mã sản phẩm hoặc mã vạch đã được sử dụng.',
+  PROMOTION_NOT_FOUND: 'Không tìm thấy chương trình khuyến mãi phù hợp.',
+  PROMOTION_ID_CONFLICT: 'Mã chương trình khuyến mãi đã được sử dụng.',
   CATEGORY_NOT_FOUND: 'Không tìm thấy loại sản phẩm.',
   CATEGORY_INACTIVE: 'Loại sản phẩm đang ngừng hoạt động.',
   CATEGORY_ID_CONFLICT: 'Mã loại sản phẩm đã được sử dụng.',

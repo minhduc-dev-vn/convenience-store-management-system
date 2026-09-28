@@ -8,4 +8,5 @@ export { default as PageHeader } from './PageHeader';
 export { default as Pagination } from './Pagination';
 export { default as Modal } from './Modal';
 export { default as ProductCard } from './ProductCard';
+export { default as PromotionCard } from './PromotionCard';
 export { EmptyState, ErrorState, LoadingState } from './StateViews';

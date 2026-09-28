@@ -14,7 +14,7 @@ function initials(name) {
     .toUpperCase();
 }
 
-function ProductCard({ onView, product }) {
+function ProductCard({ onView, product, promotions = [] }) {
   return (
     <article className="product-card">
       <div className="product-card__visual" aria-hidden="true">
@@ -23,6 +23,13 @@ function ProductCard({ onView, product }) {
       <div className="product-card__body">
         <p className="eyebrow">{product.category.name}</p>
         <h2>{product.name}</h2>
+        {promotions.length > 0 && (
+          <div className="product-card__promotion" title={promotions.map((promotion) => promotion.name).join(', ')}>
+            <span>Ưu đãi</span>
+            <strong>{promotions[0].name}</strong>
+            {promotions.length > 1 && <small>+{promotions.length - 1} chương trình</small>}
+          </div>
+        )}
         <div className="product-card__meta">
           <span>{product.unit}</span>
           <strong>{money.format(product.price)}</strong>

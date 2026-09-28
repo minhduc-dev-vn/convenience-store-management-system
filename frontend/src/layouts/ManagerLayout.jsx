@@ -8,6 +8,7 @@ const managerNavigation = [
   { to: '/manager/customers', label: 'Khách hàng thành viên' },
   { to: '/manager/products', label: 'Quản lý sản phẩm', end: true },
   { to: '/manager/products/pricing', label: 'Cập nhật giá bán' },
+  { to: '/manager/promotions', label: 'Quản lý khuyến mãi' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 
