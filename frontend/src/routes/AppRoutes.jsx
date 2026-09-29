@@ -3,6 +3,7 @@ import { ROLES } from '../auth/roles';
 import AppLayout from '../layouts/AppLayout';
 import CustomerLayout from '../layouts/CustomerLayout';
 import ManagerLayout from '../layouts/ManagerLayout';
+import WarehouseLayout from '../layouts/WarehouseLayout';
 import ChangePasswordPage from '../pages/ChangePasswordPage';
 import CustomerHistoryPage from '../pages/CustomerHistoryPage';
 import CustomerOverviewPage from '../pages/CustomerOverviewPage';
@@ -22,6 +23,9 @@ import ProductCatalogPage from '../pages/customer/ProductCatalogPage';
 import PromotionPage from '../pages/customer/PromotionPage';
 import RegisterPage from '../pages/RegisterPage';
 import StaffWorkspacePage from '../pages/StaffWorkspacePage';
+import ReceivingEditorPage from '../pages/warehouse/ReceivingEditorPage';
+import ReceivingManagementPage from '../pages/warehouse/ReceivingManagementPage';
+import WarehouseDashboardPage from '../pages/warehouse/WarehouseDashboardPage';
 import { ProtectedRoute, PublicOnlyRoute } from './RouteGuards';
 
 function AppRoutes() {
@@ -63,7 +67,16 @@ function AppRoutes() {
           </Route>
         </Route>
 
-        {ROLES.filter((role) => !['CUSTOMER', 'MANAGER'].includes(role)).map((role) => (
+        <Route element={<ProtectedRoute allowedRoles={['WAREHOUSE']} />}>
+          <Route path="warehouse" element={<WarehouseLayout />}>
+            <Route index element={<WarehouseDashboardPage />} />
+            <Route path="receiving" element={<ReceivingManagementPage />} />
+            <Route path="receiving/new" element={<ReceivingEditorPage />} />
+            <Route path="receiving/:receiptId/edit" element={<ReceivingEditorPage />} />
+          </Route>
+        </Route>
+
+        {ROLES.filter((role) => !['CUSTOMER', 'WAREHOUSE', 'MANAGER'].includes(role)).map((role) => (
           <Route key={role} element={<ProtectedRoute allowedRoles={[role]} />}>
             <Route path={role.toLowerCase()} element={<StaffWorkspacePage />} />
           </Route>

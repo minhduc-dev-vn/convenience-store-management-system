@@ -47,6 +47,18 @@ const ERROR_MESSAGES = Object.freeze({
   CATEGORY_NAME_CONFLICT: 'Tên loại sản phẩm đã được sử dụng.',
   CATEGORY_CONFLICT: 'Mã hoặc tên loại sản phẩm đã được sử dụng.',
   REGISTRATION_CONFLICT: 'Số điện thoại hoặc email đã được đăng ký.',
+  RECEIPT_NOT_FOUND: 'Không tìm thấy phiếu nhập.',
+  RECEIPT_NOT_DRAFT: 'Chỉ phiếu nhập DRAFT mới có thể chỉnh sửa hoặc xử lý.',
+  RECEIPT_LINE_NOT_FOUND: 'Không tìm thấy dòng hàng trong phiếu nhập.',
+  RECEIPT_LINE_CONFLICT: 'Lô hàng này đã có trong phiếu nhập.',
+  RECEIPT_ALREADY_CONFIRMED: 'Phiếu nhập đã được xác nhận trước đó.',
+  RECEIPT_IMPORT_CONFLICT: 'Phiếu nhập đã có giao dịch nhập kho.',
+  RECEIPT_EMPTY: 'Phiếu nhập cần ít nhất một dòng hàng trước khi xác nhận.',
+  RECEIPT_INVALID_LINE: 'Phiếu nhập có dòng hàng không hợp lệ. Vui lòng kiểm tra lại.',
+  RECEIVING_CONFLICT: 'Thông tin phiếu nhập hoặc lô hàng bị trùng.',
+  LOT_CONFLICT: 'Thông tin sản phẩm, số lô hoặc ngày của lô không khớp dữ liệu hiện có.',
+  LOT_DEFINITION_LOCKED: 'Không thể thay đổi thông tin của lô đã được sử dụng.',
+  LOT_INVENTORY_OVERFLOW: 'Số lượng nhập vượt giới hạn tồn kho cho phép.',
   VALIDATION_ERROR: 'Thông tin gửi lên chưa hợp lệ. Vui lòng kiểm tra lại.',
 });
 
