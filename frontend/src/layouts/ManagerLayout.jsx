@@ -10,6 +10,7 @@ const managerNavigation = [
   { to: '/manager/products/pricing', label: 'Cập nhật giá bán' },
   { to: '/manager/promotions', label: 'Quản lý khuyến mãi' },
   { to: '/manager/suppliers', label: 'Quản lý nhà cung cấp' },
+  { to: '/manager/inventory', label: 'Tồn kho và cảnh báo' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 

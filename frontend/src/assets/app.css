@@ -1012,6 +1012,113 @@ article.workspace-card:hover {
   background: #fff1c4;
 }
 
+.status-badge--low-stock,
+.status-badge--near-expiry {
+  color: #765500;
+  background: #fff1c4;
+}
+
+.status-badge--expired {
+  color: #8b2f20;
+  background: #f4ddd7;
+}
+
+.status-badge--normal,
+.status-badge--valid,
+.status-badge--active {
+  color: #15543b;
+  background: #dcefe2;
+}
+
+.status-badge--blocked,
+.status-badge--neutral {
+  color: #5d5b52;
+  background: #e9e8e1;
+}
+
+.inventory-filter {
+  grid-template-columns: minmax(210px, 1fr) repeat(2, minmax(150px, 0.48fr)) auto;
+}
+
+.inventory-filter__actions {
+  justify-content: flex-end;
+}
+
+.inventory-alerts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inventory-product-row--selected td {
+  background: #edf6f0;
+}
+
+.inventory-lot-section {
+  margin-top: 30px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.inventory-lot-heading {
+  margin-bottom: 18px;
+}
+
+.inventory-lot-filter {
+  margin: 18px 0 22px;
+  grid-template-columns: repeat(2, minmax(180px, 0.5fr));
+}
+
+.inventory-legend {
+  display: flex;
+  padding: 12px 14px;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  border-radius: 12px;
+  color: var(--muted);
+  background: var(--canvas);
+  font-size: 0.7rem;
+}
+
+.inventory-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.inventory-legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.inventory-legend__swatch--expired {
+  background: #c34c38;
+}
+
+.inventory-legend__swatch--near-expiry {
+  background: #d6a41c;
+}
+
+.inventory-legend__swatch--valid {
+  background: #39845c;
+}
+
+.inventory-lot-row--expired td {
+  background: #fff1ee;
+}
+
+.inventory-lot-row--near-expiry td {
+  background: #fff9e6;
+}
+
+.inventory-lot-row--valid td {
+  background: #f1f8f3;
+}
+
 .receiving-header-card,
 .receiving-lines-section,
 .receipt-detail-card {
@@ -1843,6 +1950,8 @@ article.workspace-card:hover {
   .admin-filter--products,
   .admin-filter--promotions,
   .catalog-filter,
+    .inventory-filter,
+    .inventory-lot-filter,
     .pricing-search,
     .compact-search,
     .customer-detail-grid,
@@ -1911,6 +2020,14 @@ article.workspace-card:hover {
   .receiving-total--inline {
     width: 100%;
     min-width: 0;
+  }
+
+  .inventory-lot-section {
+    padding: 20px;
+  }
+
+  .inventory-filter__actions {
+    justify-content: flex-start;
   }
 
   .portal-sidebar nav {

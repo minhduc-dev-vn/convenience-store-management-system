@@ -52,6 +52,12 @@ function ManagerDashboardPage() {
           <p>Tra cứu, thêm và cập nhật hồ sơ đối tác; thay đổi trạng thái hợp tác mà không xóa dữ liệu đã phát sinh.</p>
           <Link className="button button--primary" to="/manager/suppliers">Mở quản lý nhà cung cấp</Link>
         </article>
+        <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-13 · F22/F23/F24</p>
+          <h2>Tồn kho và cảnh báo</h2>
+          <p>Theo dõi tồn tổng, chi tiết lô, mức tồn thấp và các mốc hạn sử dụng trên dữ liệu kho hiện tại.</p>
+          <Link className="button button--primary" to="/manager/inventory">Mở tra cứu tồn kho</Link>
+        </article>
       </div>
     </section>
   );

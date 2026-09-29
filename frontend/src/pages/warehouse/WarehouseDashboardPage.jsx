@@ -22,6 +22,12 @@ function WarehouseDashboardPage() {
           <p>Kiểm tra phiếu nháp, xác nhận nhập kho hoặc hủy phiếu không đạt yêu cầu.</p>
           <Link className="button button--primary" to="/warehouse/receiving">Mở danh sách phiếu</Link>
         </article>
+        <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-13 · F22/F23/F24</p>
+          <h2>Tồn kho, lô và cảnh báo</h2>
+          <p>Tra cứu tồn tổng, xem chi tiết từng lô và lọc cảnh báo tồn thấp, sắp hết hạn hoặc đã hết hạn.</p>
+          <Link className="button button--primary" to="/warehouse/inventory">Mở tra cứu tồn kho</Link>
+        </article>
       </div>
     </section>
   );

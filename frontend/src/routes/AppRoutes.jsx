@@ -13,6 +13,7 @@ import LoginPage from '../pages/LoginPage';
 import AccountManagementPage from '../pages/manager/AccountManagementPage';
 import CustomerMemberManagementPage from '../pages/manager/CustomerMemberManagementPage';
 import EmployeeManagementPage from '../pages/manager/EmployeeManagementPage';
+import ManagerInventoryPage from '../pages/manager/InventoryPage';
 import ManagerDashboardPage from '../pages/manager/ManagerDashboardPage';
 import ProductManagementPage from '../pages/manager/ProductManagementPage';
 import ProductPricingPage from '../pages/manager/ProductPricingPage';
@@ -25,6 +26,7 @@ import RegisterPage from '../pages/RegisterPage';
 import StaffWorkspacePage from '../pages/StaffWorkspacePage';
 import ReceivingEditorPage from '../pages/warehouse/ReceivingEditorPage';
 import ReceivingManagementPage from '../pages/warehouse/ReceivingManagementPage';
+import WarehouseInventoryPage from '../pages/warehouse/InventoryPage';
 import WarehouseDashboardPage from '../pages/warehouse/WarehouseDashboardPage';
 import { ProtectedRoute, PublicOnlyRoute } from './RouteGuards';
 
@@ -64,6 +66,7 @@ function AppRoutes() {
             <Route path="products/pricing" element={<ProductPricingPage />} />
             <Route path="promotions" element={<PromotionManagementPage />} />
             <Route path="suppliers" element={<SupplierManagementPage />} />
+            <Route path="inventory" element={<ManagerInventoryPage />} />
           </Route>
         </Route>
 
@@ -73,6 +76,7 @@ function AppRoutes() {
             <Route path="receiving" element={<ReceivingManagementPage />} />
             <Route path="receiving/new" element={<ReceivingEditorPage />} />
             <Route path="receiving/:receiptId/edit" element={<ReceivingEditorPage />} />
+            <Route path="inventory" element={<WarehouseInventoryPage />} />
           </Route>
         </Route>
 

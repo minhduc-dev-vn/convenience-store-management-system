@@ -2,6 +2,7 @@ function DataTable({
   caption,
   columns,
   emptyMessage = 'Không có dữ liệu phù hợp.',
+  getRowClassName,
   getRowKey,
   rows,
 }) {
@@ -28,7 +29,10 @@ function DataTable({
               <td className="data-table__empty" colSpan={columns.length}>{emptyMessage}</td>
             </tr>
           ) : safeRows.map((row, rowIndex) => (
-            <tr key={getRowKey ? getRowKey(row) : row.id ?? rowIndex}>
+            <tr
+              className={getRowClassName ? getRowClassName(row) : undefined}
+              key={getRowKey ? getRowKey(row) : row.id ?? rowIndex}
+            >
               {columns.map((column) => (
                 <td key={column.key}>
                   {column.render ? column.render(row) : row[column.key]}

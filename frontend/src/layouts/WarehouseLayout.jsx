@@ -5,6 +5,7 @@ const warehouseNavigation = [
   { to: '/warehouse', label: 'Tổng quan', end: true },
   { to: '/warehouse/receiving/new', label: 'Lập phiếu nhập' },
   { to: '/warehouse/receiving', label: 'Xác nhận nhập kho', end: true },
+  { to: '/warehouse/inventory', label: 'Tồn kho và cảnh báo' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 
