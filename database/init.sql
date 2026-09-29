@@ -31,9 +31,11 @@ GO
 :r .\indexes\02_auth_audit_indexes.sql
 :r .\indexes\03_catalog_promotion_supplier_indexes.sql
 :r .\indexes\04_receiving_lot_indexes.sql
+:r .\indexes\05_inventory_alert_indexes.sql
 :r .\views\01_account_role.sql
 :r .\views\02_catalog_promotion.sql
 :r .\views\03_receiving_lots.sql
+:r .\views\04_inventory.sql
 :r .\procedures\01_get_account_for_authentication.sql
 :r .\procedures\02_write_audit_log.sql
 :r .\procedures\03_product_lookup.sql
@@ -41,8 +43,9 @@ GO
 :r .\procedures\05_supplier_lookup.sql
 :r .\procedures\06_product_price_history.sql
 :r .\procedures\07_receiving_transactions.sql
+:r .\procedures\08_inventory_alert_queries.sql
 :r .\seed\01_roles.sql
 :r .\seed\02_development_data.sql
 
-PRINT 'Database initialization completed: 23 tables, auth/audit, catalog and atomic receiving objects are ready.';
+PRINT 'Database initialization completed: 23 tables, auth/audit, catalog, receiving and inventory query objects are ready.';
 GO
