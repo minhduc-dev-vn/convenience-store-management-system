@@ -2,6 +2,7 @@
 
 const { getDatabaseSettings } = require('../config/database.config');
 const { getSqlDriver } = require('../config/database.driver');
+const { getSqlErrorNumber } = require('../utils/sql-error');
 const { BaseRepository } = require('./base.repository');
 
 const SELLABLE_PRODUCT_CTE = `
@@ -150,6 +151,84 @@ class PosRepository extends BaseRepository {
       transaction,
     });
     return result.recordset[0] ?? null;
+  }
+
+  async finalizeCheckout({
+    customerId,
+    externalTransactionId,
+    invoiceId,
+    items,
+    note,
+    paymentAmount,
+    paymentMethod,
+    promotionId,
+    shiftId,
+  }, transaction = null) {
+    const result = await this.query({
+      text: `
+        EXEC dbo.usp_HOA_DON_HoanTatBanHang
+          @MaHD = @InvoiceId,
+          @MaCa = @ShiftId,
+          @MaKH = @CustomerId,
+          @DanhSachSanPham = @ItemsJson,
+          @MaKM = @PromotionId,
+          @PhuongThuc = @PaymentMethod,
+          @SoTienThanhToan = @PaymentAmount,
+          @MaGiaoDichNgoai = @ExternalTransactionId,
+          @GhiChu = @Note
+      `,
+      parameters: {
+        CustomerId: { type: this.sql.VarChar(10), value: customerId },
+        ExternalTransactionId: {
+          type: this.sql.VarChar(100),
+          value: externalTransactionId,
+        },
+        InvoiceId: { type: this.sql.VarChar(15), value: invoiceId },
+        ItemsJson: {
+          type: this.sql.NVarChar(this.sql.MAX),
+          value: JSON.stringify(items.map((item) => ({
+            MaSP: item.productId,
+            SoLuong: item.quantity,
+          }))),
+        },
+        Note: { type: this.sql.NVarChar(255), value: note },
+        PaymentAmount: { type: this.sql.Decimal(18, 2), value: paymentAmount },
+        PaymentMethod: { type: this.sql.VarChar(20), value: paymentMethod },
+        PromotionId: { type: this.sql.VarChar(12), value: promotionId },
+        ShiftId: { type: this.sql.BigInt, value: shiftId },
+      },
+      transaction,
+    });
+    return result.recordset[0] ?? null;
+  }
+
+  async findPaidReceipt(invoiceId, transaction = null) {
+    try {
+      const result = await this.query({
+        text: `
+          EXEC dbo.usp_HOA_DON_LayChiTiet @MaHD = @InvoiceId;
+
+          SELECT customer.SDT
+          FROM dbo.HOA_DON AS invoice
+          LEFT JOIN dbo.KHACH_HANG AS customer ON customer.MaKH = invoice.MaKH
+          WHERE invoice.MaHD = @InvoiceId
+            AND invoice.TrangThai = 'PAID';
+        `,
+        parameters: {
+          InvoiceId: { type: this.sql.VarChar(15), value: invoiceId },
+        },
+        transaction,
+      });
+      return {
+        customer: result.recordsets[3]?.[0] ?? null,
+        header: result.recordsets[0]?.[0] ?? null,
+        items: result.recordsets[1] ?? [],
+        payments: result.recordsets[2] ?? [],
+      };
+    } catch (error) {
+      if (getSqlErrorNumber(error) === 51531) return null;
+      throw error;
+    }
   }
 
   async searchSellableProducts({ page, pageSize, search, searchPattern }, transaction = null) {

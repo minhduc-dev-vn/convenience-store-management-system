@@ -15,6 +15,7 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 const MAX_SAFE_MONEY = Number.MAX_SAFE_INTEGER / 100;
+const PAYMENT_METHODS = Object.freeze(['CASH', 'CARD', 'TRANSFER', 'EWALLET']);
 
 function assertCashierIdentity(identity) {
   if (!identity || identity.role !== 'CASHIER' || !identity.employeeId) {
@@ -157,6 +158,61 @@ function normalizeQuoteInput(input) {
       || input.promotionId === ''
       ? null
       : requireString(input.promotionId, 'promotionId', { maxLength: 12 }),
+  };
+}
+
+function normalizeCheckoutInput(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw validationError('Checkout input must be an object');
+  }
+  const allowedFields = new Set([
+    'customerPhone',
+    'invoiceId',
+    'items',
+    'note',
+    'payment',
+    'promotionId',
+  ]);
+  const unknownField = Object.keys(input).find((field) => !allowedFields.has(field));
+  if (unknownField) throw validationError(`Unsupported checkout field: ${unknownField}`);
+
+  const quote = normalizeQuoteInput({
+    customerPhone: input.customerPhone,
+    items: input.items,
+    promotionId: input.promotionId,
+  });
+  const invoiceId = requireString(input.invoiceId, 'invoiceId', { maxLength: 15 });
+  if (!input.payment || typeof input.payment !== 'object' || Array.isArray(input.payment)) {
+    throw validationError('payment must be an object');
+  }
+  const paymentFields = new Set(['amount', 'externalTransactionId', 'method']);
+  const unknownPaymentField = Object.keys(input.payment)
+    .find((field) => !paymentFields.has(field));
+  if (unknownPaymentField) {
+    throw validationError(`Unsupported payment field: ${unknownPaymentField}`);
+  }
+  const paymentMethod = requireString(input.payment.method, 'payment.method', {
+    maxLength: 20,
+  }).toUpperCase();
+  if (!PAYMENT_METHODS.includes(paymentMethod)) {
+    throw validationError(`payment.method must be one of: ${PAYMENT_METHODS.join(', ')}`);
+  }
+  const paymentAmount = normalizeMoney(input.payment.amount, 'payment.amount');
+  if (paymentAmount <= 0) throw validationError('payment.amount must be greater than 0');
+
+  return {
+    ...quote,
+    invoiceId,
+    note: normalizeOptionalText(input.note, 'note', 255) ?? null,
+    payment: {
+      amount: paymentAmount,
+      externalTransactionId: normalizeOptionalText(
+        input.payment.externalTransactionId,
+        'payment.externalTransactionId',
+        100,
+      ) ?? null,
+      method: paymentMethod,
+    },
   };
 }
 
@@ -348,6 +404,125 @@ function serializePromotionPreview(evaluation) {
   };
 }
 
+function serializeReceipt(result) {
+  if (!result?.header) return null;
+  const { header } = result;
+  const payment = result.payments[0] ?? null;
+  return {
+    cashier: {
+      employeeId: header.MaNV,
+      name: header.TenNhanVien,
+    },
+    customer: header.MaKH ? {
+      customerId: header.MaKH,
+      name: header.TenKhachHang,
+      phone: result.customer?.SDT ?? null,
+    } : null,
+    invoiceId: header.MaHD,
+    issuedAt: dateTime(header.NgayLap),
+    items: result.items.map((item) => ({
+      barcode: item.MaVach,
+      discountAmount: Number(item.TienGiam),
+      lineId: String(item.MaCTHD),
+      lineTotal: Number(item.ThanhTien),
+      name: item.TenSP,
+      productId: item.MaSP,
+      promotion: item.MaKM ? {
+        name: item.TenKM,
+        promotionId: item.MaKM,
+      } : null,
+      quantity: Number(item.SoLuong),
+      unit: item.DonViTinh,
+      unitPrice: Number(item.DonGiaBan),
+    })),
+    loyalty: header.MaKH ? {
+      pointsEarned: Number(header.DiemTichLuy),
+      pointsUsed: Number(header.DiemSuDung),
+    } : null,
+    note: header.GhiChu,
+    payment: payment ? {
+      amount: Number(payment.SoTien),
+      externalTransactionId: payment.MaGiaoDichNgoai,
+      method: payment.PhuongThuc,
+      paidAt: dateTime(payment.ThoiGian),
+      paymentId: String(payment.MaThanhToan),
+      status: payment.TrangThaiThanhToan,
+    } : null,
+    shiftId: String(header.MaCa),
+    status: header.TrangThai,
+    totals: {
+      subtotal: Number(header.TongTienHang),
+      totalAmount: Number(header.TongThanhToan),
+      totalDiscount: Number(header.TongGiamGia),
+    },
+  };
+}
+
+function receiptMatchesCheckout(receipt, input, employeeId) {
+  if (!receipt || receipt.cashier.employeeId !== employeeId) return false;
+  if ((receipt.customer?.phone ?? null) !== input.customerPhone) return false;
+  if ((receipt.note ?? null) !== input.note) return false;
+  if (!receipt.payment) return false;
+  if (receipt.payment.method !== input.payment.method) return false;
+  if ((receipt.payment.externalTransactionId ?? null)
+      !== input.payment.externalTransactionId) return false;
+  if (moneyToCents(receipt.payment.amount, 'persisted payment', { internal: true })
+      !== moneyToCents(input.payment.amount, 'payment.amount')) return false;
+
+  const persistedItems = receipt.items
+    .map((item) => `${item.productId}:${item.quantity}`)
+    .sort();
+  const requestedItems = input.items
+    .map((item) => `${item.productId}:${item.quantity}`)
+    .sort();
+  if (persistedItems.length !== requestedItems.length
+      || persistedItems.some((item, index) => item !== requestedItems[index])) return false;
+
+  const persistedPromotions = [...new Set(
+    receipt.items.map((item) => item.promotion?.promotionId).filter(Boolean),
+  )];
+  return input.promotionId
+    ? persistedPromotions.length === 1 && persistedPromotions[0] === input.promotionId
+    : persistedPromotions.length === 0;
+}
+
+function checkoutConflictError(cause) {
+  return new AppError('invoiceId is already associated with a different checkout', {
+    code: 'CHECKOUT_ID_CONFLICT',
+    statusCode: 409,
+    cause,
+  });
+}
+
+function mapCheckoutError(error) {
+  if (error instanceof AppError) return error;
+  const errorNumber = getSqlErrorNumber(error);
+  const mapped = {
+    51517: ['The cashier shift is no longer available', 'SHIFT_REQUIRED'],
+    51518: ['The active customer member was not found', 'CUSTOMER_MEMBER_NOT_FOUND'],
+    51519: ['One or more products are no longer available', 'PRODUCT_NOT_AVAILABLE'],
+    51520: ['The selected promotion is no longer active', 'PROMOTION_NOT_APPLICABLE'],
+    51521: ['The order no longer meets the promotion minimum', 'PROMOTION_NOT_APPLICABLE'],
+    51522: ['The promotion does not apply to the finalized cart', 'PROMOTION_NOT_APPLICABLE'],
+    51523: ['The finalized checkout total is invalid', 'CHECKOUT_TOTAL_INVALID'],
+    51524: ['The checkout total changed; request a new quote', 'CHECKOUT_TOTAL_CHANGED'],
+    51525: ['The loyalty balance cannot be updated safely', 'LOYALTY_UPDATE_CONFLICT'],
+    51526: ['Insufficient unexpired stock to complete checkout', 'INSUFFICIENT_STOCK'],
+    51527: ['Inventory changed during checkout; retry', 'INVENTORY_CHANGED_RETRY'],
+  }[errorNumber];
+  if (mapped) {
+    return new AppError(mapped[0], {
+      code: mapped[1],
+      statusCode: errorNumber === 51518 ? 404 : 409,
+      cause: error,
+    });
+  }
+  if ([51510, 51511, 51512, 51513, 51514, 51515].includes(errorNumber)) {
+    return validationError('Checkout data is invalid');
+  }
+  return error;
+}
+
 class PosService {
   constructor({
     posRepository = new PosRepository(),
@@ -480,6 +655,86 @@ class PosService {
       },
     };
   }
+
+  async getReceipt(identityInput, invoiceIdInput) {
+    const identity = assertCashierIdentity(identityInput);
+    const invoiceId = requireString(invoiceIdInput, 'invoiceId', { maxLength: 15 });
+    const receipt = serializeReceipt(await this.posRepository.findPaidReceipt(invoiceId));
+    if (!receipt || receipt.cashier.employeeId !== identity.employeeId) {
+      throw new AppError('The paid invoice was not found', {
+        code: 'INVOICE_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+    return { receipt };
+  }
+
+  async checkout(identityInput, input) {
+    const identity = assertCashierIdentity(identityInput);
+    const checkoutInput = normalizeCheckoutInput(input);
+    let receipt = serializeReceipt(
+      await this.posRepository.findPaidReceipt(checkoutInput.invoiceId),
+    );
+    if (receipt) {
+      if (!receiptMatchesCheckout(receipt, checkoutInput, identity.employeeId)) {
+        throw checkoutConflictError();
+      }
+      return { idempotentReplay: true, receipt };
+    }
+
+    const quote = await this.calculateQuote(identity, {
+      customerPhone: checkoutInput.customerPhone,
+      items: checkoutInput.items,
+      promotionId: checkoutInput.promotionId,
+    });
+    if (checkoutInput.promotionId && !quote.promotion?.eligible) {
+      throw new AppError('The selected promotion is not applicable to this checkout', {
+        code: 'PROMOTION_NOT_APPLICABLE',
+        statusCode: 409,
+      });
+    }
+    if (moneyToCents(checkoutInput.payment.amount, 'payment.amount')
+        !== moneyToCents(quote.totals.totalAmount, 'quote total', { internal: true })) {
+      throw new AppError('payment.amount must equal the server-calculated checkout total', {
+        code: 'PAYMENT_AMOUNT_MISMATCH',
+        statusCode: 409,
+      });
+    }
+
+    try {
+      await this.posRepository.finalizeCheckout({
+        customerId: quote.customer?.customerId ?? null,
+        externalTransactionId: checkoutInput.payment.externalTransactionId,
+        invoiceId: checkoutInput.invoiceId,
+        items: checkoutInput.items,
+        note: checkoutInput.note,
+        paymentAmount: checkoutInput.payment.amount,
+        paymentMethod: checkoutInput.payment.method,
+        promotionId: checkoutInput.promotionId,
+        shiftId: quote.shift.shiftId,
+      });
+    } catch (error) {
+      if (getSqlErrorNumber(error) !== 51516) throw mapCheckoutError(error);
+      receipt = serializeReceipt(
+        await this.posRepository.findPaidReceipt(checkoutInput.invoiceId),
+      );
+      if (!receiptMatchesCheckout(receipt, checkoutInput, identity.employeeId)) {
+        throw checkoutConflictError(error);
+      }
+      return { idempotentReplay: true, receipt };
+    }
+
+    receipt = serializeReceipt(
+      await this.posRepository.findPaidReceipt(checkoutInput.invoiceId),
+    );
+    if (!receipt || receipt.cashier.employeeId !== identity.employeeId) {
+      throw new AppError('The finalized receipt could not be loaded', {
+        code: 'CHECKOUT_RECEIPT_UNAVAILABLE',
+        statusCode: 500,
+      });
+    }
+    return { idempotentReplay: false, receipt };
+  }
 }
 
 module.exports = {
@@ -487,10 +742,14 @@ module.exports = {
   assertCashierIdentity,
   allocatePromotionDiscount,
   buildPricedItems,
+  mapCheckoutError,
   mapPosError,
+  normalizeCheckoutInput,
   normalizeMoney,
   normalizeProductQuery,
   normalizeQuoteInput,
+  receiptMatchesCheckout,
   serializeProduct,
+  serializeReceipt,
   serializeShift,
 };

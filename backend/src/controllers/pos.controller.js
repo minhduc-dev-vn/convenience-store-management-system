@@ -39,10 +39,27 @@ async function calculateQuote(request, response) {
   });
 }
 
+async function checkout(request, response) {
+  const data = await posService.checkout(request.auth, request.body);
+  response.status(data.idempotentReplay ? 200 : 201).json({
+    success: true,
+    data,
+  });
+}
+
+async function getReceipt(request, response) {
+  response.status(200).json({
+    success: true,
+    data: await posService.getReceipt(request.auth, request.params.invoiceId),
+  });
+}
+
 module.exports = {
   calculateQuote,
+  checkout,
   getCurrentShift,
   getProductByBarcode,
+  getReceipt,
   openShift,
   searchProducts,
 };

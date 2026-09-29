@@ -5,7 +5,9 @@ const test = require('node:test');
 const {
   PosService,
   allocatePromotionDiscount,
+  mapCheckoutError,
   mapPosError,
+  normalizeCheckoutInput,
   normalizeMoney,
   normalizeProductQuery,
   normalizeQuoteInput,
@@ -57,6 +59,52 @@ function quoteProductRow(productId, overrides = {}) {
     TrangThaiLoai: 'ACTIVE',
     TonKhaDung: 10,
     ...overrides,
+  };
+}
+
+function paidReceiptResult(overrides = {}) {
+  return {
+    customer: null,
+    header: {
+      MaHD: 'C31INV001',
+      NgayLap: new Date('2026-09-29T09:00:00.000Z'),
+      MaCa: 29,
+      MaNV: 'C29CASH',
+      TenNhanVien: 'C29 Cashier',
+      MaKH: null,
+      TenKhachHang: null,
+      TongTienHang: 10000,
+      TongGiamGia: 0,
+      TongThanhToan: 10000,
+      DiemSuDung: 0,
+      DiemTichLuy: 0,
+      TrangThai: 'PAID',
+      GhiChu: null,
+      ...overrides.header,
+    },
+    items: [{
+      MaCTHD: 31,
+      MaSP: 'C30P001',
+      TenSP: 'C30P001 name',
+      MaVach: 'C30P001-BAR',
+      DonViTinh: 'Cai',
+      SoLuong: 1,
+      DonGiaBan: 10000,
+      TienGiam: 0,
+      ThanhTien: 10000,
+      MaKM: null,
+      TenKM: null,
+      ...(overrides.items?.[0] ?? {}),
+    }],
+    payments: [{
+      MaThanhToan: 31,
+      PhuongThuc: 'CASH',
+      SoTien: 10000,
+      ThoiGian: new Date('2026-09-29T09:00:00.000Z'),
+      MaGiaoDichNgoai: null,
+      TrangThaiThanhToan: 'SUCCESS',
+      ...(overrides.payments?.[0] ?? {}),
+    }],
   };
 }
 
@@ -443,4 +491,103 @@ test('quote rejects a promotion calculation based on a different price snapshot'
     }, 1000000),
     (error) => error.code === 'QUOTE_CHANGED_RETRY' && error.statusCode === 409,
   );
+});
+
+test('checkout validates a fresh quote, delegates finalization and returns persisted receipt data', async () => {
+  let persisted = null;
+  let finalized;
+  const service = new PosService({
+    posRepository: {
+      async findPaidReceipt() { return persisted; },
+      async findCurrentOpenShift() { return shiftRow(); },
+      async findQuoteProducts() { return [quoteProductRow('C30P001')]; },
+      async finalizeCheckout(input) {
+        finalized = input;
+        persisted = paidReceiptResult();
+      },
+    },
+    promotionService: {},
+  });
+
+  const result = await service.checkout(cashierIdentity, {
+    invoiceId: 'C31INV001',
+    items: [{ productId: 'C30P001', quantity: 1 }],
+    payment: { amount: 10000, method: 'cash' },
+  });
+
+  assert.equal(result.idempotentReplay, false);
+  assert.equal(result.receipt.invoiceId, 'C31INV001');
+  assert.equal(result.receipt.status, 'PAID');
+  assert.equal(result.receipt.items[0].lineTotal, 10000);
+  assert.equal(result.receipt.payment.status, 'SUCCESS');
+  assert.deepEqual(finalized, {
+    customerId: null,
+    externalTransactionId: null,
+    invoiceId: 'C31INV001',
+    items: [{ productId: 'C30P001', quantity: 1 }],
+    note: null,
+    paymentAmount: 10000,
+    paymentMethod: 'CASH',
+    promotionId: null,
+    shiftId: '29',
+  });
+});
+
+test('checkout replays an identical persisted invoice and rejects invoice id reuse', async () => {
+  let finalizeCalls = 0;
+  const service = new PosService({
+    posRepository: {
+      async findPaidReceipt() { return paidReceiptResult(); },
+      async finalizeCheckout() { finalizeCalls += 1; },
+    },
+  });
+  const input = {
+    invoiceId: 'C31INV001',
+    items: [{ productId: 'C30P001', quantity: 1 }],
+    payment: { amount: 10000, method: 'CASH' },
+  };
+
+  const replay = await service.checkout(cashierIdentity, input);
+  assert.equal(replay.idempotentReplay, true);
+  assert.equal(replay.receipt.invoiceId, 'C31INV001');
+  assert.equal(finalizeCalls, 0);
+
+  await assert.rejects(
+    service.checkout(cashierIdentity, {
+      ...input,
+      items: [{ productId: 'C30P001', quantity: 2 }],
+    }),
+    (error) => error.code === 'CHECKOUT_ID_CONFLICT' && error.statusCode === 409,
+  );
+});
+
+test('checkout validation blocks point redemption, tampered fields and invalid payments', () => {
+  const base = {
+    invoiceId: 'C31INV001',
+    items: [{ productId: 'C30P001', quantity: 1 }],
+    payment: { amount: 10000, method: 'CASH' },
+  };
+  for (const input of [
+    { ...base, pointsToRedeem: 1 },
+    { ...base, total: 1 },
+    { ...base, payment: { ...base.payment, status: 'SUCCESS' } },
+    { ...base, payment: { amount: 0, method: 'CASH' } },
+    { ...base, payment: { amount: 10000, method: 'CRYPTO' } },
+  ]) {
+    assert.throws(
+      () => normalizeCheckoutInput(input),
+      (error) => error.code === 'VALIDATION_ERROR',
+    );
+  }
+});
+
+test('checkout maps FEFO transaction errors without returning raw SQL messages', () => {
+  const stockError = mapCheckoutError({ number: 51526, message: 'raw database detail' });
+  assert.equal(stockError.code, 'INSUFFICIENT_STOCK');
+  assert.equal(stockError.statusCode, 409);
+  assert.doesNotMatch(stockError.message, /raw database detail/);
+
+  const changedError = mapCheckoutError({ number: 51527, message: 'raw database detail' });
+  assert.equal(changedError.code, 'INVENTORY_CHANGED_RETRY');
+  assert.equal(changedError.statusCode, 409);
 });

@@ -19,12 +19,18 @@ const validateQuote = validateBody({
   required: ['items'],
   optional: ['customerPhone', 'promotionId'],
 });
+const validateCheckout = validateBody({
+  required: ['invoiceId', 'items', 'payment'],
+  optional: ['customerPhone', 'note', 'promotionId'],
+});
 
 router.use(authenticate, authorize('CASHIER'));
 
 router.get('/shifts/current', asyncHandler(posController.getCurrentShift));
 router.post('/shifts/open', validateOpenShift, asyncHandler(posController.openShift));
 router.post('/quotes', validateQuote, asyncHandler(posController.calculateQuote));
+router.post('/checkouts', validateCheckout, asyncHandler(posController.checkout));
+router.get('/invoices/:invoiceId', asyncHandler(posController.getReceipt));
 router.get('/products', validateProductSearch, asyncHandler(posController.searchProducts));
 router.get('/products/barcode/:barcode', asyncHandler(posController.getProductByBarcode));
 
