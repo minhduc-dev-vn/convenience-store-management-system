@@ -1,10 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { ROLES } from '../auth/roles';
 import AppLayout from '../layouts/AppLayout';
+import CashierLayout from '../layouts/CashierLayout';
 import CustomerLayout from '../layouts/CustomerLayout';
 import ManagerLayout from '../layouts/ManagerLayout';
 import WarehouseLayout from '../layouts/WarehouseLayout';
 import ChangePasswordPage from '../pages/ChangePasswordPage';
+import CashierDashboardPage from '../pages/cashier/CashierDashboardPage';
+import CashierPosPage from '../pages/cashier/CashierPosPage';
 import CustomerHistoryPage from '../pages/CustomerHistoryPage';
 import CustomerOverviewPage from '../pages/CustomerOverviewPage';
 import CustomerProfilePage from '../pages/CustomerProfilePage';
@@ -23,7 +25,6 @@ import NotFoundPage from '../pages/NotFoundPage';
 import ProductCatalogPage from '../pages/customer/ProductCatalogPage';
 import PromotionPage from '../pages/customer/PromotionPage';
 import RegisterPage from '../pages/RegisterPage';
-import StaffWorkspacePage from '../pages/StaffWorkspacePage';
 import ReceivingEditorPage from '../pages/warehouse/ReceivingEditorPage';
 import ReceivingManagementPage from '../pages/warehouse/ReceivingManagementPage';
 import WarehouseInventoryPage from '../pages/warehouse/InventoryPage';
@@ -80,11 +81,13 @@ function AppRoutes() {
           </Route>
         </Route>
 
-        {ROLES.filter((role) => !['CUSTOMER', 'WAREHOUSE', 'MANAGER'].includes(role)).map((role) => (
-          <Route key={role} element={<ProtectedRoute allowedRoles={[role]} />}>
-            <Route path={role.toLowerCase()} element={<StaffWorkspacePage />} />
+        <Route element={<ProtectedRoute allowedRoles={['CASHIER']} />}>
+          <Route path="cashier" element={<CashierLayout />}>
+            <Route index element={<CashierDashboardPage />} />
+            <Route path="pos" element={<CashierPosPage />} />
           </Route>
-        ))}
+        </Route>
+
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
