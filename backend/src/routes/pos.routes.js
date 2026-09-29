@@ -15,11 +15,16 @@ const validateOpenShift = validateBody({
 const validateProductSearch = validateQuery({
   allowed: ['page', 'pageSize', 'search'],
 });
+const validateQuote = validateBody({
+  required: ['items'],
+  optional: ['customerPhone', 'promotionId'],
+});
 
 router.use(authenticate, authorize('CASHIER'));
 
 router.get('/shifts/current', asyncHandler(posController.getCurrentShift));
 router.post('/shifts/open', validateOpenShift, asyncHandler(posController.openShift));
+router.post('/quotes', validateQuote, asyncHandler(posController.calculateQuote));
 router.get('/products', validateProductSearch, asyncHandler(posController.searchProducts));
 router.get('/products/barcode/:barcode', asyncHandler(posController.getProductByBarcode));
 

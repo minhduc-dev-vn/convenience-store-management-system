@@ -1,8 +1,14 @@
 'use strict';
 
 const { PosRepository } = require('../repositories/pos.repository');
+const { PromotionService, normalizeCartItems } = require('./promotion.service');
 const { AppError } = require('../utils/app-error');
-const { normalizeOptionalText, requireString, validationError } = require('../utils/input-validation');
+const {
+  normalizeOptionalText,
+  normalizePhone,
+  requireString,
+  validationError,
+} = require('../utils/input-validation');
 const { getSqlErrorNumber, isUniqueConstraintError } = require('../utils/sql-error');
 
 const DEFAULT_PAGE = 1;
@@ -126,15 +132,229 @@ function mapPosError(error) {
 }
 
 function shiftRequiredError() {
-  return new AppError('An OPEN cashier shift is required to use product lookup', {
+  return new AppError('An OPEN cashier shift is required to use POS', {
     code: 'SHIFT_REQUIRED',
     statusCode: 409,
   });
 }
 
+function normalizeQuoteInput(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw validationError('Quote input must be an object');
+  }
+  const allowedFields = new Set(['customerPhone', 'items', 'promotionId']);
+  const unknownField = Object.keys(input).find((field) => !allowedFields.has(field));
+  if (unknownField) throw validationError(`Unsupported quote field: ${unknownField}`);
+  return {
+    customerPhone: input.customerPhone === undefined
+      || input.customerPhone === null
+      || input.customerPhone === ''
+      ? null
+      : normalizePhone(input.customerPhone),
+    items: normalizeCartItems(input.items),
+    promotionId: input.promotionId === undefined
+      || input.promotionId === null
+      || input.promotionId === ''
+      ? null
+      : requireString(input.promotionId, 'promotionId', { maxLength: 12 }),
+  };
+}
+
+function moneyToCents(value, fieldName, { internal = false } = {}) {
+  const amount = Number(value);
+  const cents = Math.round(amount * 100);
+  if (
+    !Number.isFinite(amount)
+    || amount < 0
+    || !Number.isSafeInteger(cents)
+    || Math.abs(amount * 100 - cents) > Number.EPSILON * 100
+  ) {
+    if (internal) {
+      throw new AppError(`The server returned an invalid ${fieldName}`, {
+        code: 'QUOTE_DATA_INVALID',
+        statusCode: 500,
+      });
+    }
+    throw validationError(`${fieldName} must be a valid money amount`);
+  }
+  return cents;
+}
+
+function centsToMoney(cents) {
+  return cents / 100;
+}
+
+function quoteChangedError() {
+  return new AppError('Product or promotion data changed while the quote was calculated; retry', {
+    code: 'QUOTE_CHANGED_RETRY',
+    statusCode: 409,
+  });
+}
+
+function buildPricedItems(items, rows) {
+  const rowMap = new Map(rows.map((row) => [row.MaSP, row]));
+  if (rowMap.size !== items.length) {
+    throw new AppError('One or more products were not found', {
+      code: 'PRODUCT_NOT_FOUND',
+      statusCode: 404,
+    });
+  }
+  let subtotalCents = 0;
+  const pricedItems = items.map((item) => {
+    const row = rowMap.get(item.productId);
+    if (!row) {
+      throw new AppError('One or more products were not found', {
+        code: 'PRODUCT_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+    if (row.TrangThaiSanPham !== 'ACTIVE' || row.TrangThaiLoai !== 'ACTIVE') {
+      throw new AppError(`${item.productId} is not currently available for sale`, {
+        code: 'PRODUCT_NOT_AVAILABLE',
+        statusCode: 400,
+      });
+    }
+    const availableStock = Number(row.TonKhaDung);
+    if (!Number.isSafeInteger(availableStock) || availableStock < 0) {
+      throw new AppError('The server returned invalid available stock', {
+        code: 'QUOTE_DATA_INVALID',
+        statusCode: 500,
+      });
+    }
+    if (item.quantity > availableStock) {
+      throw new AppError(`Insufficient sellable stock for ${item.productId}`, {
+        code: 'INSUFFICIENT_STOCK',
+        statusCode: 409,
+      });
+    }
+    const unitPriceCents = moneyToCents(row.GiaBan, 'product price', { internal: true });
+    if (unitPriceCents <= 0) {
+      throw new AppError('A product has an invalid current price', {
+        code: 'PRODUCT_PRICE_INVALID',
+        statusCode: 500,
+      });
+    }
+    const lineSubtotalCents = unitPriceCents * item.quantity;
+    if (!Number.isSafeInteger(lineSubtotalCents)) {
+      throw validationError('The calculated line subtotal is too large');
+    }
+    subtotalCents += lineSubtotalCents;
+    if (!Number.isSafeInteger(subtotalCents)) {
+      throw validationError('The calculated quote subtotal is too large');
+    }
+    return {
+      availableStock,
+      barcode: row.MaVach,
+      lineSubtotalCents,
+      name: row.TenSP,
+      productId: row.MaSP,
+      quantity: item.quantity,
+      unit: row.DonViTinh,
+      unitPriceCents,
+    };
+  });
+  return { pricedItems, subtotalCents };
+}
+
+function allocatePromotionDiscount(pricedItems, evaluation, subtotalCents) {
+  const allocations = new Map(pricedItems.map((item) => [item.productId, 0]));
+  if (!evaluation || !evaluation.eligible) return allocations;
+  const discountCents = moneyToCents(
+    evaluation.discountAmount,
+    'promotion discount',
+    { internal: true },
+  );
+  const evaluatedSubtotalCents = moneyToCents(
+    evaluation.orderSubtotal,
+    'promotion order subtotal',
+    { internal: true },
+  );
+  if (evaluatedSubtotalCents !== subtotalCents || discountCents > subtotalCents) {
+    throw quoteChangedError();
+  }
+  if (discountCents === 0) return allocations;
+
+  const qualifyingIds = new Set(evaluation.qualifyingItems.map((item) => item.productId));
+  const qualifying = pricedItems.filter((item) => qualifyingIds.has(item.productId));
+  const eligibleSubtotalCents = qualifying.reduce(
+    (total, item) => total + item.lineSubtotalCents,
+    0,
+  );
+  const evaluatedEligibleCents = moneyToCents(
+    evaluation.eligibleSubtotal,
+    'promotion eligible subtotal',
+    { internal: true },
+  );
+  if (eligibleSubtotalCents <= 0 || eligibleSubtotalCents !== evaluatedEligibleCents) {
+    throw quoteChangedError();
+  }
+
+  let allocatedCents = 0;
+  const shares = qualifying.map((item) => {
+    const numerator = BigInt(discountCents) * BigInt(item.lineSubtotalCents);
+    const denominator = BigInt(eligibleSubtotalCents);
+    const baseCents = Number(numerator / denominator);
+    allocatedCents += baseCents;
+    return {
+      baseCents,
+      productId: item.productId,
+      remainder: numerator % denominator,
+    };
+  });
+  shares.sort((left, right) => {
+    if (left.remainder > right.remainder) return -1;
+    if (left.remainder < right.remainder) return 1;
+    return left.productId.localeCompare(right.productId);
+  });
+  let remainingCents = discountCents - allocatedCents;
+  for (const share of shares) {
+    const extraCent = remainingCents > 0 ? 1 : 0;
+    allocations.set(share.productId, share.baseCents + extraCent);
+    remainingCents -= extraCent;
+  }
+  if (remainingCents !== 0) throw quoteChangedError();
+  return allocations;
+}
+
+function serializeCustomer(row) {
+  if (!row) return { customer: null, loyalty: null };
+  return {
+    customer: {
+      customerId: row.MaKH,
+      name: row.HoTen,
+      phone: row.SDT,
+    },
+    loyalty: {
+      currentPoints: Number(row.DiemTichLuy),
+      membershipTier: row.HangThanhVien,
+    },
+  };
+}
+
+function serializePromotionPreview(evaluation) {
+  if (!evaluation) return null;
+  return {
+    discountAmount: evaluation.eligible ? Number(evaluation.discountAmount) : 0,
+    eligible: evaluation.eligible,
+    eligibleSubtotal: Number(evaluation.eligibleSubtotal),
+    evaluatedAt: evaluation.evaluatedAt,
+    maximumDiscount: evaluation.maximumDiscount,
+    minimumOrderValue: evaluation.minimumOrderValue,
+    name: evaluation.name,
+    promotionId: evaluation.promotionId,
+    reason: evaluation.reason,
+    type: evaluation.type,
+    value: evaluation.value,
+  };
+}
+
 class PosService {
-  constructor({ posRepository = new PosRepository() } = {}) {
+  constructor({
+    posRepository = new PosRepository(),
+    promotionService = new PromotionService(),
+  } = {}) {
     this.posRepository = posRepository;
+    this.promotionService = promotionService;
   }
 
   async getCurrentShift(identityInput) {
@@ -191,14 +411,86 @@ class PosService {
     }
     return { product: serializeProduct(product) };
   }
+
+  async calculateQuote(identityInput, input) {
+    const identity = assertCashierIdentity(identityInput);
+    const quoteInput = normalizeQuoteInput(input);
+    const shift = await this.posRepository.findCurrentOpenShift(identity.employeeId);
+    if (!shift) throw shiftRequiredError();
+
+    const productIds = quoteInput.items.map((item) => item.productId);
+    const [productRows, customerRow] = await Promise.all([
+      this.posRepository.findQuoteProducts(productIds),
+      quoteInput.customerPhone
+        ? this.posRepository.findActiveCustomerByPhone(quoteInput.customerPhone)
+        : Promise.resolve(null),
+    ]);
+    if (quoteInput.customerPhone && !customerRow) {
+      throw new AppError('The active customer member was not found', {
+        code: 'CUSTOMER_MEMBER_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+
+    const { pricedItems, subtotalCents } = buildPricedItems(quoteInput.items, productRows);
+    const evaluation = quoteInput.promotionId
+      ? await this.promotionService.evaluatePromotion({
+        items: quoteInput.items,
+        promotionId: quoteInput.promotionId,
+      })
+      : null;
+    const allocations = allocatePromotionDiscount(pricedItems, evaluation, subtotalCents);
+    const promotionDiscountCents = [...allocations.values()].reduce(
+      (total, value) => total + value,
+      0,
+    );
+    const totalCents = subtotalCents - promotionDiscountCents;
+    const customerData = serializeCustomer(customerRow);
+    if (customerData.loyalty) {
+      customerData.loyalty.pointsEarnedPreview = Math.floor(centsToMoney(totalCents) / 10000);
+    }
+
+    return {
+      ...customerData,
+      items: pricedItems.map((item) => {
+        const discountCents = allocations.get(item.productId) ?? 0;
+        return {
+          availableStock: item.availableStock,
+          barcode: item.barcode,
+          discountAmount: centsToMoney(discountCents),
+          lineSubtotal: centsToMoney(item.lineSubtotalCents),
+          lineTotal: centsToMoney(item.lineSubtotalCents - discountCents),
+          name: item.name,
+          productId: item.productId,
+          quantity: item.quantity,
+          unit: item.unit,
+          unitPrice: centsToMoney(item.unitPriceCents),
+        };
+      }),
+      promotion: serializePromotionPreview(evaluation),
+      shift: {
+        shiftId: String(shift.MaCa),
+        status: shift.TrangThai,
+      },
+      totals: {
+        promotionDiscount: centsToMoney(promotionDiscountCents),
+        subtotal: centsToMoney(subtotalCents),
+        totalAmount: centsToMoney(totalCents),
+        totalDiscount: centsToMoney(promotionDiscountCents),
+      },
+    };
+  }
 }
 
 module.exports = {
   PosService,
   assertCashierIdentity,
+  allocatePromotionDiscount,
+  buildPricedItems,
   mapPosError,
   normalizeMoney,
   normalizeProductQuery,
+  normalizeQuoteInput,
   serializeProduct,
   serializeShift,
 };

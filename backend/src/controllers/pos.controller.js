@@ -32,7 +32,15 @@ async function getProductByBarcode(request, response) {
   });
 }
 
+async function calculateQuote(request, response) {
+  response.status(200).json({
+    success: true,
+    data: await posService.calculateQuote(request.auth, request.body),
+  });
+}
+
 module.exports = {
+  calculateQuote,
   getCurrentShift,
   getProductByBarcode,
   openShift,

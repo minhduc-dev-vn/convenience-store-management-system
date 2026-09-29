@@ -4,9 +4,11 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
   PosService,
+  allocatePromotionDiscount,
   mapPosError,
   normalizeMoney,
   normalizeProductQuery,
+  normalizeQuoteInput,
 } = require('../src/services/pos.service');
 
 const cashierIdentity = {
@@ -38,6 +40,22 @@ function productRow(overrides = {}) {
     MaLoai: 'C29CAT',
     TenLoai: 'C29 Category',
     TonKhaDung: 8,
+    ...overrides,
+  };
+}
+
+function quoteProductRow(productId, overrides = {}) {
+  return {
+    MaSP: productId,
+    TenSP: `${productId} name`,
+    MaVach: `${productId}-BAR`,
+    DonViTinh: 'Cai',
+    GiaBan: productId === 'C30P001' ? 10000 : 20000,
+    TrangThaiSanPham: 'ACTIVE',
+    MaLoai: 'C30CAT',
+    TenLoai: 'C30 Category',
+    TrangThaiLoai: 'ACTIVE',
+    TonKhaDung: 10,
     ...overrides,
   };
 }
@@ -213,4 +231,216 @@ test('shift procedure errors map to stable API errors', () => {
   error = mapPosError({ number: 51502 });
   assert.equal(error.code, 'VALIDATION_ERROR');
   assert.equal(error.statusCode, 400);
+});
+
+test('POS quote uses server prices, validates membership and allocates promotion cents like C28', async () => {
+  let evaluationInput;
+  const service = new PosService({
+    posRepository: {
+      async findCurrentOpenShift(employeeId) {
+        assert.equal(employeeId, 'C29CASH');
+        return shiftRow();
+      },
+      async findQuoteProducts(productIds) {
+        assert.deepEqual(productIds, ['C30P001', 'C30P002']);
+        return [quoteProductRow('C30P001'), quoteProductRow('C30P002')];
+      },
+      async findActiveCustomerByPhone(phone) {
+        assert.equal(phone, '0833000001');
+        return {
+          MaKH: 'C30CUST',
+          HoTen: 'C30 Member',
+          SDT: phone,
+          DiemTichLuy: 25,
+          HangThanhVien: 'SILVER',
+        };
+      },
+    },
+    promotionService: {
+      async evaluatePromotion(input) {
+        evaluationInput = input;
+        return {
+          discountAmount: 10000,
+          eligible: true,
+          eligibleSubtotal: 30000,
+          evaluatedAt: '2026-09-29T08:00:00.000Z',
+          maximumDiscount: null,
+          minimumOrderValue: 0,
+          name: 'C30 discount',
+          orderSubtotal: 30000,
+          promotionId: 'C30PROMO',
+          qualifyingItems: [
+            { productId: 'C30P001' },
+            { productId: 'C30P002' },
+          ],
+          reason: null,
+          type: 'AMOUNT',
+          value: 10000,
+        };
+      },
+    },
+  });
+
+  const quote = await service.calculateQuote(cashierIdentity, {
+    customerPhone: '0833000001',
+    items: [
+      { productId: 'C30P001', quantity: 1 },
+      { productId: 'C30P002', quantity: 1 },
+    ],
+    promotionId: 'C30PROMO',
+  });
+
+  assert.deepEqual(evaluationInput, {
+    items: [
+      { productId: 'C30P001', quantity: 1 },
+      { productId: 'C30P002', quantity: 1 },
+    ],
+    promotionId: 'C30PROMO',
+  });
+  assert.deepEqual(quote.customer, {
+    customerId: 'C30CUST', name: 'C30 Member', phone: '0833000001',
+  });
+  assert.deepEqual(quote.loyalty, {
+    currentPoints: 25, membershipTier: 'SILVER', pointsEarnedPreview: 2,
+  });
+  assert.equal(quote.items[0].unitPrice, 10000);
+  assert.equal(quote.items[0].discountAmount, 3333.33);
+  assert.equal(quote.items[0].lineTotal, 6666.67);
+  assert.equal(quote.items[1].discountAmount, 6666.67);
+  assert.equal(quote.items[1].lineTotal, 13333.33);
+  assert.deepEqual(quote.totals, {
+    promotionDiscount: 10000,
+    subtotal: 30000,
+    totalAmount: 20000,
+    totalDiscount: 10000,
+  });
+  assert.equal(quote.promotion.eligible, true);
+  assert.equal(quote.shift.shiftId, '29');
+});
+
+test('POS quote leaves totals unchanged when the requested promotion is ineligible', async () => {
+  const service = new PosService({
+    posRepository: {
+      async findCurrentOpenShift() { return shiftRow(); },
+      async findQuoteProducts() { return [quoteProductRow('C30P001')]; },
+    },
+    promotionService: {
+      async evaluatePromotion() {
+        return {
+          discountAmount: 0,
+          eligible: false,
+          eligibleSubtotal: 10000,
+          evaluatedAt: '2026-09-29T08:00:00.000Z',
+          maximumDiscount: 5000,
+          minimumOrderValue: 50000,
+          name: 'C30 minimum',
+          orderSubtotal: 10000,
+          promotionId: 'C30MINIMUM',
+          qualifyingItems: [{ productId: 'C30P001' }],
+          reason: 'MINIMUM_ORDER_NOT_MET',
+          type: 'PERCENT',
+          value: 10,
+        };
+      },
+    },
+  });
+
+  const quote = await service.calculateQuote(cashierIdentity, {
+    items: [{ productId: 'C30P001', quantity: 1 }],
+    promotionId: 'C30MINIMUM',
+  });
+
+  assert.equal(quote.customer, null);
+  assert.equal(quote.loyalty, null);
+  assert.equal(quote.items[0].discountAmount, 0);
+  assert.equal(quote.items[0].lineTotal, 10000);
+  assert.equal(quote.promotion.eligible, false);
+  assert.equal(quote.promotion.reason, 'MINIMUM_ORDER_NOT_MET');
+  assert.equal(quote.totals.totalAmount, 10000);
+});
+
+test('POS quote enforces OPEN shift, active products, sellable stock and active member', async () => {
+  let shift = null;
+  let rows = [quoteProductRow('C30P001')];
+  let customer = null;
+  const service = new PosService({
+    posRepository: {
+      async findCurrentOpenShift() { return shift; },
+      async findQuoteProducts() { return rows; },
+      async findActiveCustomerByPhone() { return customer; },
+    },
+    promotionService: {},
+  });
+  const input = { items: [{ productId: 'C30P001', quantity: 1 }] };
+
+  await assert.rejects(
+    service.calculateQuote(cashierIdentity, input),
+    (error) => error.code === 'SHIFT_REQUIRED',
+  );
+  shift = shiftRow();
+
+  rows = [];
+  await assert.rejects(
+    service.calculateQuote(cashierIdentity, input),
+    (error) => error.code === 'PRODUCT_NOT_FOUND',
+  );
+
+  rows = [quoteProductRow('C30P001', { TrangThaiSanPham: 'INACTIVE' })];
+  await assert.rejects(
+    service.calculateQuote(cashierIdentity, input),
+    (error) => error.code === 'PRODUCT_NOT_AVAILABLE',
+  );
+
+  rows = [quoteProductRow('C30P001', { TonKhaDung: 0 })];
+  await assert.rejects(
+    service.calculateQuote(cashierIdentity, input),
+    (error) => error.code === 'INSUFFICIENT_STOCK',
+  );
+
+  rows = [quoteProductRow('C30P001')];
+  await assert.rejects(
+    service.calculateQuote(cashierIdentity, { ...input, customerPhone: '0833000001' }),
+    (error) => error.code === 'CUSTOMER_MEMBER_NOT_FOUND',
+  );
+});
+
+test('quote validation rejects client price, discount, totals, customer id and point redemption', () => {
+  const base = { items: [{ productId: 'C30P001', quantity: 1 }] };
+  for (const field of ['price', 'discount', 'subtotal', 'total', 'customerId', 'pointsToRedeem']) {
+    assert.throws(
+      () => normalizeQuoteInput({ ...base, [field]: 1 }),
+      (error) => error.code === 'VALIDATION_ERROR',
+    );
+  }
+  for (const field of ['price', 'discountAmount', 'lineTotal']) {
+    assert.throws(
+      () => normalizeQuoteInput({
+        items: [{ productId: 'C30P001', quantity: 1, [field]: 1 }],
+      }),
+      (error) => error.code === 'VALIDATION_ERROR',
+    );
+  }
+  assert.throws(
+    () => normalizeQuoteInput({
+      items: [
+        { productId: 'C30P001', quantity: 1 },
+        { productId: 'C30P001', quantity: 2 },
+      ],
+    }),
+    (error) => error.code === 'VALIDATION_ERROR',
+  );
+});
+
+test('quote rejects a promotion calculation based on a different price snapshot', () => {
+  const pricedItems = [{ productId: 'C30P001', lineSubtotalCents: 1000000 }];
+  assert.throws(
+    () => allocatePromotionDiscount(pricedItems, {
+      discountAmount: 1000,
+      eligible: true,
+      eligibleSubtotal: 11000,
+      orderSubtotal: 11000,
+      qualifyingItems: [{ productId: 'C30P001' }],
+    }, 1000000),
+    (error) => error.code === 'QUOTE_CHANGED_RETRY' && error.statusCode === 409,
+  );
 });

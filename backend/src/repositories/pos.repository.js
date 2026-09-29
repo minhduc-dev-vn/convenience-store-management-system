@@ -87,6 +87,71 @@ class PosRepository extends BaseRepository {
     return result.recordset[0] ?? null;
   }
 
+  async findQuoteProducts(productIds, transaction = null) {
+    if (productIds.length === 0) return [];
+    const parameters = {};
+    const placeholders = productIds.map((productId, index) => {
+      const name = `ProductId${index}`;
+      parameters[name] = { type: this.sql.VarChar(10), value: productId };
+      return `@${name}`;
+    });
+    const result = await this.query({
+      text: `
+        SELECT
+          product.MaSP,
+          product.TenSP,
+          product.MaVach,
+          product.DonViTinh,
+          product.GiaBan,
+          product.TrangThai AS TrangThaiSanPham,
+          category.MaLoai,
+          category.TenLoai,
+          category.TrangThai AS TrangThaiLoai,
+          COALESCE(SUM(
+            CASE
+              WHEN lot.TrangThai = 'ACTIVE'
+               AND lot.SoLuongTon > 0
+               AND (lot.HanSuDung IS NULL OR lot.HanSuDung > CONVERT(DATE, SYSDATETIME()))
+                THEN CONVERT(BIGINT, lot.SoLuongTon)
+              ELSE CONVERT(BIGINT, 0)
+            END
+          ), 0) AS TonKhaDung
+        FROM dbo.SAN_PHAM AS product
+        JOIN dbo.LOAI_SAN_PHAM AS category ON category.MaLoai = product.MaLoai
+        LEFT JOIN dbo.LO_HANG AS lot ON lot.MaSP = product.MaSP
+        WHERE product.MaSP IN (${placeholders.join(', ')})
+        GROUP BY
+          product.MaSP, product.TenSP, product.MaVach, product.DonViTinh,
+          product.GiaBan, product.TrangThai,
+          category.MaLoai, category.TenLoai, category.TrangThai
+      `,
+      parameters,
+      transaction,
+    });
+    return result.recordset;
+  }
+
+  async findActiveCustomerByPhone(phone, transaction = null) {
+    const result = await this.query({
+      text: `
+        SELECT
+          MaKH,
+          HoTen,
+          SDT,
+          DiemTichLuy,
+          HangThanhVien
+        FROM dbo.KHACH_HANG
+        WHERE SDT = @Phone
+          AND TrangThai = 'ACTIVE'
+      `,
+      parameters: {
+        Phone: { type: this.sql.VarChar(15), value: phone },
+      },
+      transaction,
+    });
+    return result.recordset[0] ?? null;
+  }
+
   async searchSellableProducts({ page, pageSize, search, searchPattern }, transaction = null) {
     const result = await this.query({
       text: `
