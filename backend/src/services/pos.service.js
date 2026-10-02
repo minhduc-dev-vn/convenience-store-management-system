@@ -10,6 +10,7 @@ const {
   validationError,
 } = require('../utils/input-validation');
 const { getSqlErrorNumber, isUniqueConstraintError } = require('../utils/sql-error');
+const { withTransaction } = require('../utils/transaction');
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
@@ -91,6 +92,65 @@ function serializeShift(row) {
     shiftId: String(row.MaCa),
     startedAt: dateTime(row.GioBatDau),
     status: row.TrangThai,
+  };
+}
+
+function normalizeShiftId(value) {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
+    throw validationError('shiftId must be a positive integer');
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw validationError('shiftId must be a positive safe integer');
+  }
+  return parsed;
+}
+
+function normalizeCloseShiftInput(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw validationError('Close-shift input must be an object');
+  }
+  const allowedFields = new Set(['closingCash', 'note']);
+  const unknownField = Object.keys(input).find((field) => !allowedFields.has(field));
+  if (unknownField) throw validationError(`Unsupported close-shift field: ${unknownField}`);
+  if (!Object.hasOwn(input, 'closingCash')) {
+    throw validationError('closingCash is required');
+  }
+  return {
+    closingCash: normalizeMoney(input.closingCash, 'closingCash'),
+    note: normalizeOptionalText(input.note, 'note', 255) ?? null,
+  };
+}
+
+function serializeShiftReconciliation(row) {
+  if (!row) return null;
+  const openingCash = Number(row.TienDauCa);
+  const cashRevenue = Number(row.DoanhThuTienMat);
+  const closingCash = row.TienCuoiCa === null ? null : Number(row.TienCuoiCa);
+  const expectedCash = Math.round((openingCash + cashRevenue) * 100) / 100;
+  return {
+    cancelledInvoiceCount: Number(row.SoHoaDonHuy),
+    cashRevenue,
+    closedAt: dateTime(row.GioKetThuc),
+    closingCash,
+    completedInvoiceCount: Number(row.SoHoaDonHoanTat),
+    difference: closingCash === null
+      ? null
+      : Math.round((closingCash - expectedCash) * 100) / 100,
+    employee: {
+      employeeId: row.MaNV,
+      name: row.TenNhanVien ?? null,
+    },
+    expectedCash,
+    grossRevenue: Number(row.DoanhThu),
+    invoiceCount: Number(row.SoHoaDon),
+    nonCashRevenue: Number(row.DoanhThuKhongTienMat),
+    note: row.GhiChu,
+    openingCash,
+    shiftId: String(row.MaCa),
+    startedAt: dateTime(row.GioBatDau),
+    status: row.TrangThai,
+    unfinishedInvoiceCount: Number(row.SoHoaDonChuaHoanTat),
   };
 }
 
@@ -527,9 +587,11 @@ class PosService {
   constructor({
     posRepository = new PosRepository(),
     promotionService = new PromotionService(),
+    transactionRunner = withTransaction,
   } = {}) {
     this.posRepository = posRepository;
     this.promotionService = promotionService;
+    this.transactionRunner = transactionRunner;
   }
 
   async getCurrentShift(identityInput) {
@@ -551,6 +613,72 @@ class PosService {
     } catch (error) {
       throw mapPosError(error);
     }
+  }
+
+  async getShiftReconciliation(identityInput, shiftIdInput) {
+    const identity = assertCashierIdentity(identityInput);
+    const shiftId = normalizeShiftId(shiftIdInput);
+    const row = await this.posRepository.getShiftReconciliation(shiftId, identity.employeeId);
+    if (!row) {
+      throw new AppError('The cashier shift was not found', {
+        code: 'SHIFT_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+    return { reconciliation: serializeShiftReconciliation(row) };
+  }
+
+  async closeShift(identityInput, shiftIdInput, input) {
+    const identity = assertCashierIdentity(identityInput);
+    const shiftId = normalizeShiftId(shiftIdInput);
+    const closeInput = normalizeCloseShiftInput(input);
+    return this.transactionRunner(async (transaction) => {
+      const shift = await this.posRepository.findOwnedShiftForUpdate(
+        shiftId,
+        identity.employeeId,
+        transaction,
+      );
+      if (!shift) {
+        throw new AppError('The cashier shift was not found', {
+          code: 'SHIFT_NOT_FOUND',
+          statusCode: 404,
+        });
+      }
+      if (shift.TrangThai !== 'OPEN') {
+        throw new AppError('The cashier shift is already closed', {
+          code: 'SHIFT_ALREADY_CLOSED',
+          statusCode: 409,
+        });
+      }
+      const beforeClose = await this.posRepository.getShiftReconciliation(
+        shiftId,
+        identity.employeeId,
+        transaction,
+      );
+      if (Number(beforeClose.SoHoaDonChuaHoanTat) > 0) {
+        throw new AppError('The shift still has unfinished invoices', {
+          code: 'SHIFT_HAS_UNFINISHED_INVOICES',
+          statusCode: 409,
+        });
+      }
+      const closed = await this.posRepository.closeShift({
+        ...closeInput,
+        employeeId: identity.employeeId,
+        shiftId,
+      }, transaction);
+      if (!closed) {
+        throw new AppError('The cashier shift could not be closed', {
+          code: 'SHIFT_CLOSE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      const afterClose = {
+        ...beforeClose,
+        ...closed,
+        TenNhanVien: beforeClose.TenNhanVien,
+      };
+      return { reconciliation: serializeShiftReconciliation(afterClose) };
+    });
   }
 
   async searchProducts(identityInput, query = {}) {
@@ -752,4 +880,7 @@ module.exports = {
   serializeProduct,
   serializeReceipt,
   serializeShift,
+  serializeShiftReconciliation,
+  normalizeCloseShiftInput,
+  normalizeShiftId,
 };

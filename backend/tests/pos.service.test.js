@@ -8,6 +8,7 @@ const {
   mapCheckoutError,
   mapPosError,
   normalizeCheckoutInput,
+  normalizeCloseShiftInput,
   normalizeMoney,
   normalizeProductQuery,
   normalizeQuoteInput,
@@ -279,6 +280,115 @@ test('shift procedure errors map to stable API errors', () => {
   error = mapPosError({ number: 51502 });
   assert.equal(error.code, 'VALIDATION_ERROR');
   assert.equal(error.statusCode, 400);
+});
+
+test('shift reconciliation is derived from DB totals and only the owner may close it', async () => {
+  let closeInput;
+  const reconciliationRow = {
+    ...shiftRow(),
+    GioKetThuc: null,
+    TienCuoiCa: null,
+    SoHoaDon: 3,
+    SoHoaDonHoanTat: 2,
+    SoHoaDonHuy: 1,
+    SoHoaDonChuaHoanTat: 0,
+    DoanhThu: 150000,
+    DoanhThuTienMat: 90000,
+    DoanhThuKhongTienMat: 60000,
+  };
+  const service = new PosService({
+    posRepository: {
+      async getShiftReconciliation(shiftId, employeeId) {
+        assert.equal(shiftId, 29);
+        assert.equal(employeeId, 'C29CASH');
+        return reconciliationRow;
+      },
+      async findOwnedShiftForUpdate() { return reconciliationRow; },
+      async closeShift(input) {
+        closeInput = input;
+        return {
+          ...reconciliationRow,
+          GioKetThuc: new Date('2026-10-02T10:00:00.000Z'),
+          TienCuoiCa: input.closingCash,
+          TrangThai: 'CLOSED',
+          GhiChu: input.note,
+        };
+      },
+    },
+    transactionRunner: async (work) => work({ id: 'transaction' }),
+  });
+
+  const preview = await service.getShiftReconciliation(cashierIdentity, '29');
+  assert.equal(preview.reconciliation.expectedCash, 590000);
+  assert.equal(preview.reconciliation.difference, null);
+
+  const closed = await service.closeShift(cashierIdentity, '29', {
+    closingCash: 589000,
+    note: 'Thiếu 1.000',
+  });
+  assert.deepEqual(closeInput, {
+    closingCash: 589000,
+    employeeId: 'C29CASH',
+    note: 'Thiếu 1.000',
+    shiftId: 29,
+  });
+  assert.equal(closed.reconciliation.status, 'CLOSED');
+  assert.equal(closed.reconciliation.difference, -1000);
+});
+
+test('close shift rejects unfinished and already-closed shifts', async () => {
+  let shift = shiftRow();
+  let unfinished = 1;
+  const service = new PosService({
+    posRepository: {
+      async findOwnedShiftForUpdate() { return shift; },
+      async getShiftReconciliation() {
+        return {
+          ...shift,
+          GioKetThuc: null,
+          TienCuoiCa: null,
+          SoHoaDon: 1,
+          SoHoaDonHoanTat: 0,
+          SoHoaDonHuy: 0,
+          SoHoaDonChuaHoanTat: unfinished,
+          DoanhThu: 0,
+          DoanhThuTienMat: 0,
+          DoanhThuKhongTienMat: 0,
+        };
+      },
+      async closeShift() { throw new Error('must not close'); },
+    },
+    transactionRunner: async (work) => work({}),
+  });
+  await assert.rejects(
+    service.closeShift(cashierIdentity, '29', { closingCash: 0 }),
+    (error) => error.code === 'SHIFT_HAS_UNFINISHED_INVOICES',
+  );
+
+  unfinished = 0;
+  shift = shiftRow({ TrangThai: 'CLOSED' });
+  await assert.rejects(
+    service.closeShift(cashierIdentity, '29', { closingCash: 0 }),
+    (error) => error.code === 'SHIFT_ALREADY_CLOSED',
+  );
+});
+
+test('close-shift validation rejects spoofed fields and invalid cash', () => {
+  assert.deepEqual(normalizeCloseShiftInput({ closingCash: 0, note: '  Kết ca  ' }), {
+    closingCash: 0,
+    note: 'Kết ca',
+  });
+  for (const input of [
+    {},
+    { closingCash: -1 },
+    { closingCash: '1000' },
+    { closingCash: 0, employeeId: 'SPOOFED' },
+  ]) {
+    assert.throws(
+      () => normalizeCloseShiftInput(input),
+      (error) => error.code === 'VALIDATION_ERROR',
+    );
+  }
 });
 
 test('POS quote uses server prices, validates membership and allocates promotion cents like C28', async () => {

@@ -70,6 +70,130 @@ class PosRepository extends BaseRepository {
     return result.recordset[0] ?? null;
   }
 
+  async findOwnedShiftForUpdate(shiftId, employeeId, transaction) {
+    const result = await this.query({
+      text: `
+        SELECT
+          work_shift.MaCa,
+          work_shift.MaNV,
+          employee.HoTen AS TenNhanVien,
+          work_shift.GioBatDau,
+          work_shift.GioKetThuc,
+          work_shift.TienDauCa,
+          work_shift.TienCuoiCa,
+          work_shift.TrangThai,
+          work_shift.GhiChu
+        FROM dbo.CA_LAM_VIEC AS work_shift WITH (UPDLOCK, HOLDLOCK)
+        JOIN dbo.NHAN_VIEN AS employee ON employee.MaNV = work_shift.MaNV
+        WHERE work_shift.MaCa = @ShiftId
+          AND work_shift.MaNV = @EmployeeId
+      `,
+      parameters: {
+        EmployeeId: { type: this.sql.VarChar(10), value: employeeId },
+        ShiftId: { type: this.sql.BigInt, value: shiftId },
+      },
+      transaction,
+    });
+    return result.recordset[0] ?? null;
+  }
+
+  async getShiftReconciliation(shiftId, employeeId, transaction = null) {
+    const result = await this.query({
+      text: `
+        SELECT
+          work_shift.MaCa,
+          work_shift.MaNV,
+          employee.HoTen AS TenNhanVien,
+          work_shift.GioBatDau,
+          work_shift.GioKetThuc,
+          work_shift.TienDauCa,
+          work_shift.TienCuoiCa,
+          work_shift.TrangThai,
+          work_shift.GhiChu,
+          COALESCE(invoice_totals.SoHoaDon, 0) AS SoHoaDon,
+          COALESCE(invoice_totals.SoHoaDonHoanTat, 0) AS SoHoaDonHoanTat,
+          COALESCE(invoice_totals.SoHoaDonHuy, 0) AS SoHoaDonHuy,
+          COALESCE(invoice_totals.SoHoaDonChuaHoanTat, 0) AS SoHoaDonChuaHoanTat,
+          COALESCE(invoice_totals.DoanhThu, 0) AS DoanhThu,
+          COALESCE(payment_totals.DoanhThuTienMat, 0) AS DoanhThuTienMat,
+          COALESCE(payment_totals.DoanhThuKhongTienMat, 0) AS DoanhThuKhongTienMat
+        FROM dbo.CA_LAM_VIEC AS work_shift
+        JOIN dbo.NHAN_VIEN AS employee ON employee.MaNV = work_shift.MaNV
+        OUTER APPLY (
+          SELECT
+            COUNT_BIG(*) AS SoHoaDon,
+            COALESCE(SUM(CASE WHEN invoice.TrangThai IN ('PAID', 'REFUNDED') THEN 1 ELSE 0 END), 0)
+              AS SoHoaDonHoanTat,
+            COALESCE(SUM(CASE WHEN invoice.TrangThai = 'CANCELLED' THEN 1 ELSE 0 END), 0)
+              AS SoHoaDonHuy,
+            COALESCE(SUM(CASE WHEN invoice.TrangThai = 'DRAFT' THEN 1 ELSE 0 END), 0)
+              AS SoHoaDonChuaHoanTat,
+            COALESCE(SUM(CASE
+              WHEN invoice.TrangThai IN ('PAID', 'REFUNDED') THEN invoice.TongThanhToan
+              ELSE CONVERT(DECIMAL(18,2), 0)
+            END), 0) AS DoanhThu
+          FROM dbo.HOA_DON AS invoice
+          WHERE invoice.MaCa = work_shift.MaCa
+        ) AS invoice_totals
+        OUTER APPLY (
+          SELECT
+            COALESCE(SUM(CASE
+              WHEN payment.TrangThai = 'SUCCESS' AND payment.PhuongThuc = 'CASH'
+                THEN payment.SoTien ELSE CONVERT(DECIMAL(18,2), 0)
+            END), 0) AS DoanhThuTienMat,
+            COALESCE(SUM(CASE
+              WHEN payment.TrangThai = 'SUCCESS' AND payment.PhuongThuc <> 'CASH'
+                THEN payment.SoTien ELSE CONVERT(DECIMAL(18,2), 0)
+            END), 0) AS DoanhThuKhongTienMat
+          FROM dbo.HOA_DON AS invoice
+          JOIN dbo.THANH_TOAN AS payment ON payment.MaHD = invoice.MaHD
+          WHERE invoice.MaCa = work_shift.MaCa
+        ) AS payment_totals
+        WHERE work_shift.MaCa = @ShiftId
+          AND work_shift.MaNV = @EmployeeId
+      `,
+      parameters: {
+        EmployeeId: { type: this.sql.VarChar(10), value: employeeId },
+        ShiftId: { type: this.sql.BigInt, value: shiftId },
+      },
+      transaction,
+    });
+    return result.recordset[0] ?? null;
+  }
+
+  async closeShift({ closingCash, employeeId, note, shiftId }, transaction) {
+    const result = await this.query({
+      text: `
+        UPDATE dbo.CA_LAM_VIEC
+        SET
+          GioKetThuc = SYSDATETIME(),
+          TienCuoiCa = @ClosingCash,
+          TrangThai = 'CLOSED',
+          GhiChu = COALESCE(@Note, GhiChu)
+        OUTPUT
+          inserted.MaCa,
+          inserted.MaNV,
+          inserted.GioBatDau,
+          inserted.GioKetThuc,
+          inserted.TienDauCa,
+          inserted.TienCuoiCa,
+          inserted.TrangThai,
+          inserted.GhiChu
+        WHERE MaCa = @ShiftId
+          AND MaNV = @EmployeeId
+          AND TrangThai = 'OPEN'
+      `,
+      parameters: {
+        ClosingCash: { type: this.sql.Decimal(18, 2), value: closingCash },
+        EmployeeId: { type: this.sql.VarChar(10), value: employeeId },
+        Note: { type: this.sql.NVarChar(255), value: note },
+        ShiftId: { type: this.sql.BigInt, value: shiftId },
+      },
+      transaction,
+    });
+    return result.recordset[0] ?? null;
+  }
+
   async openShift({ employeeId, note, openingCash }, transaction = null) {
     const result = await this.query({
       text: `

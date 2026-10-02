@@ -18,6 +18,20 @@ async function openShift(request, response) {
   });
 }
 
+async function getShiftReconciliation(request, response) {
+  response.status(200).json({
+    success: true,
+    data: await posService.getShiftReconciliation(request.auth, request.params.shiftId),
+  });
+}
+
+async function closeShift(request, response) {
+  response.status(200).json({
+    success: true,
+    data: await posService.closeShift(request.auth, request.params.shiftId, request.body),
+  });
+}
+
 async function searchProducts(request, response) {
   response.status(200).json({
     success: true,
@@ -57,9 +71,11 @@ async function getReceipt(request, response) {
 module.exports = {
   calculateQuote,
   checkout,
+  closeShift,
   getCurrentShift,
   getProductByBarcode,
   getReceipt,
+  getShiftReconciliation,
   openShift,
   searchProducts,
 };
