@@ -43,15 +43,20 @@ export function removeCartItem(cart, productId) {
   return cart.filter((item) => item.productId !== productId);
 }
 
-export function buildQuotePayload(cart) {
+export function buildQuotePayload(cart, { customerPhone = '', promotionId = '' } = {}) {
   if (!Array.isArray(cart) || cart.length === 0) {
     throw new RangeError('Giỏ hàng cần ít nhất một sản phẩm.');
   }
-  return {
+  const payload = {
     items: cart.map((item) => ({
       productId: item.productId,
       quantity: normalizeQuantity(item.quantity, normalizeStock(item)),
     })),
   };
+  const normalizedPhone = String(customerPhone ?? '').trim();
+  const normalizedPromotion = String(promotionId ?? '').trim();
+  if (normalizedPhone) payload.customerPhone = normalizedPhone;
+  if (normalizedPromotion) payload.promotionId = normalizedPromotion;
+  return payload;
 }
 

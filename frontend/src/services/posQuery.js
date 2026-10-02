@@ -20,3 +20,6 @@ export function buildPosBarcodePath(barcode) {
   return `/pos/products/barcode/${encodeURIComponent(requireValue(barcode, 'barcode'))}`;
 }
 
+export function buildPosReceiptPath(invoiceId) {
+  return `/pos/invoices/${encodeURIComponent(requireValue(invoiceId, 'invoiceId'))}`;
+}

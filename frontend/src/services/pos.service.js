@@ -1,7 +1,11 @@
 import { apiClient } from '../api';
-import { buildPosBarcodePath, buildPosProductSearchPath } from './posQuery';
+import {
+  buildPosBarcodePath,
+  buildPosProductSearchPath,
+  buildPosReceiptPath,
+} from './posQuery';
 
-export { buildPosBarcodePath, buildPosProductSearchPath } from './posQuery';
+export { buildPosBarcodePath, buildPosProductSearchPath, buildPosReceiptPath } from './posQuery';
 
 export function getCurrentPosShift(options = {}) {
   return apiClient.get('/pos/shifts/current', options);
@@ -23,3 +27,10 @@ export function calculatePosQuote(input, options = {}) {
   return apiClient.post('/pos/quotes', input, options);
 }
 
+export function checkoutPosOrder(input, options = {}) {
+  return apiClient.post('/pos/checkouts', input, options);
+}
+
+export function getPosReceipt(invoiceId, options = {}) {
+  return apiClient.get(buildPosReceiptPath(invoiceId), options);
+}

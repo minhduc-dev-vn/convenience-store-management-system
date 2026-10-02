@@ -7,6 +7,7 @@ import WarehouseLayout from '../layouts/WarehouseLayout';
 import ChangePasswordPage from '../pages/ChangePasswordPage';
 import CashierDashboardPage from '../pages/cashier/CashierDashboardPage';
 import CashierPosPage from '../pages/cashier/CashierPosPage';
+import CashierReceiptPage from '../pages/cashier/CashierReceiptPage';
 import CustomerHistoryPage from '../pages/CustomerHistoryPage';
 import CustomerOverviewPage from '../pages/CustomerOverviewPage';
 import CustomerProfilePage from '../pages/CustomerProfilePage';
@@ -85,6 +86,7 @@ function AppRoutes() {
           <Route path="cashier" element={<CashierLayout />}>
             <Route index element={<CashierDashboardPage />} />
             <Route path="pos" element={<CashierPosPage />} />
+            <Route path="receipts/:invoiceId" element={<CashierReceiptPage />} />
           </Route>
         </Route>
 

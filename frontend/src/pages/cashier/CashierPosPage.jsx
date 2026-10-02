@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { getErrorMessage } from '../../api/errors';
 import { ErrorState, LoadingState, Notice, PageHeader } from '../../components';
 import PosCart from '../../components/pos/PosCart';
 import ProductSearch from '../../components/pos/ProductSearch';
+import CheckoutDialog from '../../components/pos/CheckoutDialog';
 import {
   addProductToCart,
   buildQuotePayload,
@@ -11,9 +12,16 @@ import {
   updateCartQuantity,
 } from '../../components/pos/cart';
 import {
+  buildCheckoutPayload,
+  createInvoiceId,
+} from '../../components/pos/checkout';
+import { listPublicPromotions } from '../../services/promotion.service';
+import {
   calculatePosQuote,
+  checkoutPosOrder,
   getCurrentPosShift,
   getPosProductByBarcode,
+  getPosReceipt,
   searchPosProducts,
 } from '../../services/pos.service';
 
@@ -22,12 +30,21 @@ function formatDateTime(value) {
 }
 
 function CashierPosPage() {
+  const navigate = useNavigate();
   const scannerRef = useRef(null);
   const quoteRequestRef = useRef(0);
+  const checkoutSubmittingRef = useRef(false);
   const [shift, setShift] = useState(null);
   const [pageStatus, setPageStatus] = useState('loading');
   const [cart, setCart] = useState([]);
   const [quote, setQuote] = useState(null);
+  const [quoteOptions, setQuoteOptions] = useState({ customerPhone: '', promotionId: '' });
+  const [promotions, setPromotions] = useState([]);
+  const [promotionsError, setPromotionsError] = useState('');
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutInvoiceId, setCheckoutInvoiceId] = useState('');
+  const [checkoutError, setCheckoutError] = useState('');
+  const [isCheckoutSubmitting, setIsCheckoutSubmitting] = useState(false);
   const [query, setQuery] = useState('');
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
@@ -63,28 +80,63 @@ function CashierPosPage() {
     loadShift();
   }, []);
 
-  async function refreshQuote(nextCart) {
+  useEffect(() => {
+    const controller = new AbortController();
+    listPublicPromotions({}, { signal: controller.signal })
+      .then((data) => setPromotions(Array.isArray(data) ? data : []))
+      .catch((requestError) => {
+        if (requestError.name !== 'AbortError') {
+          setPromotionsError('Không thể tải danh sách khuyến mãi. Bạn vẫn có thể thanh toán không áp dụng ưu đãi.');
+        }
+      });
+    return () => controller.abort();
+  }, []);
+
+  const applicablePromotions = useMemo(() => {
+    const productIds = new Set(cart.map((item) => item.productId));
+    return promotions.filter((promotion) => (
+      promotion.products?.some((product) => productIds.has(product.productId))
+    ));
+  }, [cart, promotions]);
+
+  async function refreshQuote(nextCart, options = {}, { forCheckout = false } = {}) {
     const requestId = quoteRequestRef.current + 1;
     quoteRequestRef.current = requestId;
     if (nextCart.length === 0) {
       setQuote(null);
+      setQuoteOptions({ customerPhone: '', promotionId: '' });
       setIsQuoting(false);
-      return;
+      return null;
     }
     setIsQuoting(true);
     setError('');
     try {
-      const data = await calculatePosQuote(buildQuotePayload(nextCart));
-      if (quoteRequestRef.current !== requestId) return;
+      const normalizedOptions = {
+        customerPhone: String(options.customerPhone ?? '').trim(),
+        promotionId: String(options.promotionId ?? '').trim(),
+      };
+      const data = await calculatePosQuote(buildQuotePayload(nextCart, normalizedOptions));
+      if (quoteRequestRef.current !== requestId) return null;
       setQuote(data);
+      setQuoteOptions(normalizedOptions);
       setCart((current) => current.map((item) => {
         const authoritative = data.items.find((quoted) => quoted.productId === item.productId);
         return authoritative ? { ...item, availableStock: authoritative.availableStock } : item;
       }));
+      return data;
     } catch (requestError) {
-      if (quoteRequestRef.current !== requestId) return;
-      setQuote(null);
-      handleRequestError(requestError);
+      if (quoteRequestRef.current !== requestId) return null;
+      if (forCheckout) {
+        if (requestError?.code === 'SHIFT_REQUIRED') {
+          setShift(null);
+          setIsCheckoutOpen(false);
+        }
+        setCheckoutError(getErrorMessage(requestError));
+      } else {
+        setQuote(null);
+        handleRequestError(requestError);
+      }
+      return null;
     } finally {
       if (quoteRequestRef.current === requestId) setIsQuoting(false);
     }
@@ -92,8 +144,9 @@ function CashierPosPage() {
 
   function commitCart(nextCart, successMessage = '') {
     setCart(nextCart);
+    setCheckoutInvoiceId('');
     setNotice(successMessage);
-    refreshQuote(nextCart);
+    refreshQuote(nextCart, {});
     requestAnimationFrame(() => scannerRef.current?.focus());
   }
 
@@ -165,7 +218,67 @@ function CashierPosPage() {
       setError('Đơn hàng chưa có báo giá hợp lệ từ máy chủ.');
       return;
     }
-    setNotice('Đơn hàng đã được máy chủ xác nhận giá và tồn kho, sẵn sàng cho bước thanh toán.');
+    setCheckoutInvoiceId((current) => current || createInvoiceId());
+    setCheckoutError('');
+    setIsCheckoutOpen(true);
+    setNotice('');
+  }
+
+  async function handleRefreshCheckoutQuote(options) {
+    setCheckoutError('');
+    return refreshQuote(cart, options, { forCheckout: true });
+  }
+
+  async function handleCheckout(paymentInput) {
+    if (checkoutSubmittingRef.current) return;
+    checkoutSubmittingRef.current = true;
+    setIsCheckoutSubmitting(true);
+    setCheckoutError('');
+    try {
+      const options = {
+        customerPhone: paymentInput.customerPhone,
+        promotionId: paymentInput.promotionId,
+      };
+      const latestQuote = await refreshQuote(cart, options, { forCheckout: true });
+      if (!latestQuote) return;
+      if (paymentInput.promotionId && latestQuote.promotion?.eligible !== true) {
+        setCheckoutError('Khuyến mãi đã chọn không còn đủ điều kiện áp dụng.');
+        return;
+      }
+      const payload = buildCheckoutPayload({
+        ...paymentInput,
+        cart,
+        invoiceId: checkoutInvoiceId,
+        quote: latestQuote,
+      });
+      const checkoutResult = await checkoutPosOrder(payload);
+      let persistedReceipt = checkoutResult.receipt;
+      try {
+        const persisted = await getPosReceipt(checkoutInvoiceId);
+        persistedReceipt = persisted.receipt;
+      } catch {
+        // Checkout response is already serialized from the committed invoice.
+      }
+      setCart([]);
+      setQuote(null);
+      setQuoteOptions({ customerPhone: '', promotionId: '' });
+      setProducts([]);
+      setQuery('');
+      setIsCheckoutOpen(false);
+      navigate(`/cashier/receipts/${encodeURIComponent(checkoutInvoiceId)}`, {
+        replace: true,
+        state: { receipt: persistedReceipt },
+      });
+    } catch (requestError) {
+      if (requestError?.code === 'SHIFT_REQUIRED') {
+        setShift(null);
+        setIsCheckoutOpen(false);
+      }
+      setCheckoutError(getErrorMessage(requestError));
+    } finally {
+      checkoutSubmittingRef.current = false;
+      setIsCheckoutSubmitting(false);
+    }
   }
 
   if (pageStatus === 'loading') return <LoadingState message="Đang kiểm tra ca và khởi tạo quầy bán hàng" />;
@@ -237,6 +350,25 @@ function CashierPosPage() {
           {isQuoting ? 'Đang kiểm tra…' : 'Thanh toán'}
         </button>
       </div>
+
+      {isCheckoutOpen && quote && (
+        <CheckoutDialog
+          appliedOptions={quoteOptions}
+          error={checkoutError}
+          invoiceId={checkoutInvoiceId}
+          isQuoting={isQuoting}
+          isSubmitting={isCheckoutSubmitting}
+          onCancel={() => {
+            setIsCheckoutOpen(false);
+            setCheckoutError('');
+          }}
+          onConfirm={handleCheckout}
+          onRefreshQuote={handleRefreshCheckoutQuote}
+          promotions={applicablePromotions}
+          promotionsError={promotionsError}
+          quote={quote}
+        />
+      )}
     </section>
   );
 }
