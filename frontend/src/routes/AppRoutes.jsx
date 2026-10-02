@@ -6,6 +6,7 @@ import ManagerLayout from '../layouts/ManagerLayout';
 import WarehouseLayout from '../layouts/WarehouseLayout';
 import ChangePasswordPage from '../pages/ChangePasswordPage';
 import CashierDashboardPage from '../pages/cashier/CashierDashboardPage';
+import CashierInvoiceLookupPage from '../pages/cashier/CashierInvoiceLookupPage';
 import CashierPosPage from '../pages/cashier/CashierPosPage';
 import CashierReceiptPage from '../pages/cashier/CashierReceiptPage';
 import CustomerHistoryPage from '../pages/CustomerHistoryPage';
@@ -17,6 +18,7 @@ import AccountManagementPage from '../pages/manager/AccountManagementPage';
 import CustomerMemberManagementPage from '../pages/manager/CustomerMemberManagementPage';
 import EmployeeManagementPage from '../pages/manager/EmployeeManagementPage';
 import ManagerInventoryPage from '../pages/manager/InventoryPage';
+import ManagerInvoiceLookupPage from '../pages/manager/InvoiceLookupPage';
 import ManagerDashboardPage from '../pages/manager/ManagerDashboardPage';
 import ProductManagementPage from '../pages/manager/ProductManagementPage';
 import ProductPricingPage from '../pages/manager/ProductPricingPage';
@@ -69,6 +71,7 @@ function AppRoutes() {
             <Route path="promotions" element={<PromotionManagementPage />} />
             <Route path="suppliers" element={<SupplierManagementPage />} />
             <Route path="inventory" element={<ManagerInventoryPage />} />
+            <Route path="invoices" element={<ManagerInvoiceLookupPage />} />
           </Route>
         </Route>
 
@@ -87,6 +90,7 @@ function AppRoutes() {
             <Route index element={<CashierDashboardPage />} />
             <Route path="pos" element={<CashierPosPage />} />
             <Route path="receipts/:invoiceId" element={<CashierReceiptPage />} />
+            <Route path="invoices" element={<CashierInvoiceLookupPage />} />
           </Route>
         </Route>
 

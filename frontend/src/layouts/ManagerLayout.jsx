@@ -11,6 +11,7 @@ const managerNavigation = [
   { to: '/manager/promotions', label: 'Quản lý khuyến mãi' },
   { to: '/manager/suppliers', label: 'Quản lý nhà cung cấp' },
   { to: '/manager/inventory', label: 'Tồn kho và cảnh báo' },
+  { to: '/manager/invoices', label: 'Tra cứu hóa đơn' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 

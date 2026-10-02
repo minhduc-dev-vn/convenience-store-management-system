@@ -23,3 +23,11 @@ export function buildPosBarcodePath(barcode) {
 export function buildPosReceiptPath(invoiceId) {
   return `/pos/invoices/${encodeURIComponent(requireValue(invoiceId, 'invoiceId'))}`;
 }
+
+export function buildShiftReconciliationPath(shiftId) {
+  return `/pos/shifts/${encodeURIComponent(requireValue(shiftId, 'shiftId'))}/reconciliation`;
+}
+
+export function buildCloseShiftPath(shiftId) {
+  return `/pos/shifts/${encodeURIComponent(requireValue(shiftId, 'shiftId'))}/close`;
+}

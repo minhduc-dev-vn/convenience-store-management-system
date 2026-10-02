@@ -1,11 +1,19 @@
 import { apiClient } from '../api';
 import {
   buildPosBarcodePath,
+  buildCloseShiftPath,
   buildPosProductSearchPath,
   buildPosReceiptPath,
+  buildShiftReconciliationPath,
 } from './posQuery';
 
-export { buildPosBarcodePath, buildPosProductSearchPath, buildPosReceiptPath } from './posQuery';
+export {
+  buildCloseShiftPath,
+  buildPosBarcodePath,
+  buildPosProductSearchPath,
+  buildPosReceiptPath,
+  buildShiftReconciliationPath,
+} from './posQuery';
 
 export function getCurrentPosShift(options = {}) {
   return apiClient.get('/pos/shifts/current', options);
@@ -13,6 +21,14 @@ export function getCurrentPosShift(options = {}) {
 
 export function openPosShift(input, options = {}) {
   return apiClient.post('/pos/shifts/open', input, options);
+}
+
+export function getShiftReconciliation(shiftId, options = {}) {
+  return apiClient.get(buildShiftReconciliationPath(shiftId), options);
+}
+
+export function closePosShift(shiftId, input, options = {}) {
+  return apiClient.post(buildCloseShiftPath(shiftId), input, options);
 }
 
 export function searchPosProducts(filters = {}, options = {}) {

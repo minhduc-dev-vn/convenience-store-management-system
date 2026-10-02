@@ -58,6 +58,12 @@ function ManagerDashboardPage() {
           <p>Theo dõi tồn tổng, chi tiết lô, mức tồn thấp và các mốc hạn sử dụng trên dữ liệu kho hiện tại.</p>
           <Link className="button button--primary" to="/manager/inventory">Mở tra cứu tồn kho</Link>
         </article>
+        <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-08 · F16</p>
+          <h2>Tra cứu hóa đơn</h2>
+          <p>Tìm theo mã, khoảng ngày hoặc thu ngân; xem chi tiết giao dịch phục vụ đối soát.</p>
+          <Link className="button button--primary" to="/manager/invoices">Mở tra cứu hóa đơn</Link>
+        </article>
       </div>
     </section>
   );

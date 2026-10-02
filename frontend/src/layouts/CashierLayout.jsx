@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 const cashierNavigation = [
   { to: '/cashier', label: 'Ca làm việc', end: true },
   { to: '/cashier/pos', label: 'Bán hàng tại quầy' },
+  { to: '/cashier/invoices', label: 'Tra cứu hóa đơn' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 
@@ -40,4 +41,3 @@ function CashierLayout() {
 }
 
 export default CashierLayout;
-
