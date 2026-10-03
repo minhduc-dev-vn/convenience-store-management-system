@@ -10,6 +10,7 @@ const inventoryRoutes = require('./routes/inventory.routes');
 const posRoutes = require('./routes/pos.routes');
 const productRoutes = require('./routes/product.routes');
 const promotionRoutes = require('./routes/promotion.routes');
+const returnRoutes = require('./routes/return.routes');
 const warehouseRoutes = require('./routes/warehouse.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/error.middleware');
 
@@ -24,6 +25,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/pos', posRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/promotions', promotionRoutes);
+app.use('/api/returns', returnRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/admin', adminRoutes);
