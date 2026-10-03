@@ -18,7 +18,7 @@ export function countReturnableUnits(invoice) {
 }
 
 export function canStartInvoiceReturn(invoice) {
-  return ['PAID', 'REFUNDED'].includes(invoice?.status)
+  return invoice?.status === 'PAID'
     && countReturnableUnits(invoice) > 0;
 }
 

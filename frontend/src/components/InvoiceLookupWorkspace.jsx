@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getErrorMessage } from '../api';
 import { getInvoice, listInvoices } from '../services/invoice.service';
 import AsyncContent from './AsyncContent';
@@ -120,6 +121,7 @@ function InvoiceDetail({ invoice, isCashier, onSelectReturn }) {
 
 function InvoiceLookupWorkspace({ role }) {
   const isCashier = role === 'CASHIER';
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({ invoiceId: '', from: '', to: '', cashierId: '' });
   const [appliedFilters, setAppliedFilters] = useState({ invoiceId: '', from: '', to: '', cashierId: '' });
   const [page, setPage] = useState(1);
@@ -127,7 +129,6 @@ function InvoiceLookupWorkspace({ role }) {
   const [state, setState] = useState({ data: null, error: null, isLoading: true });
   const [detail, setDetail] = useState({ data: null, error: null, isLoading: false });
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
-  const [returnCandidate, setReturnCandidate] = useState(null);
   const [filterError, setFilterError] = useState('');
 
   const load = useCallback(async (signal) => {
@@ -152,7 +153,6 @@ function InvoiceLookupWorkspace({ role }) {
   const loadDetail = async (invoiceId) => {
     setSelectedInvoiceId(invoiceId);
     setDetail({ data: null, error: null, isLoading: true });
-    setReturnCandidate(null);
     try {
       const data = await getInvoice(invoiceId);
       setDetail({ data: data.invoice, error: null, isLoading: false });
@@ -197,9 +197,6 @@ function InvoiceLookupWorkspace({ role }) {
         description="Tìm hóa đơn theo mã, khoảng ngày hoặc thu ngân và xem lại dữ liệu giao dịch đã lưu."
       />
 
-      <Notice tone="success">
-        {returnCandidate && `Đã chọn ${returnCandidate.invoiceId} làm hóa đơn gốc cho đổi/trả (${countReturnableUnits(returnCandidate)} đơn vị còn có thể trả).`}
-      </Notice>
       <Notice tone="error">{filterError}</Notice>
 
       <form
@@ -215,7 +212,6 @@ function InvoiceLookupWorkspace({ role }) {
           setAppliedFilters(filters);
           setDetail({ data: null, error: null, isLoading: false });
           setSelectedInvoiceId('');
-          setReturnCandidate(null);
         }}
       >
         <FormField htmlFor={`${role}-invoice-id`} label="Mã hóa đơn">
@@ -261,7 +257,7 @@ function InvoiceLookupWorkspace({ role }) {
             <InvoiceDetail
               invoice={detail.data}
               isCashier={isCashier}
-              onSelectReturn={setReturnCandidate}
+              onSelectReturn={(invoice) => navigate(`/cashier/returns/${encodeURIComponent(invoice.invoiceId)}`)}
             />
           )}
         </AsyncContent>

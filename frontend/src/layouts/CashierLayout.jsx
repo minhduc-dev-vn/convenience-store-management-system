@@ -5,6 +5,7 @@ const cashierNavigation = [
   { to: '/cashier', label: 'Ca làm việc', end: true },
   { to: '/cashier/pos', label: 'Bán hàng tại quầy' },
   { to: '/cashier/invoices', label: 'Tra cứu hóa đơn' },
+  { to: '/cashier/returns', label: 'Đổi / trả hàng' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 

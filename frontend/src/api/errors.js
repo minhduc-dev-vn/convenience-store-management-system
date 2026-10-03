@@ -25,6 +25,7 @@ const ERROR_MESSAGES = Object.freeze({
   ACCOUNT_OWNER_INACTIVE: 'Không thể tạo tài khoản cho chủ sở hữu đang ngừng hoạt động.',
   ACCOUNT_CONFLICT: 'Tên đăng nhập hoặc chủ sở hữu đã có tài khoản.',
   INVOICE_NOT_FOUND: 'Không tìm thấy hóa đơn hoặc bạn không có quyền truy cập.',
+  INVOICE_NOT_RETURNABLE: 'Hóa đơn không còn ở trạng thái cho phép đổi/trả.',
   INVALID_API_RESPONSE: 'Máy chủ trả về dữ liệu không hợp lệ.',
   INVALID_CREDENTIALS: 'Thông tin đăng nhập không chính xác.',
   INVALID_TOKEN: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
@@ -80,6 +81,13 @@ const ERROR_MESSAGES = Object.freeze({
   LOT_CONFLICT: 'Thông tin sản phẩm, số lô hoặc ngày của lô không khớp dữ liệu hiện có.',
   LOT_DEFINITION_LOCKED: 'Không thể thay đổi thông tin của lô đã được sử dụng.',
   LOT_INVENTORY_OVERFLOW: 'Số lượng nhập vượt giới hạn tồn kho cho phép.',
+  LOYALTY_RETURN_POLICY_UNRESOLVED: 'Chưa thể trả hóa đơn đã sử dụng điểm tích lũy.',
+  LOYALTY_BALANCE_CONFLICT: 'Điểm tích lũy hiện tại không đủ để điều chỉnh cho phiếu trả.',
+  REFUND_CONFLICT: 'Số tiền hoàn do hệ thống tính không còn phù hợp với hóa đơn.',
+  RETURN_CONFLICT: 'Dữ liệu phiếu trả vừa thay đổi. Vui lòng tải lại hóa đơn.',
+  RETURN_ID_CONFLICT: 'Không thể cấp mã phiếu trả. Vui lòng thử lại.',
+  RETURN_ITEM_NOT_SOLD: 'Dòng hàng hoặc lô đã chọn không thuộc hóa đơn gốc.',
+  RETURN_QUANTITY_EXCEEDED: 'Số lượng trả vượt quá số lượng còn được phép trả.',
   VALIDATION_ERROR: 'Thông tin gửi lên chưa hợp lệ. Vui lòng kiểm tra lại.',
 });
 

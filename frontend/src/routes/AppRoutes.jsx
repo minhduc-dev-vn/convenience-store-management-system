@@ -9,6 +9,7 @@ import CashierDashboardPage from '../pages/cashier/CashierDashboardPage';
 import CashierInvoiceLookupPage from '../pages/cashier/CashierInvoiceLookupPage';
 import CashierPosPage from '../pages/cashier/CashierPosPage';
 import CashierReceiptPage from '../pages/cashier/CashierReceiptPage';
+import CashierReturnPage from '../pages/cashier/CashierReturnPage';
 import CustomerHistoryPage from '../pages/CustomerHistoryPage';
 import CustomerOverviewPage from '../pages/CustomerOverviewPage';
 import CustomerProfilePage from '../pages/CustomerProfilePage';
@@ -91,6 +92,8 @@ function AppRoutes() {
             <Route path="pos" element={<CashierPosPage />} />
             <Route path="receipts/:invoiceId" element={<CashierReceiptPage />} />
             <Route path="invoices" element={<CashierInvoiceLookupPage />} />
+            <Route path="returns" element={<CashierReturnPage />} />
+            <Route path="returns/:invoiceId" element={<CashierReturnPage />} />
           </Route>
         </Route>
 

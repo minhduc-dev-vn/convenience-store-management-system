@@ -50,6 +50,7 @@ test('return entry is available only for finalized invoices with returnable quan
   assert.equal(countReturnableUnits(invoice), 3);
   assert.equal(canStartInvoiceReturn(invoice), true);
   assert.equal(canStartInvoiceReturn({ ...invoice, status: 'DRAFT' }), false);
+  assert.equal(canStartInvoiceReturn({ ...invoice, status: 'REFUNDED' }), false);
   assert.equal(canStartInvoiceReturn({ status: 'REFUNDED', items: [{ quantityReturnable: 0 }] }), false);
   assert.equal(invoiceStatusLabel('PAID'), 'Đã thanh toán');
 });
