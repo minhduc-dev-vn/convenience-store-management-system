@@ -5,6 +5,7 @@ const adminController = require('../controllers/admin.controller');
 const productController = require('../controllers/product.controller');
 const promotionController = require('../controllers/promotion.controller');
 const supplierController = require('../controllers/supplier.controller');
+const stocktakeController = require('../controllers/stocktake.controller');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { validateBody, validateQuery } = require('../middleware/validation.middleware');
 const { asyncHandler } = require('../utils/async-handler');
@@ -100,6 +101,11 @@ const validateSupplierUpdate = validateBody({
   optional: supplierUpdateFields,
   atLeastOne: supplierUpdateFields,
 });
+const validateStocktakeList = validateQuery({
+  allowed: ['page', 'pageSize', 'search', 'status', 'workflowState'],
+});
+const validateStocktakeDecision = validateBody({ optional: ['comment'] });
+const validateStocktakeRejection = validateBody({ required: ['comment'] });
 
 router.use(authenticate, authorize('MANAGER'));
 
@@ -205,6 +211,26 @@ router.patch(
   '/suppliers/:supplierId',
   validateSupplierUpdate,
   asyncHandler(supplierController.updateSupplier),
+);
+
+router.get(
+  '/stocktakes',
+  validateStocktakeList,
+  asyncHandler(stocktakeController.listManagerStocktakes),
+);
+router.get(
+  '/stocktakes/:stocktakeId',
+  asyncHandler(stocktakeController.getManagerStocktake),
+);
+router.post(
+  '/stocktakes/:stocktakeId/approve',
+  validateStocktakeDecision,
+  asyncHandler(stocktakeController.approveStocktake),
+);
+router.post(
+  '/stocktakes/:stocktakeId/reject',
+  validateStocktakeRejection,
+  asyncHandler(stocktakeController.rejectStocktake),
 );
 
 router.get('/accounts', validateAccountList, asyncHandler(adminController.listAccounts));

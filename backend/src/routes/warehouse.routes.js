@@ -2,6 +2,7 @@
 
 const express = require('express');
 const receivingController = require('../controllers/receiving.controller');
+const stocktakeController = require('../controllers/stocktake.controller');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { validateBody, validateQuery } = require('../middleware/validation.middleware');
 const { asyncHandler } = require('../utils/async-handler');
@@ -32,6 +33,15 @@ const validateLineUpdate = validateBody({
   optional: lineUpdateFields,
   atLeastOne: lineUpdateFields,
 });
+const validateStocktakeList = validateQuery({
+  allowed: ['page', 'pageSize', 'search', 'status', 'workflowState'],
+});
+const validateStocktakeCreate = validateBody({ optional: ['note'] });
+const validateStocktakeCount = validateBody({
+  required: ['actualQuantity'],
+  optional: ['reason'],
+});
+const validateStocktakeProposal = validateBody({ optional: ['comment'] });
 
 router.use(authenticate, authorize('WAREHOUSE'));
 
@@ -85,6 +95,31 @@ router.post(
 router.post(
   '/receiving/receipts/:receiptId/confirm',
   asyncHandler(receivingController.confirmReceipt),
+);
+
+router.get(
+  '/stocktakes',
+  validateStocktakeList,
+  asyncHandler(stocktakeController.listWarehouseStocktakes),
+);
+router.post(
+  '/stocktakes',
+  validateStocktakeCreate,
+  asyncHandler(stocktakeController.createStocktake),
+);
+router.get(
+  '/stocktakes/:stocktakeId',
+  asyncHandler(stocktakeController.getWarehouseStocktake),
+);
+router.patch(
+  '/stocktakes/:stocktakeId/lots/:lotId',
+  validateStocktakeCount,
+  asyncHandler(stocktakeController.recordCount),
+);
+router.post(
+  '/stocktakes/:stocktakeId/propose',
+  validateStocktakeProposal,
+  asyncHandler(stocktakeController.proposeStocktake),
 );
 
 module.exports = router;
