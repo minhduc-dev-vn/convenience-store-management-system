@@ -34,6 +34,7 @@ GO
 :r .\indexes\05_inventory_alert_indexes.sql
 :r .\indexes\06_sale_fefo_indexes.sql
 :r .\indexes\07_return_refund_indexes.sql
+:r .\indexes\08_audit_log_indexes.sql
 :r .\views\01_account_role.sql
 :r .\views\02_catalog_promotion.sql
 :r .\views\03_receiving_lots.sql
@@ -41,6 +42,7 @@ GO
 :r .\views\05_sale_invoice.sql
 :r .\views\06_returns.sql
 :r .\views\07_stocktake.sql
+:r .\views\08_audit_log.sql
 :r .\procedures\01_get_account_for_authentication.sql
 :r .\procedures\02_write_audit_log.sql
 :r .\procedures\03_product_lookup.sql
@@ -52,8 +54,9 @@ GO
 :r .\procedures\09_sale_transactions.sql
 :r .\procedures\10_return_transactions.sql
 :r .\procedures\11_stocktake_transactions.sql
+:r .\procedures\12_audit_log_query.sql
 :r .\seed\01_roles.sql
 :r .\seed\02_development_data.sql
 
-PRINT 'Database initialization completed: 23 tables plus auth, catalog, receiving, inventory, FEFO sale, return and stocktake objects are ready.';
+PRINT 'Database initialization completed: 23 tables plus auth, catalog, receiving, inventory, FEFO sale, return, stocktake and audit query objects are ready.';
 GO
