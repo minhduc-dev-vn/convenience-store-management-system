@@ -40,6 +40,7 @@ GO
 :r .\views\04_inventory.sql
 :r .\views\05_sale_invoice.sql
 :r .\views\06_returns.sql
+:r .\views\07_stocktake.sql
 :r .\procedures\01_get_account_for_authentication.sql
 :r .\procedures\02_write_audit_log.sql
 :r .\procedures\03_product_lookup.sql
@@ -50,8 +51,9 @@ GO
 :r .\procedures\08_inventory_alert_queries.sql
 :r .\procedures\09_sale_transactions.sql
 :r .\procedures\10_return_transactions.sql
+:r .\procedures\11_stocktake_transactions.sql
 :r .\seed\01_roles.sql
 :r .\seed\02_development_data.sql
 
-PRINT 'Database initialization completed: 23 tables plus auth, catalog, receiving, inventory, FEFO sale and return objects are ready.';
+PRINT 'Database initialization completed: 23 tables plus auth, catalog, receiving, inventory, FEFO sale, return and stocktake objects are ready.';
 GO
