@@ -28,6 +28,12 @@ function WarehouseDashboardPage() {
           <p>Tra cứu tồn tổng, xem chi tiết từng lô và lọc cảnh báo tồn thấp, sắp hết hạn hoặc đã hết hạn.</p>
           <Link className="button button--primary" to="/warehouse/inventory">Mở tra cứu tồn kho</Link>
         </article>
+        <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-14 · F25/F26/F27</p>
+          <h2>Tạo đợt và ghi nhận kiểm kê</h2>
+          <p>Chụp snapshot tồn theo lô, nhập số lượng thực tế và gửi các chênh lệch có lý do cho quản lý phê duyệt.</p>
+          <Link className="button button--primary" to="/warehouse/stocktakes">Mở kiểm kê kho</Link>
+        </article>
       </div>
     </section>
   );

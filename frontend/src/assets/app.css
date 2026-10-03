@@ -2851,6 +2851,159 @@ article.workspace-card:hover {
   color: var(--muted);
 }
 
+.stocktake-create-card {
+  display: grid;
+  margin-bottom: 24px;
+  padding: 22px;
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, 0.75fr) auto;
+  align-items: end;
+  gap: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fff 0%, var(--forest-light) 100%);
+  box-shadow: var(--shadow);
+}
+
+.stocktake-create-card h2,
+.stocktake-detail-heading h2 {
+  margin: 4px 0 0;
+}
+
+.stocktake-create-card p:last-child {
+  margin: 7px 0 0;
+  color: var(--muted);
+}
+
+.stocktake-create-card .form-field {
+  margin: 0;
+}
+
+.stocktake-filter {
+  grid-template-columns: minmax(230px, 1fr) minmax(190px, 0.5fr) auto;
+}
+
+.stocktake-detail-region {
+  margin-top: 28px;
+}
+
+.stocktake-detail-card {
+  display: grid;
+  padding: 28px;
+  gap: 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.stocktake-detail-heading,
+.stocktake-detail-footer,
+.stocktake-decision-panel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.stocktake-status-stack {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stocktake-summary-grid {
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stocktake-summary-grid > div {
+  padding: 13px;
+  border-radius: 11px;
+  background: var(--canvas);
+}
+
+.stocktake-summary-grid dt {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.stocktake-summary-grid dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.stocktake-summary-grid__wide {
+  grid-column: span 2;
+}
+
+.stocktake-line-field {
+  display: grid;
+  min-width: 110px;
+  gap: 5px;
+}
+
+.stocktake-line-field--reason {
+  min-width: 210px;
+}
+
+.stocktake-line-field input {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.stocktake-line-field small {
+  max-width: 210px;
+  color: #8b2f20;
+  font-size: 0.62rem;
+}
+
+.stocktake-row--variance td {
+  background: #fffaf0;
+}
+
+.variance {
+  color: var(--orange);
+}
+
+.variance--zero {
+  color: var(--muted);
+}
+
+.stocktake-detail-footer {
+  align-items: center;
+}
+
+.stocktake-detail-footer > div {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+}
+
+.stocktake-decision-panel {
+  padding: 18px;
+  align-items: end;
+  border-radius: 14px;
+  background: var(--canvas);
+}
+
+.stocktake-decision-panel .form-field {
+  flex: 1;
+  margin: 0;
+}
+
+.stocktake-decision-panel textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
 .not-found-page {
   display: grid;
   min-height: 650px;
@@ -2962,6 +3115,11 @@ article.workspace-card:hover {
   .shift-close-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .stocktake-create-card,
+  .stocktake-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 680px) {
@@ -3040,6 +3198,22 @@ article.workspace-card:hover {
     .receiving-filter,
     .receipt-meta-grid {
     grid-template-columns: 1fr;
+  }
+
+  .stocktake-create-card,
+  .stocktake-filter,
+  .stocktake-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stocktake-summary-grid__wide {
+    grid-column: auto;
+  }
+
+  .stocktake-detail-heading,
+  .stocktake-detail-footer,
+  .stocktake-decision-panel {
+    flex-direction: column;
   }
 
   .invoice-filter,

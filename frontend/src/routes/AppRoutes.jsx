@@ -25,6 +25,7 @@ import ProductManagementPage from '../pages/manager/ProductManagementPage';
 import ProductPricingPage from '../pages/manager/ProductPricingPage';
 import PromotionManagementPage from '../pages/manager/PromotionManagementPage';
 import SupplierManagementPage from '../pages/manager/SupplierManagementPage';
+import StocktakeApprovalPage from '../pages/manager/StocktakeApprovalPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import ProductCatalogPage from '../pages/customer/ProductCatalogPage';
 import PromotionPage from '../pages/customer/PromotionPage';
@@ -33,6 +34,7 @@ import ReceivingEditorPage from '../pages/warehouse/ReceivingEditorPage';
 import ReceivingManagementPage from '../pages/warehouse/ReceivingManagementPage';
 import WarehouseInventoryPage from '../pages/warehouse/InventoryPage';
 import WarehouseDashboardPage from '../pages/warehouse/WarehouseDashboardPage';
+import WarehouseStocktakePage from '../pages/warehouse/StocktakePage';
 import { ProtectedRoute, PublicOnlyRoute } from './RouteGuards';
 
 function AppRoutes() {
@@ -72,6 +74,7 @@ function AppRoutes() {
             <Route path="promotions" element={<PromotionManagementPage />} />
             <Route path="suppliers" element={<SupplierManagementPage />} />
             <Route path="inventory" element={<ManagerInventoryPage />} />
+            <Route path="stocktakes" element={<StocktakeApprovalPage />} />
             <Route path="invoices" element={<ManagerInvoiceLookupPage />} />
           </Route>
         </Route>
@@ -83,6 +86,7 @@ function AppRoutes() {
             <Route path="receiving/new" element={<ReceivingEditorPage />} />
             <Route path="receiving/:receiptId/edit" element={<ReceivingEditorPage />} />
             <Route path="inventory" element={<WarehouseInventoryPage />} />
+            <Route path="stocktakes" element={<WarehouseStocktakePage />} />
           </Route>
         </Route>
 

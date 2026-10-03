@@ -9,4 +9,5 @@ export { default as Pagination } from './Pagination';
 export { default as Modal } from './Modal';
 export { default as ProductCard } from './ProductCard';
 export { default as PromotionCard } from './PromotionCard';
+export { default as StocktakeSummary, StocktakeStatus } from './StocktakeSummary';
 export { EmptyState, ErrorState, LoadingState } from './StateViews';

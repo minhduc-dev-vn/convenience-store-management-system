@@ -59,6 +59,12 @@ function ManagerDashboardPage() {
           <Link className="button button--primary" to="/manager/inventory">Mở tra cứu tồn kho</Link>
         </article>
         <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-15 · F33</p>
+          <h2>Phê duyệt điều chỉnh kho</h2>
+          <p>Xem chênh lệch và lý do kiểm kê, phê duyệt cập nhật tồn hoặc yêu cầu nhân viên kho kiểm lại.</p>
+          <Link className="button button--primary" to="/manager/stocktakes">Mở danh sách chờ duyệt</Link>
+        </article>
+        <article className="action-card action-card--wide">
           <p className="eyebrow">MH-08 · F16</p>
           <h2>Tra cứu hóa đơn</h2>
           <p>Tìm theo mã, khoảng ngày hoặc thu ngân; xem chi tiết giao dịch phục vụ đối soát.</p>
