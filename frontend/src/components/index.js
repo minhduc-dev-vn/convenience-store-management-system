@@ -1,6 +1,7 @@
 export { default as AsyncContent } from './AsyncContent';
 export { default as AuditDataView } from './AuditDataView';
 export { default as DataTable } from './DataTable';
+export { default as DashboardMetricGrid } from './DashboardMetricGrid';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as FormField } from './FormField';
 export { default as HealthCheckPanel } from './HealthCheckPanel';
@@ -10,5 +11,6 @@ export { default as Pagination } from './Pagination';
 export { default as Modal } from './Modal';
 export { default as ProductCard } from './ProductCard';
 export { default as PromotionCard } from './PromotionCard';
+export { default as RoleDashboardHeader } from './RoleDashboardHeader';
 export { default as StocktakeSummary, StocktakeStatus } from './StocktakeSummary';
 export { EmptyState, ErrorState, LoadingState } from './StateViews';

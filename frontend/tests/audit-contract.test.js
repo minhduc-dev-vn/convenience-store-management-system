@@ -51,12 +51,12 @@ test('audit presentation redacts nested authentication secrets defensively', () 
 
 test('MH-22 is wired into the manager-only route and navigation', () => {
   const routes = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.url), 'utf8');
-  const layout = readFileSync(new URL('../src/layouts/ManagerLayout.jsx', import.meta.url), 'utf8');
+  const navigation = readFileSync(new URL('../src/layouts/navigation.js', import.meta.url), 'utf8');
   const page = readFileSync(new URL('../src/pages/manager/AuditLogPage.jsx', import.meta.url), 'utf8');
 
   assert.match(routes, /ProtectedRoute allowedRoles=\{\['MANAGER'\]\}/);
   assert.match(routes, /path="audit-logs" element=\{<AuditLogPage \/>\}/);
-  assert.match(layout, /\/manager\/audit-logs/);
+  assert.match(navigation, /\/manager\/audit-logs/);
   assert.match(page, /listAuditLogs/);
   assert.match(page, /getAuditLog/);
   assert.doesNotMatch(page, /passwordHash|accessToken|Authorization/);

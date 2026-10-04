@@ -67,15 +67,14 @@ test('workflow guards follow C40 workflow state instead of inventing COMPLETED',
 
 test('C41 routes and role menus are wired while discrepancy remains server-owned', () => {
   const routes = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.url), 'utf8');
-  const warehouseLayout = readFileSync(new URL('../src/layouts/WarehouseLayout.jsx', import.meta.url), 'utf8');
-  const managerLayout = readFileSync(new URL('../src/layouts/ManagerLayout.jsx', import.meta.url), 'utf8');
+  const navigation = readFileSync(new URL('../src/layouts/navigation.js', import.meta.url), 'utf8');
   const warehousePage = readFileSync(new URL('../src/pages/warehouse/StocktakePage.jsx', import.meta.url), 'utf8');
   const managerPage = readFileSync(new URL('../src/pages/manager/StocktakeApprovalPage.jsx', import.meta.url), 'utf8');
 
   assert.match(routes, /path="stocktakes" element={<WarehouseStocktakePage \/>}/);
   assert.match(routes, /path="stocktakes" element={<StocktakeApprovalPage \/>}/);
-  assert.match(warehouseLayout, /\/warehouse\/stocktakes/);
-  assert.match(managerLayout, /\/manager\/stocktakes/);
+  assert.match(navigation, /\/warehouse\/stocktakes/);
+  assert.match(navigation, /\/manager\/stocktakes/);
   assert.match(warehousePage, /line\.discrepancy/);
   assert.doesNotMatch(warehousePage, /actualQuantity\s*-\s*systemQuantity/);
   assert.doesNotMatch(`${warehousePage}${managerPage}`, /apiClient\.(post|patch|put|delete).*LO_HANG/i);

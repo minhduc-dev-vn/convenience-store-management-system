@@ -103,14 +103,14 @@ test('return API errors have cashier-facing messages', () => {
 
 test('C38 cashier route, menu, C35 handoff and server-authoritative result are wired', () => {
   const routes = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.url), 'utf8');
-  const cashierLayout = readFileSync(new URL('../src/layouts/CashierLayout.jsx', import.meta.url), 'utf8');
+  const navigation = readFileSync(new URL('../src/layouts/navigation.js', import.meta.url), 'utf8');
   const invoiceWorkspace = readFileSync(new URL('../src/components/InvoiceLookupWorkspace.jsx', import.meta.url), 'utf8');
   const returnPage = readFileSync(new URL('../src/pages/cashier/CashierReturnPage.jsx', import.meta.url), 'utf8');
   const returnService = readFileSync(new URL('../src/services/return.service.js', import.meta.url), 'utf8');
 
   assert.match(routes, /path="returns" element={<CashierReturnPage \/>}/);
   assert.match(routes, /path="returns\/:invoiceId" element={<CashierReturnPage \/>}/);
-  assert.match(cashierLayout, /\/cashier\/returns/);
+  assert.match(navigation, /\/cashier\/returns/);
   assert.match(invoiceWorkspace, /navigate\(`\/cashier\/returns\/\$\{encodeURIComponent\(invoice\.invoiceId\)}`\)/);
   assert.match(returnService, /apiClient\.post\('\/returns', returnRequest/);
   assert.match(returnPage, /Máy chủ xác nhận/);

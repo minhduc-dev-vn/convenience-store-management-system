@@ -5,6 +5,10 @@ export const INVENTORY_MODE_OPTIONS = Object.freeze([
   { value: 'EXPIRED', label: 'Đã hết hạn' },
 ]);
 
+export function normalizeInventoryMode(value) {
+  return INVENTORY_MODE_OPTIONS.some((option) => option.value === value) ? value : 'ALL';
+}
+
 export const EXPIRY_STATUS_OPTIONS = Object.freeze([
   { value: 'ALL', label: 'Tất cả hạn dùng' },
   { value: 'VALID', label: 'Còn hạn' },

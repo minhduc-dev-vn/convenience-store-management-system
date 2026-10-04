@@ -55,7 +55,7 @@ test('revenue export uses the authoritative summary and trend values', () => {
 
 test('MH-23, MH-24 and MH-25 are manager-only routes with navigation and required views', () => {
   const routes = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.url), 'utf8');
-  const layout = readFileSync(new URL('../src/layouts/ManagerLayout.jsx', import.meta.url), 'utf8');
+  const navigation = readFileSync(new URL('../src/layouts/navigation.js', import.meta.url), 'utf8');
   const revenue = readFileSync(new URL('../src/pages/manager/reports/RevenueReportPage.jsx', import.meta.url), 'utf8');
   const merchandise = readFileSync(new URL('../src/pages/manager/reports/MerchandiseReportPage.jsx', import.meta.url), 'utf8');
   const workforce = readFileSync(new URL('../src/pages/manager/reports/WorkforceReportPage.jsx', import.meta.url), 'utf8');
@@ -64,7 +64,7 @@ test('MH-23, MH-24 and MH-25 are manager-only routes with navigation and require
   assert.match(routes, /path="reports\/revenue"/);
   assert.match(routes, /path="reports\/merchandise"/);
   assert.match(routes, /path="reports\/workforce"/);
-  assert.match(layout, /\/manager\/reports/);
+  assert.match(navigation, /\/manager\/reports/);
   assert.match(revenue, /Xuất PDF/);
   assert.match(revenue, /Xuất Excel/);
   assert.match(revenue, /RevenueTrendChart/);

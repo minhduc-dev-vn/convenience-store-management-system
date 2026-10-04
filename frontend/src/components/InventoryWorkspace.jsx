@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AsyncContent, DataTable, FormField, Notice, PageHeader, Pagination } from './index';
 import {
   EXPIRY_STATUS_OPTIONS,
@@ -7,6 +8,7 @@ import {
   getProductAlerts,
   INVENTORY_MODE_OPTIONS,
   LOT_STATUS_OPTIONS,
+  normalizeInventoryMode,
 } from './inventoryPresentation';
 import {
   listInventoryProductLots,
@@ -48,8 +50,10 @@ function ExpiryStatus({ value }) {
 }
 
 function InventoryWorkspace({ audience }) {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedMode = normalizeInventoryMode(searchParams.get('mode'));
+  const [filters, setFilters] = useState(() => ({ ...INITIAL_FILTERS, mode: requestedMode }));
+  const [appliedFilters, setAppliedFilters] = useState(() => ({ ...INITIAL_FILTERS, mode: requestedMode }));
   const [page, setPage] = useState(1);
   const [productReloadKey, setProductReloadKey] = useState(0);
   const [productState, setProductState] = useState({ data: null, error: null, isLoading: true });
@@ -115,6 +119,13 @@ function InventoryWorkspace({ audience }) {
   }, [loadProducts]);
 
   useEffect(() => {
+    setFilters((current) => ({ ...current, mode: requestedMode }));
+    setAppliedFilters((current) => ({ ...current, mode: requestedMode }));
+    setPage(1);
+    setSelectedProduct(null);
+  }, [requestedMode]);
+
+  useEffect(() => {
     const controller = new AbortController();
     loadCategories(controller.signal);
     return () => controller.abort();
@@ -178,6 +189,7 @@ function InventoryWorkspace({ audience }) {
   const resetFilters = () => {
     setFilters(INITIAL_FILTERS);
     setAppliedFilters(INITIAL_FILTERS);
+    setSearchParams({});
     setPage(1);
     setSelectedProduct(null);
   };
@@ -199,6 +211,7 @@ function InventoryWorkspace({ audience }) {
           setPage(1);
           setSelectedProduct(null);
           setAppliedFilters(filters);
+          setSearchParams(filters.mode === 'ALL' ? {} : { mode: filters.mode });
         }}
       >
         <FormField htmlFor={`${audience}-inventory-search`} label="Mã hoặc tên sản phẩm">

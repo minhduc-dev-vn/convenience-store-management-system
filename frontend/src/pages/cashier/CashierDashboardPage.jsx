@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ConfirmDialog,
+  DashboardMetricGrid,
   ErrorState,
   FormField,
   LoadingState,
   Notice,
-  PageHeader,
+  RoleDashboardHeader,
 } from '../../components';
 import { getErrorMessage } from '../../api/errors';
 import { calculateShiftDifference } from '../../components/invoicePresentation';
@@ -139,16 +140,45 @@ function CashierDashboardPage() {
     }
   }
 
-  if (status === 'loading') return <LoadingState message="Đang kiểm tra ca làm việc hiện tại" />;
-  if (status === 'error') return <ErrorState message={error} onRetry={loadShift} />;
+  const dashboardHeader = (
+    <RoleDashboardHeader
+      title="Tổng quan thu ngân"
+      description="Theo dõi trạng thái ca trực tiếp từ hệ thống và truy cập nhanh POS, hóa đơn, đổi trả hoặc đối chiếu cuối ca."
+    />
+  );
+
+  if (status === 'loading') {
+    return <section className="workspace-page">{dashboardHeader}<LoadingState message="Đang kiểm tra ca làm việc hiện tại" /></section>;
+  }
+  if (status === 'error') {
+    return <section className="workspace-page">{dashboardHeader}<ErrorState message={error} onRetry={loadShift} /></section>;
+  }
+
+  const shiftMetrics = [
+    {
+      label: 'Trạng thái ca',
+      value: shift ? 'OPEN' : 'CLOSED',
+      note: shift ? `Ca #${shift.shiftId}` : 'Chưa có ca đang mở',
+      tone: shift ? 'success' : 'warning',
+    },
+    {
+      label: 'Doanh thu ca',
+      value: reconciliation ? formatMoney(reconciliation.grossRevenue) : '—',
+      note: reconciliation ? 'Dữ liệu đã ghi nhận' : 'Có sau khi mở ca',
+    },
+    {
+      label: 'Hóa đơn hoàn tất',
+      value: reconciliation?.completedInvoiceCount ?? '—',
+      note: reconciliation ? 'Trong ca hiện tại' : 'Có sau khi mở ca',
+      to: '/cashier/invoices',
+      linkLabel: 'Tra cứu hóa đơn',
+    },
+  ];
 
   return (
     <section className="workspace-page cashier-shift-page">
-      <PageHeader
-        eyebrow="MH-05 · F09"
-        title={closedSummary ? 'Ca làm việc đã đóng' : (shift ? 'Ca làm việc đang mở' : 'Mở ca làm việc')}
-        description="Trạng thái ca được tải trực tiếp từ backend trước khi thu ngân truy cập quầy bán hàng."
-      />
+      {dashboardHeader}
+      <DashboardMetricGrid items={shiftMetrics} />
 
       {closedSummary ? (
         <article className="shift-active-card shift-handoff-print-area">
@@ -277,6 +307,33 @@ function CashierDashboardPage() {
           onConfirm={handleCloseShift}
         />
       )}
+
+      <div className="dashboard-section-heading">
+        <p className="eyebrow">Thao tác nhanh</p>
+        <h2>Nghiệp vụ thu ngân</h2>
+      </div>
+      <div className="dashboard-grid dashboard-grid--compact">
+        <article className="action-card">
+          <p className="eyebrow">MH-06 · F10/F11</p>
+          <h2>Bán hàng tại quầy</h2>
+          <p>Quét barcode, tìm sản phẩm và lập giỏ hàng. POS chỉ khả dụng khi ca đang OPEN.</p>
+          <Link className={`button ${shift ? 'button--primary' : 'button--ghost'}`} to={shift ? '/cashier/pos' : '/cashier'}>
+            {shift ? 'Vào POS' : 'Mở ca trước'}
+          </Link>
+        </article>
+        <article className="action-card">
+          <p className="eyebrow">MH-08 · F16</p>
+          <h2>Tra cứu hóa đơn</h2>
+          <p>Tìm hóa đơn theo mã hoặc thời gian và xem chi tiết dữ liệu đã lưu.</p>
+          <Link className="button button--primary" to="/cashier/invoices">Mở tra cứu</Link>
+        </article>
+        <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-09 · F17</p>
+          <h2>Đổi / trả hàng</h2>
+          <p>Tạo yêu cầu trả hàng từ hóa đơn gốc và số lượng còn đủ điều kiện.</p>
+          <Link className="button button--primary" to="/cashier/returns">Mở đổi trả</Link>
+        </article>
+      </div>
     </section>
   );
 }

@@ -64,15 +64,14 @@ test('cash difference is calculated from server expected cash', () => {
 
 test('C35 routes, role menus and print regions are wired without invoice mutation', () => {
   const routes = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.url), 'utf8');
-  const cashierLayout = readFileSync(new URL('../src/layouts/CashierLayout.jsx', import.meta.url), 'utf8');
-  const managerLayout = readFileSync(new URL('../src/layouts/ManagerLayout.jsx', import.meta.url), 'utf8');
+  const navigation = readFileSync(new URL('../src/layouts/navigation.js', import.meta.url), 'utf8');
   const workspace = readFileSync(new URL('../src/components/InvoiceLookupWorkspace.jsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/assets/app.css', import.meta.url), 'utf8');
 
   assert.match(routes, /path="invoices" element={<ManagerInvoiceLookupPage \/>}/);
   assert.match(routes, /path="invoices" element={<CashierInvoiceLookupPage \/>}/);
-  assert.match(cashierLayout, /\/cashier\/invoices/);
-  assert.match(managerLayout, /\/manager\/invoices/);
+  assert.match(navigation, /\/cashier\/invoices/);
+  assert.match(navigation, /\/manager\/invoices/);
   assert.match(workspace, /Chọn để xử lý đổi\/trả/);
   assert.doesNotMatch(workspace, /apiClient\.(post|patch|put|delete)/);
   assert.match(css, /\.invoice-print-area/);

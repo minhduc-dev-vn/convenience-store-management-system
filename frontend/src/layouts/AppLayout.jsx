@@ -1,23 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { getRoleHomePath } from '../auth/roles';
+import { getPrimaryNavigation } from './navigation';
 
 function AppLayout() {
   const { isAuthenticated, logout, user } = useAuth();
-  const navigation = isAuthenticated
-    ? [
-      { to: getRoleHomePath(user.role), label: 'Không gian của tôi' },
-      { to: '/products', label: 'Sản phẩm' },
-      { to: '/promotions', label: 'Khuyến mãi' },
-      { to: '/account/change-password', label: 'Đổi mật khẩu' },
-    ]
-    : [
-      { to: '/', label: 'Tổng quan', end: true },
-      { to: '/products', label: 'Sản phẩm' },
-      { to: '/promotions', label: 'Khuyến mãi' },
-      { to: '/auth/login', label: 'Đăng nhập' },
-      { to: '/auth/register', label: 'Đăng ký' },
-    ];
+  const navigation = getPrimaryNavigation(isAuthenticated, user?.role);
 
   return (
     <div className="app-shell">

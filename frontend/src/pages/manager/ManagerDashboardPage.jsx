@@ -1,87 +1,146 @@
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PageHeader } from '../../components';
+import {
+  AsyncContent,
+  DashboardMetricGrid,
+  RoleDashboardHeader,
+} from '../../components';
+import { getInventoryReport, getRevenueReport } from '../../services/reporting.service';
+import { listManagerStocktakes } from '../../services/stocktake.service';
+import {
+  formatInteger,
+  formatMoney,
+  getDefaultReportPeriod,
+} from './reports/reportingPresentation';
+
+const MANAGER_ACTIONS = Object.freeze([
+  { eyebrow: 'MH-19 · F31', title: 'Nhân viên', description: 'Tra cứu, thêm, cập nhật hồ sơ và trạng thái nhân viên.', to: '/manager/employees' },
+  { eyebrow: 'MH-20 · F32', title: 'Tài khoản và phân quyền', description: 'Tạo tài khoản, gán role, khóa/mở và cấp lại mật khẩu.', to: '/manager/accounts' },
+  { eyebrow: 'MH-21 · F16/F32', title: 'Khách hàng thành viên', description: 'Tra cứu thành viên, điểm, hạng, hóa đơn và trạng thái tài khoản.', to: '/manager/customers' },
+  { eyebrow: 'MH-16 · F28', title: 'Sản phẩm và loại hàng', description: 'Quản lý danh mục, barcode, giá niêm yết và trạng thái kinh doanh.', to: '/manager/products' },
+  { eyebrow: 'MH-17 · F29', title: 'Giá bán và lịch sử', description: 'Cập nhật giá có xác nhận, lý do và lịch sử audit.', to: '/manager/products/pricing' },
+  { eyebrow: 'MH-18 · F30', title: 'Chương trình khuyến mãi', description: 'Quản lý điều kiện, thời gian và sản phẩm áp dụng.', to: '/manager/promotions' },
+  { eyebrow: 'MH-10 · F19', title: 'Nhà cung cấp', description: 'Quản lý hồ sơ và trạng thái hợp tác của nhà cung cấp.', to: '/manager/suppliers' },
+  { eyebrow: 'MH-13 · F22/F23/F24', title: 'Tồn kho và cảnh báo', description: 'Theo dõi tồn tổng, lô, tồn thấp và hạn sử dụng.', to: '/manager/inventory' },
+  { eyebrow: 'MH-15 · F33', title: 'Phê duyệt điều chỉnh kho', description: 'Xem chênh lệch kiểm kê và phê duyệt hoặc yêu cầu kiểm lại.', to: '/manager/stocktakes' },
+  { eyebrow: 'MH-22 · F34', title: 'Nhật ký hệ thống', description: 'Tra cứu actor, hành động, đối tượng và dữ liệu thay đổi.', to: '/manager/audit-logs' },
+  { eyebrow: 'MH-23/24/25 · F35', title: 'Báo cáo kinh doanh', description: 'Phân tích doanh thu, hàng hóa, nhập kho, nhân viên và ca.', to: '/manager/reports' },
+]);
 
 function ManagerDashboardPage() {
+  const [reloadKey, setReloadKey] = useState(0);
+  const [state, setState] = useState({ data: null, error: null, isLoading: true });
+
+  const loadDashboard = useCallback(async (signal) => {
+    setState((current) => ({ ...current, error: null, isLoading: true }));
+    try {
+      const period = getDefaultReportPeriod();
+      const [revenue, inventory, pendingStocktakes] = await Promise.all([
+        getRevenueReport(period, { signal }),
+        getInventoryReport({ page: 1, pageSize: 1 }, { signal }),
+        listManagerStocktakes({ page: 1, pageSize: 5, workflowState: 'PENDING_APPROVAL' }, { signal }),
+      ]);
+      setState({ data: { inventory, pendingStocktakes, period, revenue }, error: null, isLoading: false });
+    } catch (error) {
+      if (error.name !== 'AbortError') setState({ data: null, error, isLoading: false });
+    }
+  }, [reloadKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadDashboard(controller.signal);
+    return () => controller.abort();
+  }, [loadDashboard]);
+
+  const data = state.data;
+  const pendingCount = data?.pendingStocktakes.pagination.totalItems ?? 0;
+  const metrics = data ? [
+    {
+      label: 'Doanh thu thuần tháng',
+      value: formatMoney(data.revenue.summary.netRevenue),
+      note: `${data.period.from} → ${data.period.to}`,
+      tone: 'accent',
+      to: '/manager/reports/revenue',
+      linkLabel: 'Xem doanh thu',
+    },
+    {
+      label: 'Hóa đơn hoàn tất',
+      value: formatInteger(data.revenue.summary.completedInvoiceCount),
+      note: 'Trong tháng hiện tại',
+      to: '/manager/invoices',
+      linkLabel: 'Tra cứu hóa đơn',
+    },
+    {
+      label: 'Giá trị tồn kho',
+      value: formatMoney(data.inventory.summary.inventoryCostValue),
+      note: `${formatInteger(data.inventory.summary.totalStock)} đơn vị đang tồn`,
+      to: '/manager/reports/merchandise',
+      linkLabel: 'Xem hàng hóa',
+    },
+    {
+      label: 'Chờ duyệt kiểm kê',
+      value: formatInteger(pendingCount),
+      note: 'Đề nghị điều chỉnh kho',
+      tone: pendingCount > 0 ? 'warning' : 'success',
+      to: '/manager/stocktakes',
+      linkLabel: 'Mở danh sách duyệt',
+    },
+  ] : [];
+
   return (
     <section className="workspace-page">
-      <PageHeader
-        eyebrow="MANAGER"
-        title="Trung tâm quản trị"
-        description="Quản lý nhân sự, tài khoản, khách hàng, hàng hóa, khuyến mãi và đối tác cung cấp từ một khu vực thống nhất."
+      <RoleDashboardHeader
+        title="Tổng quan điều hành"
+        description="Theo dõi KPI từ báo cáo hệ thống, các đề nghị kiểm kê chờ xử lý và truy cập nhanh toàn bộ nghiệp vụ quản trị."
       />
+
+      <AsyncContent
+        error={state.error}
+        isLoading={state.isLoading}
+        loadingMessage="Đang tổng hợp dữ liệu điều hành…"
+        onRetry={() => setReloadKey((value) => value + 1)}
+      >
+        {data && (
+          <div className="dashboard-live-section">
+            <DashboardMetricGrid items={metrics} />
+            <article className="dashboard-task-panel dashboard-task-panel--wide">
+              <div className="dashboard-task-panel__heading">
+                <div><p className="eyebrow">Công việc ưu tiên</p><h2>Đề nghị điều chỉnh kho chờ duyệt</h2></div>
+                <Link to="/manager/stocktakes">Xem tất cả</Link>
+              </div>
+              {data.pendingStocktakes.items.length === 0 ? (
+                <p className="dashboard-task-empty">Không có đề nghị kiểm kê đang chờ phê duyệt.</p>
+              ) : (
+                <ul className="dashboard-task-list">
+                  {data.pendingStocktakes.items.map((stocktake) => (
+                    <li key={stocktake.stocktakeId}>
+                      <span>
+                        <strong>{stocktake.stocktakeId}</strong>
+                        <small>{stocktake.createdBy?.name || stocktake.createdBy?.employeeId || 'Nhân viên kho'} · {stocktake.discrepancyCount} dòng lệch</small>
+                      </span>
+                      <Link to={`/manager/stocktakes?stocktakeId=${encodeURIComponent(stocktake.stocktakeId)}`}>Xem đề nghị</Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          </div>
+        )}
+      </AsyncContent>
+
+      <div className="dashboard-section-heading">
+        <p className="eyebrow">Thao tác nhanh</p>
+        <h2>Không gian quản trị</h2>
+      </div>
       <div className="dashboard-grid dashboard-grid--compact">
-        <article className="action-card">
-          <p className="eyebrow">MH-19 · F31</p>
-          <h2>Nhân viên</h2>
-          <p>Tra cứu, thêm và cập nhật hồ sơ; chuyển trạng thái mà không xóa dữ liệu đã phát sinh.</p>
-          <Link className="button button--primary" to="/manager/employees">Mở danh sách nhân viên</Link>
-        </article>
-        <article className="action-card">
-          <p className="eyebrow">MH-20 · F32</p>
-          <h2>Tài khoản và phân quyền</h2>
-          <p>Tạo tài khoản, gán role, khóa/mở khóa và cấp lại mật khẩu nhân viên.</p>
-          <Link className="button button--primary" to="/manager/accounts">Mở quản lý tài khoản</Link>
-        </article>
-        <article className="action-card">
-          <p className="eyebrow">MH-21 · F16/F32</p>
-          <h2>Khách hàng thành viên</h2>
-          <p>Tra cứu thành viên, theo dõi điểm và hạng, xem lịch sử hóa đơn, khóa hoặc mở tài khoản khách hàng.</p>
-          <Link className="button button--primary" to="/manager/customers">Mở danh sách khách hàng</Link>
-        </article>
-        <article className="action-card">
-          <p className="eyebrow">MH-16 · F28</p>
-          <h2>Sản phẩm và loại hàng</h2>
-          <p>Tra cứu, thêm, cập nhật và chuyển trạng thái sản phẩm, đồng thời duy trì danh mục loại hàng.</p>
-          <Link className="button button--primary" to="/manager/products">Mở quản lý sản phẩm</Link>
-        </article>
-        <article className="action-card action-card--wide">
-          <p className="eyebrow">MH-17 · F29</p>
-          <h2>Giá bán và lịch sử</h2>
-          <p>Cập nhật giá có xác nhận, lý do và theo dõi lịch sử audit cho từng sản phẩm.</p>
-          <Link className="button button--primary" to="/manager/products/pricing">Mở quản lý giá</Link>
-        </article>
-        <article className="action-card">
-          <p className="eyebrow">MH-18 · F30</p>
-          <h2>Chương trình khuyến mãi</h2>
-          <p>Tạo, cập nhật, kích hoạt chương trình và quản lý danh sách sản phẩm áp dụng.</p>
-          <Link className="button button--primary" to="/manager/promotions">Mở quản lý khuyến mãi</Link>
-        </article>
-        <article className="action-card">
-          <p className="eyebrow">MH-10 · F19</p>
-          <h2>Nhà cung cấp</h2>
-          <p>Tra cứu, thêm và cập nhật hồ sơ đối tác; thay đổi trạng thái hợp tác mà không xóa dữ liệu đã phát sinh.</p>
-          <Link className="button button--primary" to="/manager/suppliers">Mở quản lý nhà cung cấp</Link>
-        </article>
-        <article className="action-card action-card--wide">
-          <p className="eyebrow">MH-13 · F22/F23/F24</p>
-          <h2>Tồn kho và cảnh báo</h2>
-          <p>Theo dõi tồn tổng, chi tiết lô, mức tồn thấp và các mốc hạn sử dụng trên dữ liệu kho hiện tại.</p>
-          <Link className="button button--primary" to="/manager/inventory">Mở tra cứu tồn kho</Link>
-        </article>
-        <article className="action-card action-card--wide">
-          <p className="eyebrow">MH-15 · F33</p>
-          <h2>Phê duyệt điều chỉnh kho</h2>
-          <p>Xem chênh lệch và lý do kiểm kê, phê duyệt cập nhật tồn hoặc yêu cầu nhân viên kho kiểm lại.</p>
-          <Link className="button button--primary" to="/manager/stocktakes">Mở danh sách chờ duyệt</Link>
-        </article>
-        <article className="action-card action-card--wide">
-          <p className="eyebrow">MH-08 · F16</p>
-          <h2>Tra cứu hóa đơn</h2>
-          <p>Tìm theo mã, khoảng ngày hoặc thu ngân; xem chi tiết giao dịch phục vụ đối soát.</p>
-          <Link className="button button--primary" to="/manager/invoices">Mở tra cứu hóa đơn</Link>
-        </article>
-        <article className="action-card action-card--wide">
-          <p className="eyebrow">MH-22 · F34</p>
-          <h2>Nhật ký hệ thống</h2>
-          <p>Lọc theo thời gian, tài khoản, hành động và đối tượng; xem dữ liệu thay đổi trước/sau.</p>
-          <Link className="button button--primary" to="/manager/audit-logs">Mở nhật ký hệ thống</Link>
-        </article>
-        <article className="action-card action-card--wide">
-          <p className="eyebrow">MH-23/24/25 · F35</p>
-          <h2>Dashboard và báo cáo kinh doanh</h2>
-          <p>Theo dõi doanh thu, hàng hóa, nhập hàng, tồn kho, hiệu suất nhân viên và đối chiếu ca bằng dữ liệu thực tế.</p>
-          <Link className="button button--primary" to="/manager/reports">Mở dashboard báo cáo</Link>
-        </article>
+        {MANAGER_ACTIONS.map((action) => (
+          <article className="action-card" key={action.to}>
+            <p className="eyebrow">{action.eyebrow}</p>
+            <h2>{action.title}</h2>
+            <p>{action.description}</p>
+            <Link className="button button--primary" to={action.to}>Mở chức năng</Link>
+          </article>
+        ))}
       </div>
     </section>
   );
