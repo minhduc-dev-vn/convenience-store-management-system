@@ -5,6 +5,7 @@ const adminController = require('../controllers/admin.controller');
 const auditController = require('../controllers/audit.controller');
 const productController = require('../controllers/product.controller');
 const promotionController = require('../controllers/promotion.controller');
+const reportingController = require('../controllers/reporting.controller');
 const supplierController = require('../controllers/supplier.controller');
 const stocktakeController = require('../controllers/stocktake.controller');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
@@ -110,11 +111,48 @@ const validateStocktakeRejection = validateBody({ required: ['comment'] });
 const validateAuditList = validateQuery({
   allowed: ['page', 'pageSize', 'from', 'to', 'username', 'action', 'table', 'recordId'],
 });
+const validateReportPeriod = validateQuery({ allowed: ['from', 'to'] });
+const validateProductReport = validateQuery({ allowed: ['from', 'to', 'limit'] });
+const validatePagedReport = validateQuery({ allowed: ['page', 'pageSize'] });
+const validatePagedPeriodReport = validateQuery({
+  allowed: ['from', 'to', 'page', 'pageSize'],
+});
 
 router.use(authenticate, authorize('MANAGER'));
 
 router.get('/audit-logs', validateAuditList, asyncHandler(auditController.listAuditLogs));
 router.get('/audit-logs/:auditLogId', asyncHandler(auditController.getAuditLog));
+
+router.get(
+  '/reports/revenue',
+  validateReportPeriod,
+  asyncHandler(reportingController.getRevenue),
+);
+router.get(
+  '/reports/products',
+  validateProductReport,
+  asyncHandler(reportingController.getProducts),
+);
+router.get(
+  '/reports/inventory',
+  validatePagedReport,
+  asyncHandler(reportingController.getInventory),
+);
+router.get(
+  '/reports/receiving',
+  validatePagedPeriodReport,
+  asyncHandler(reportingController.getReceiving),
+);
+router.get(
+  '/reports/employees',
+  validatePagedPeriodReport,
+  asyncHandler(reportingController.getEmployees),
+);
+router.get(
+  '/reports/shifts',
+  validatePagedPeriodReport,
+  asyncHandler(reportingController.getShifts),
+);
 
 router.get('/employees', validateEmployeeList, asyncHandler(adminController.listEmployees));
 router.post('/employees', validateEmployeeCreate, asyncHandler(adminController.createEmployee));
