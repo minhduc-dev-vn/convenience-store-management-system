@@ -14,6 +14,7 @@ const managerNavigation = [
   { to: '/manager/stocktakes', label: 'Phê duyệt điều chỉnh kho' },
   { to: '/manager/invoices', label: 'Tra cứu hóa đơn' },
   { to: '/manager/audit-logs', label: 'Nhật ký hệ thống' },
+  { to: '/manager/reports', label: 'Báo cáo kinh doanh' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 

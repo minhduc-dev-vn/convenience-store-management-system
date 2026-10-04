@@ -25,6 +25,10 @@ import ManagerDashboardPage from '../pages/manager/ManagerDashboardPage';
 import ProductManagementPage from '../pages/manager/ProductManagementPage';
 import ProductPricingPage from '../pages/manager/ProductPricingPage';
 import PromotionManagementPage from '../pages/manager/PromotionManagementPage';
+import MerchandiseReportPage from '../pages/manager/reports/MerchandiseReportPage';
+import ReportsDashboardPage from '../pages/manager/reports/ReportsDashboardPage';
+import RevenueReportPage from '../pages/manager/reports/RevenueReportPage';
+import WorkforceReportPage from '../pages/manager/reports/WorkforceReportPage';
 import SupplierManagementPage from '../pages/manager/SupplierManagementPage';
 import StocktakeApprovalPage from '../pages/manager/StocktakeApprovalPage';
 import NotFoundPage from '../pages/NotFoundPage';
@@ -78,6 +82,10 @@ function AppRoutes() {
             <Route path="stocktakes" element={<StocktakeApprovalPage />} />
             <Route path="invoices" element={<ManagerInvoiceLookupPage />} />
             <Route path="audit-logs" element={<AuditLogPage />} />
+            <Route path="reports" element={<ReportsDashboardPage />} />
+            <Route path="reports/revenue" element={<RevenueReportPage />} />
+            <Route path="reports/merchandise" element={<MerchandiseReportPage />} />
+            <Route path="reports/workforce" element={<WorkforceReportPage />} />
           </Route>
         </Route>
 

@@ -76,6 +76,12 @@ function ManagerDashboardPage() {
           <p>Lọc theo thời gian, tài khoản, hành động và đối tượng; xem dữ liệu thay đổi trước/sau.</p>
           <Link className="button button--primary" to="/manager/audit-logs">Mở nhật ký hệ thống</Link>
         </article>
+        <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-23/24/25 · F35</p>
+          <h2>Dashboard và báo cáo kinh doanh</h2>
+          <p>Theo dõi doanh thu, hàng hóa, nhập hàng, tồn kho, hiệu suất nhân viên và đối chiếu ca bằng dữ liệu thực tế.</p>
+          <Link className="button button--primary" to="/manager/reports">Mở dashboard báo cáo</Link>
+        </article>
       </div>
     </section>
   );
