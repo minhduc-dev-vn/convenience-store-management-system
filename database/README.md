@@ -1,10 +1,10 @@
-# SQL Server core schema
+# Cơ sở dữ liệu SQL Server
 
-Thư mục này chứa lược đồ 23 bảng cốt lõi của hệ thống quản lý cửa hàng tiện lợi. Script không tạo database, không chứa credential hoặc JWT. Runner có seed nền tối thiểu và các stored object hỗ trợ authentication lookup, account/role query và audit dùng chung.
+Thư mục này là gói triển khai cơ sở dữ liệu của hệ thống quản lý cửa hàng tiện lợi. Gói gồm lược đồ 23 bảng cốt lõi, ràng buộc, index, view, stored procedure, seed development tối thiểu, bộ test toàn vẹn/nghiệp vụ và kịch bản full backup/restore. Không có credential, JWT hoặc file backup nhị phân trong repository.
 
 ## Yêu cầu
 
-- Microsoft SQL Server 2016 trở lên.
+- Microsoft SQL Server 2016 trở lên; tài khoản chạy backup/restore cần quyền SQL Server tương ứng.
 - `sqlcmd` có thể kết nối tới một database do người chạy lựa chọn.
 - Database đích không phải `master`, `model`, `msdb` hoặc `tempdb`.
 
@@ -21,11 +21,9 @@ Thư mục này chứa lược đồ 23 bảng cốt lõi của hệ thống qu�
 7. `constraints/02_auth_account_audit.sql`: buộc account gắn đúng loại chủ sở hữu/role và chặn dữ liệu xác thực nhạy cảm trong audit payload.
 8. `indexes/01_lookup_indexes.sql`: bổ sung index lookup/filter và xác minh unique index nền.
 9. `indexes/02_auth_audit_indexes.sql`: xác minh covering index login và thêm index tra cứu audit theo bản ghi.
-10. `views/01_account_role.sql`: view account/role không lộ password hash.
-11. `procedures/01_get_account_for_authentication.sql`: lookup chính xác một username bằng tham số cho backend authentication.
-12. `procedures/02_write_audit_log.sql`: entry point ghi audit dùng chung, từ chối password/token/secret.
-13. `seed/01_roles.sql`: seed bốn vai trò chuẩn.
-14. `seed/02_development_data.sql`: seed tối thiểu một nhân viên, danh mục, sản phẩm, nhà cung cấp và lô hàng development.
+10. Toàn bộ script trong `indexes/`, `views/` và `procedures/` theo thứ tự dependency của catalog, nhập hàng, tồn kho, FEFO, đổi trả, kiểm kê, audit và báo cáo.
+11. `seed/01_roles.sql`: seed bốn vai trò chuẩn.
+12. `seed/02_development_data.sql`: seed tối thiểu một nhân viên, danh mục, sản phẩm, nhà cung cấp và lô hàng development.
 
 > `init.sql` dựng lại toàn bộ 23 bảng core và sẽ xóa dữ liệu hiện có trong các bảng này. Chỉ chạy trên database rỗng hoặc database development/test đã được chọn rõ ràng.
 
@@ -47,7 +45,7 @@ Mở terminal tại thư mục `database/`, sau đó chạy:
 sqlcmd -S "localhost" -E -C -I -d "ConvenienceStore" -b -f 65001 -i ".\init.sql"
 ```
 
-Thay server và database bằng môi trường của bạn (ví dụ `-S ".\SQLEXPRESS"` hoặc `-U "sa" -P "mat_khau"` nếu dùng SQL Authentication). Tùy chọn `-C` dùng cho mã hóa tin cậy trên ODBC Driver 18 trở lên; tùy chọn `-I` bật `QUOTED_IDENTIFIER`, cần thiết khi thao tác với filtered index. Credential không được lưu trong repository; nếu môi trường không dùng Windows Authentication, truyền thông tin kết nối bằng cơ chế bảo mật của môi trường triển khai.
+Thay server và database bằng môi trường của bạn. Tùy chọn `-C` dùng cho mã hóa tin cậy trên ODBC Driver 18 trở lên; `-I` bật `QUOTED_IDENTIFIER`, cần thiết khi thao tác với filtered index; `-b` trả exit code khác 0 khi SQL lỗi. Credential không được lưu trong repository; nếu không dùng Windows Authentication, hãy truyền thông tin kết nối bằng cơ chế bảo mật của môi trường triển khai.
 
 ## Kiểm tra số bảng
 
@@ -112,10 +110,57 @@ SELECT MaLo, MaSP, SoLo, HanSuDung, SoLuongTon FROM dbo.LO_HANG WHERE MaLo = 'LO
 - `dbo.usp_NHAT_KY_HE_THONG_Ghi` ghi audit dùng chung; procedure và CHECK constraint đều từ chối payload có tên trường password/token/secret/JWT.
 - JWT được tạo và xác minh tại backend, không được lưu hoặc xử lý trong SQL Server.
 
-Chạy test C07 trên database test đã init, từ thư mục `database/`:
+## Chạy toàn bộ kiểm thử database
+
+Luôn dùng database test đã dựng bằng `init.sql`; không chạy test trên database production. Từ thư mục `database/`:
 
 ```powershell
-sqlcmd -S ".\SQLEXPRESS" -E -I -d "ConvenienceStoreTest" -b -f 65001 -i ".\tests\01_auth_audit_tests.sql"
+sqlcmd -S ".\SQLEXPRESS" -E -C -I -d "ConvenienceStoreTest" -b -f 65001 -i ".\tests\run_all.sql"
 ```
 
-Test tạo dữ liệu tạm trong transaction và rollback sau khi kiểm tra username unique, account-owner-role, lookup và audit. Các chuỗi nhạy cảm trong negative tests chỉ là marker tổng hợp, không phải credential thật.
+Runner chạy lần lượt 10 bộ test và dừng ngay khi có lỗi:
+
+- Authentication/account/audit và append-only audit.
+- Catalog, promotion, supplier, inventory và expiry alerts.
+- Nhập hàng: success, validation, duplicate confirm và forced rollback.
+- Bán hàng: multi-lot FEFO, bỏ qua lô hết hạn, insufficient stock và forced rollback.
+- Đổi trả: partial/repeated/over-return, `RESALABLE`/`DAMAGED` và rollback.
+- Kiểm kê: snapshot, count, signed `ADJUSTMENT`, approval và rollback.
+- Báo cáo: doanh thu/refund, hàng hóa, tồn, nhập hàng, nhân viên/ca và performance smoke.
+- Toàn vẹn cuối: đúng 23 bảng, 23 PK, 31 FK, 56 CHECK, 41 DEFAULT, role/seed chuẩn và negative test cho PK/FK/UNIQUE/CHECK.
+
+Các fixture test được rollback hoặc dọn dẹp sau khi kiểm tra. Chuỗi nhạy cảm trong negative test chỉ là marker tổng hợp, không phải credential thật.
+
+## Full backup và restore smoke
+
+`maintenance/backup_restore_test.sql` thực hiện liên tiếp:
+
+1. `BACKUP DATABASE ... WITH COPY_ONLY, CHECKSUM`.
+2. `RESTORE VERIFYONLY`.
+3. Restore sang một database test **khác tên và chưa tồn tại**.
+4. `DBCC CHECKDB` trên bản restore.
+5. Xác minh 23 bảng, bốn role, seed development và các FK/CHECK đều enabled/trusted.
+
+Script từ chối database hệ thống, từ chối restore cùng tên source và không ghi đè database đã tồn tại. Mặc định file `.bak` được ghi vào `InstanceDefaultBackupPath` của SQL Server; có thể truyền `BackupFile` nếu SQL Server service đã được cấp quyền với một đường dẫn khác.
+
+Ví dụ chạy từ thư mục `database/`:
+
+```powershell
+sqlcmd -S ".\SQLEXPRESS" -E -C -I -d "master" -b -f 65001 `
+  -v SourceDatabase="ConvenienceStoreTest" RestoreDatabase="ConvenienceStoreRestoreTest" `
+  -i ".\maintenance\backup_restore_test.sql"
+```
+
+Sau khi đối chiếu kết quả, xóa database restore test bằng công cụ quản trị SQL Server và xóa file `.bak` theo chính sách lưu trữ của môi trường. Không đưa file `.bak` vào Git.
+
+## Quy trình đóng gói/xác minh cuối
+
+Trên một database test mới:
+
+1. Tạo database rỗng.
+2. Chạy `init.sql` để dựng schema, stored objects và seed.
+3. Chạy `tests/run_all.sql`.
+4. Chạy `maintenance/backup_restore_test.sql` với một tên restore test chưa tồn tại.
+5. Chạy lại `init.sql` trên database source test và `tests/run_all.sql` để xác nhận runner có thể dựng lại sạch.
+
+`init.sql` có tính phá hủy đối với 23 bảng core trong database được chọn; luôn kiểm tra đúng server và tên database test trước khi chạy.
