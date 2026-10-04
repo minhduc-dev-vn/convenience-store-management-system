@@ -70,6 +70,12 @@ function ManagerDashboardPage() {
           <p>Tìm theo mã, khoảng ngày hoặc thu ngân; xem chi tiết giao dịch phục vụ đối soát.</p>
           <Link className="button button--primary" to="/manager/invoices">Mở tra cứu hóa đơn</Link>
         </article>
+        <article className="action-card action-card--wide">
+          <p className="eyebrow">MH-22 · F34</p>
+          <h2>Nhật ký hệ thống</h2>
+          <p>Lọc theo thời gian, tài khoản, hành động và đối tượng; xem dữ liệu thay đổi trước/sau.</p>
+          <Link className="button button--primary" to="/manager/audit-logs">Mở nhật ký hệ thống</Link>
+        </article>
       </div>
     </section>
   );

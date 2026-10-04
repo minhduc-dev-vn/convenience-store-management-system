@@ -13,6 +13,7 @@ const managerNavigation = [
   { to: '/manager/inventory', label: 'Tồn kho và cảnh báo' },
   { to: '/manager/stocktakes', label: 'Phê duyệt điều chỉnh kho' },
   { to: '/manager/invoices', label: 'Tra cứu hóa đơn' },
+  { to: '/manager/audit-logs', label: 'Nhật ký hệ thống' },
   { to: '/account/change-password', label: 'Đổi mật khẩu' },
 ];
 

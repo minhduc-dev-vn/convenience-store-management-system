@@ -1256,6 +1256,102 @@ article.workspace-card:hover {
   grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(145px, 0.46fr)) auto;
 }
 
+.audit-filter {
+  grid-template-columns: repeat(2, minmax(150px, 0.45fr)) minmax(180px, 0.65fr) minmax(190px, 0.75fr);
+}
+
+.audit-filter__actions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.audit-action {
+  display: inline-flex;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: #31483e;
+  background: #e8eee9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.audit-detail {
+  display: grid;
+  gap: 22px;
+}
+
+.audit-detail__meta {
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.audit-detail__meta div {
+  min-width: 0;
+  padding: 13px;
+  border-radius: 12px;
+  background: var(--canvas);
+}
+
+.audit-detail__meta dt {
+  color: var(--muted);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+}
+
+.audit-detail__meta dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.audit-change-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.audit-data-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fbfaf5;
+}
+
+.audit-data-card h3 {
+  margin: 0 0 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+}
+
+.audit-data-card pre {
+  max-height: 330px;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  border-radius: 10px;
+  color: #27342e;
+  background: #edf0eb;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.audit-security-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 .customer-table-actions {
   min-width: 180px;
 }
@@ -3043,6 +3139,11 @@ article.workspace-card:hover {
 }
 
 @media (max-width: 900px) {
+  .audit-filter,
+  .audit-detail__meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .site-header {
     align-items: flex-start;
   }
@@ -3187,7 +3288,8 @@ article.workspace-card:hover {
   .admin-filter--wide,
   .admin-filter--customers,
   .admin-filter--products,
-  .admin-filter--promotions,
+    .admin-filter--promotions,
+    .audit-filter,
   .catalog-filter,
     .inventory-filter,
     .inventory-lot-filter,
@@ -3198,6 +3300,16 @@ article.workspace-card:hover {
     .receiving-filter,
     .receipt-meta-grid {
     grid-template-columns: 1fr;
+  }
+
+  .audit-detail__meta,
+  .audit-change-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-filter__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
   }
 
   .stocktake-create-card,

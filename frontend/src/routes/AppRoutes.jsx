@@ -16,6 +16,7 @@ import CustomerProfilePage from '../pages/CustomerProfilePage';
 import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
 import AccountManagementPage from '../pages/manager/AccountManagementPage';
+import AuditLogPage from '../pages/manager/AuditLogPage';
 import CustomerMemberManagementPage from '../pages/manager/CustomerMemberManagementPage';
 import EmployeeManagementPage from '../pages/manager/EmployeeManagementPage';
 import ManagerInventoryPage from '../pages/manager/InventoryPage';
@@ -76,6 +77,7 @@ function AppRoutes() {
             <Route path="inventory" element={<ManagerInventoryPage />} />
             <Route path="stocktakes" element={<StocktakeApprovalPage />} />
             <Route path="invoices" element={<ManagerInvoiceLookupPage />} />
+            <Route path="audit-logs" element={<AuditLogPage />} />
           </Route>
         </Route>
 
