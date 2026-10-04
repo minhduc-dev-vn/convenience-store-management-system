@@ -2,6 +2,8 @@
 
 require('./env');
 
+const EXAMPLE_JWT_SECRET = 'replace-with-at-least-32-random-bytes-before-use';
+
 function readBcryptRounds() {
   const rawValue = process.env.BCRYPT_ROUNDS?.trim();
   if (!rawValue) return 12;
@@ -19,6 +21,9 @@ function getAuthSettings() {
   if (!jwtSecret || Buffer.byteLength(jwtSecret, 'utf8') < 32) {
     throw new Error('JWT_SECRET must contain at least 32 bytes');
   }
+  if (process.env.NODE_ENV === 'production' && jwtSecret === EXAMPLE_JWT_SECRET) {
+    throw new Error('JWT_SECRET must be replaced before production startup');
+  }
 
   return {
     bcryptRounds: readBcryptRounds(),
@@ -28,5 +33,6 @@ function getAuthSettings() {
 }
 
 module.exports = {
+  EXAMPLE_JWT_SECRET,
   getAuthSettings,
 };

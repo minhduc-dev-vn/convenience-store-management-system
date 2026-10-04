@@ -1,0 +1,95 @@
+# Backend API
+
+Node.js 20+ và ExpressJS cung cấp REST API cho hệ thống quản lý cửa hàng tiện lợi. Backend tổ chức theo luồng `Route -> Middleware -> Controller -> Service -> Repository -> SQL Server`; các nghiệp vụ nhiều bước về nhập kho, bán hàng FEFO, đổi trả và kiểm kê được hoàn tất bằng transaction phía SQL Server.
+
+## Cài đặt
+
+```bash
+cd backend
+npm install
+```
+
+Tạo file môi trường từ mẫu và thay toàn bộ giá trị dành riêng cho môi trường chạy:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Không commit `.env`, mật khẩu SQL Server hoặc JWT secret.
+
+## Cấu hình môi trường
+
+| Nhóm | Biến |
+| --- | --- |
+| Runtime | `NODE_ENV`, `PORT` |
+| HTTP security | `CORS_ALLOWED_ORIGINS`, `REQUEST_BODY_LIMIT`, `TRUST_PROXY` |
+| SQL Server | `DB_DRIVER`, `DB_ODBC_DRIVER`, `DB_SERVER`, `DB_INSTANCE`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_TRUSTED_CONNECTION`, `DB_ENCRYPT`, `DB_TRUST_SERVER_CERTIFICATE` |
+| Connection pool | `DB_POOL_MAX`, `DB_POOL_MIN`, `DB_POOL_IDLE_TIMEOUT_MS` |
+| Authentication | `JWT_SECRET`, `JWT_EXPIRES_IN`, `BCRYPT_ROUNDS` |
+
+`CORS_ALLOWED_ORIGINS` là danh sách origin HTTP(S) chính xác, phân tách bằng dấu phẩy. Không dùng wildcard cho API có Bearer token. `TRUST_PROXY=true` chỉ phù hợp khi ứng dụng thực sự chạy sau reverse proxy được kiểm soát.
+
+Giá trị `JWT_SECRET` trong `.env.example` chỉ giúp khởi động môi trường development. Server từ chối giá trị mẫu này khi `NODE_ENV=production`; staging và production phải dùng secret ngẫu nhiên tối thiểu 32 byte.
+
+Với SQL authentication, cấu hình `DB_USER` và `DB_PASSWORD`. Với Windows authentication, dùng `DB_DRIVER=msnodesqlv8` và `DB_TRUSTED_CONNECTION=true`.
+
+## Chạy API
+
+Development có watch mode:
+
+```bash
+npm run dev
+```
+
+Chế độ chạy thông thường:
+
+```bash
+npm start
+```
+
+Các endpoint kiểm tra trạng thái:
+
+- `GET /api/health`: liveness của tiến trình, không phụ thuộc database.
+- `GET /api/health/db`: readiness của SQL Server; trả `503 DATABASE_UNAVAILABLE` khi chưa sẵn sàng.
+
+## Kiểm thử
+
+Chạy toàn bộ test mặc định:
+
+```bash
+npm test
+```
+
+Chạy riêng security smoke:
+
+```bash
+npm run test:security
+```
+
+Các integration test dùng database chỉ chạy khi `RUN_DB_INTEGRATION_TESTS=true`. Luôn trỏ đến database test sạch đã dựng từ `database/init.sql`, không dùng database production. Ví dụ PowerShell:
+
+```powershell
+$env:RUN_DB_INTEGRATION_TESTS='true'
+$env:DB_DRIVER='msnodesqlv8'
+$env:DB_SERVER='localhost'
+$env:DB_INSTANCE='SQLEXPRESS'
+$env:DB_NAME='ConvenienceStore_Test'
+$env:DB_TRUSTED_CONNECTION='true'
+$env:DB_ENCRYPT='false'
+$env:DB_TRUST_SERVER_CERTIFICATE='true'
+$env:JWT_SECRET='replace-with-a-test-only-secret-at-least-32-bytes'
+$env:BCRYPT_ROUNDS='4'
+npm run test:db
+```
+
+`test:db` chạy tuần tự để tránh các fixture transaction dùng chung gây race condition.
+
+## Production checklist
+
+- Đặt `NODE_ENV=production` và thay JWT secret mẫu.
+- Khai báo đúng frontend origin trong `CORS_ALLOWED_ORIGINS`.
+- Chỉ bật `TRUST_PROXY` sau reverse proxy được kiểm soát.
+- Dùng TLS tại reverse proxy và cấu hình kết nối SQL Server phù hợp môi trường.
+- Không ghi request body, Authorization header, password, token hoặc raw SQL error vào log.
+- Kiểm tra cả liveness và database readiness trước khi nhận traffic.
+- Chạy `npm test`, SQL-backed integration suite và `npm audit` trước khi triển khai.

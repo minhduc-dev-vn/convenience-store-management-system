@@ -407,14 +407,19 @@ class AdminRepository extends BaseRepository {
 
   async findOwner(ownerType, ownerId, transaction) {
     const isCustomer = ownerType === 'CUSTOMER';
-    const table = isCustomer ? 'KHACH_HANG' : 'NHAN_VIEN';
-    const idColumn = isCustomer ? 'MaKH' : 'MaNV';
+    const ownerQuery = isCustomer
+      ? `
+        SELECT MaKH AS OwnerId, HoTen AS OwnerName, SDT, Email, TrangThai
+        FROM dbo.KHACH_HANG WITH (UPDLOCK, HOLDLOCK)
+        WHERE MaKH = @OwnerId
+      `
+      : `
+        SELECT MaNV AS OwnerId, HoTen AS OwnerName, SDT, Email, TrangThai
+        FROM dbo.NHAN_VIEN WITH (UPDLOCK, HOLDLOCK)
+        WHERE MaNV = @OwnerId
+      `;
     const result = await this.query({
-      text: `
-        SELECT ${idColumn} AS OwnerId, HoTen AS OwnerName, SDT, Email, TrangThai
-        FROM dbo.${table} WITH (UPDLOCK, HOLDLOCK)
-        WHERE ${idColumn} = @OwnerId
-      `,
+      text: ownerQuery,
       parameters: {
         OwnerId: { type: this.sql.VarChar(10), value: ownerId },
       },

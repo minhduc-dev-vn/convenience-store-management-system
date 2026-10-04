@@ -1,8 +1,13 @@
 'use strict';
 
 const app = require('./app');
+const { getAuthSettings } = require('./config/auth.config');
 const env = require('./config/env');
+const { getSecuritySettings } = require('./config/security.config');
 const { closePool } = require('./config/database.pool');
+
+getAuthSettings();
+getSecuritySettings();
 
 const server = app.listen(env.port, () => {
   console.log(`API server is running on port ${env.port}`);
