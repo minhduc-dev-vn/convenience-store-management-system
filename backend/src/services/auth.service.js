@@ -18,6 +18,7 @@ const {
 const { isUniqueConstraintError } = require('../utils/sql-error');
 const { withTransaction } = require('../utils/transaction');
 const { TokenService } = require('./token.service');
+const { AuditService } = require('./audit.service');
 
 const CUSTOMER_ROLE = 'CUSTOMER';
 const DUMMY_PASSWORD_HASH = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
@@ -69,6 +70,7 @@ function registrationConflict(message) {
 
 class AuthService {
   constructor({
+    auditService = new AuditService(),
     authRepository = new AuthRepository(),
     customerIdGenerator = createCustomerId,
     passwordHasher = bcrypt,
@@ -76,6 +78,7 @@ class AuthService {
     tokenService = new TokenService(),
     transactionRunner = withTransaction,
   } = {}) {
+    this.auditService = auditService;
     this.authRepository = authRepository;
     this.customerIdGenerator = customerIdGenerator;
     this.passwordHasher = passwordHasher;
@@ -261,11 +264,15 @@ class AuthService {
         this.settingsProvider().bcryptRounds,
       );
       await this.authRepository.updatePassword(identity.accountId, passwordHash, transaction);
-      await this.authRepository.writePasswordChangeAudit(
-        identity.accountId,
+      await this.auditService.record({
+        action: 'PASSWORD_CHANGED',
+        actorAccountId: identity.accountId,
         ipAddress,
-        transaction,
-      );
+        newData: null,
+        oldData: null,
+        recordId: identity.accountId,
+        tableName: 'TAI_KHOAN',
+      }, transaction);
 
       return { changed: true };
     });

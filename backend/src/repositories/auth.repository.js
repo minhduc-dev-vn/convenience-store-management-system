@@ -242,26 +242,6 @@ class AuthRepository extends BaseRepository {
     });
   }
 
-  async writePasswordChangeAudit(accountId, ipAddress, transaction) {
-    await this.query({
-      text: `
-        EXEC dbo.usp_NHAT_KY_HE_THONG_Ghi
-          @MaTK = @AccountId,
-          @HanhDong = 'PASSWORD_CHANGED',
-          @TenBang = 'TAI_KHOAN',
-          @MaBanGhi = @RecordId,
-          @DuLieuCu = NULL,
-          @DuLieuMoi = NULL,
-          @DiaChiIP = @IpAddress
-      `,
-      parameters: {
-        AccountId: { type: this.sql.Int, value: accountId },
-        IpAddress: { type: this.sql.VarChar(45), value: ipAddress },
-        RecordId: { type: this.sql.VarChar(100), value: String(accountId) },
-      },
-      transaction,
-    });
-  }
 }
 
 module.exports = {

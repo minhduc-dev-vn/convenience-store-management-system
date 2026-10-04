@@ -24,6 +24,7 @@ const {
 } = require('../utils/input-validation');
 const { isUniqueConstraintError } = require('../utils/sql-error');
 const { withTransaction } = require('../utils/transaction');
+const { AuditService } = require('./audit.service');
 
 const ACCOUNT_ROLES = Object.freeze(['CUSTOMER', 'CASHIER', 'WAREHOUSE', 'MANAGER']);
 const EMPLOYEE_ROLES = Object.freeze(['CASHIER', 'WAREHOUSE', 'MANAGER']);
@@ -202,11 +203,6 @@ function conflict(code, message) {
   return new AppError(message, { code, statusCode: 409 });
 }
 
-function normalizeIpAddress(value) {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  return value.trim().slice(0, 45);
-}
-
 function accountRoleForOwner(ownerType, role) {
   if (ownerType === 'CUSTOMER' && role !== 'CUSTOMER') {
     throw validationError('CUSTOMER owners must use the CUSTOMER role');
@@ -220,6 +216,7 @@ function accountRoleForOwner(ownerType, role) {
 class AdminService {
   constructor({
     adminRepository = new AdminRepository(),
+    auditService = new AuditService(),
     customerRepository = new CustomerRepository(),
     employeeIdGenerator = createEmployeeId,
     passwordHasher = bcrypt,
@@ -227,6 +224,7 @@ class AdminService {
     transactionRunner = withTransaction,
   } = {}) {
     this.adminRepository = adminRepository;
+    this.auditService = auditService;
     this.customerRepository = customerRepository;
     this.employeeIdGenerator = employeeIdGenerator;
     this.passwordHasher = passwordHasher;
@@ -341,11 +339,11 @@ class AdminService {
 
         const created = await this.adminRepository.createEmployee(employee, transaction);
         const response = serializeEmployee(created);
-        await this.adminRepository.writeAudit({
+        await this.auditService.record({
           action: 'EMPLOYEE_CREATED',
           actorAccountId: identity.accountId,
-          ipAddress: normalizeIpAddress(ipAddress),
-          newData: JSON.stringify(response),
+          ipAddress,
+          newData: response,
           oldData: null,
           recordId: response.employeeId,
           tableName: 'NHAN_VIEN',
@@ -409,12 +407,12 @@ class AdminService {
         const updated = await this.adminRepository.updateEmployee(employeeId, changes, transaction);
         const oldData = serializeEmployee(current);
         const newData = serializeEmployee(updated);
-        await this.adminRepository.writeAudit({
+        await this.auditService.record({
           action: 'EMPLOYEE_UPDATED',
           actorAccountId: identity.accountId,
-          ipAddress: normalizeIpAddress(ipAddress),
-          newData: JSON.stringify(newData),
-          oldData: JSON.stringify(oldData),
+          ipAddress,
+          newData,
+          oldData,
           recordId: employeeId,
           tableName: 'NHAN_VIEN',
         }, transaction);
@@ -489,11 +487,11 @@ class AdminService {
         }, transaction);
         const created = await this.adminRepository.findAccountById(accountId, transaction);
         const response = serializeAccount(created);
-        await this.adminRepository.writeAudit({
+        await this.auditService.record({
           action: 'ACCOUNT_CREATED',
           actorAccountId: identity.accountId,
-          ipAddress: normalizeIpAddress(ipAddress),
-          newData: JSON.stringify(response),
+          ipAddress,
+          newData: response,
           oldData: null,
           recordId: accountId,
           tableName: 'TAI_KHOAN',
@@ -518,12 +516,12 @@ class AdminService {
       if (account.MaVaiTro === role) return serializeAccount(await this.adminRepository.findAccountById(accountId, transaction));
 
       await this.adminRepository.updateAccountRole(accountId, role, transaction);
-      await this.adminRepository.writeAudit({
+      await this.auditService.record({
         action: 'ACCOUNT_ROLE_CHANGED',
         actorAccountId: identity.accountId,
-        ipAddress: normalizeIpAddress(ipAddress),
-        newData: JSON.stringify({ role }),
-        oldData: JSON.stringify({ role: account.MaVaiTro }),
+        ipAddress,
+        newData: { role },
+        oldData: { role: account.MaVaiTro },
         recordId: accountId,
         tableName: 'TAI_KHOAN',
       }, transaction);
@@ -566,12 +564,12 @@ class AdminService {
     }
 
     await this.adminRepository.updateAccountStatus(accountId, status, transaction);
-    await this.adminRepository.writeAudit({
+    await this.auditService.record({
       action: status === 'LOCKED' ? 'ACCOUNT_LOCKED' : 'ACCOUNT_UNLOCKED',
       actorAccountId: identity.accountId,
-      ipAddress: normalizeIpAddress(ipAddress),
-      newData: JSON.stringify({ status }),
-      oldData: JSON.stringify({ status: account.TrangThai }),
+      ipAddress,
+      newData: { status },
+      oldData: { status: account.TrangThai },
       recordId: accountId,
       tableName: 'TAI_KHOAN',
     }, transaction);
@@ -599,10 +597,10 @@ class AdminService {
       }
 
       await this.adminRepository.updateAccountPassword(accountId, passwordHash, transaction);
-      await this.adminRepository.writeAudit({
+      await this.auditService.record({
         action: 'EMPLOYEE_PASSWORD_RESET',
         actorAccountId: identity.accountId,
-        ipAddress: normalizeIpAddress(ipAddress),
+        ipAddress,
         newData: null,
         oldData: null,
         recordId: accountId,

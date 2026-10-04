@@ -6,6 +6,7 @@ const { AppError } = require('../utils/app-error');
 const { normalizeOptionalText, requireString, validationError } = require('../utils/input-validation');
 const { getSqlErrorNumber, isUniqueConstraintError } = require('../utils/sql-error');
 const { withTransaction } = require('../utils/transaction');
+const { AuditService } = require('./audit.service');
 
 const SCHEMA_STATUSES = Object.freeze(['DRAFT', 'APPROVED', 'CANCELLED']);
 const WORKFLOW_STATES = Object.freeze([
@@ -233,10 +234,12 @@ function mapStocktakeError(error) {
 
 class StocktakeService {
   constructor({
+    auditService = new AuditService(),
     stocktakeIdGenerator = createStocktakeId,
     stocktakeRepository = new StocktakeRepository(),
     transactionRunner = withTransaction,
   } = {}) {
+    this.auditService = auditService;
     this.stocktakeIdGenerator = stocktakeIdGenerator;
     this.stocktakeRepository = stocktakeRepository;
     this.transactionRunner = transactionRunner;
@@ -378,17 +381,18 @@ class StocktakeService {
             400,
           );
         }
-        const audit = await this.stocktakeRepository.writeWorkflowAudit({
+        const audit = await this.auditService.record({
           action: 'STOCKTAKE_PROPOSED',
           actorAccountId: identity.accountId,
           ipAddress,
-          newData: JSON.stringify({
+          newData: {
             discrepancyCount: discrepancies.length,
             note,
             workflowState: 'PENDING_APPROVAL',
-          }),
-          oldData: JSON.stringify({ workflowState: current.header.TrangThaiQuyTrinh }),
-          stocktakeId,
+          },
+          oldData: { workflowState: current.header.TrangThaiQuyTrinh },
+          recordId: stocktakeId,
+          tableName: 'KIEM_KE',
         }, transaction);
         return {
           stocktakeId,
@@ -422,21 +426,22 @@ class StocktakeService {
           employeeId: identity.employeeId,
           stocktakeId,
         }, transaction);
-        const audit = await this.stocktakeRepository.writeWorkflowAudit({
+        const audit = await this.auditService.record({
           action: 'STOCKTAKE_APPROVED',
           actorAccountId: identity.accountId,
           ipAddress,
-          newData: JSON.stringify({
+          newData: {
             discrepancyCount: current.details.filter((line) => Number(line.ChenhLech) !== 0).length,
             managerComment,
             schemaStatus: 'APPROVED',
             workflowState: 'APPROVED',
-          }),
-          oldData: JSON.stringify({
+          },
+          oldData: {
             schemaStatus: 'DRAFT',
             workflowState: 'PENDING_APPROVAL',
-          }),
-          stocktakeId,
+          },
+          recordId: stocktakeId,
+          tableName: 'KIEM_KE',
         }, transaction);
         return serializeResult({
           header: {
@@ -473,13 +478,14 @@ class StocktakeService {
           throw stocktakeError('STOCKTAKE_NOT_FOUND', 'Stocktake was not found', 404);
         }
         requirePendingApproval(current.header);
-        const audit = await this.stocktakeRepository.writeWorkflowAudit({
+        const audit = await this.auditService.record({
           action: 'STOCKTAKE_RECOUNT_REQUESTED',
           actorAccountId: identity.accountId,
           ipAddress,
-          newData: JSON.stringify({ managerComment, workflowState: 'RECOUNT_REQUIRED' }),
-          oldData: JSON.stringify({ workflowState: 'PENDING_APPROVAL' }),
-          stocktakeId,
+          newData: { managerComment, workflowState: 'RECOUNT_REQUIRED' },
+          oldData: { workflowState: 'PENDING_APPROVAL' },
+          recordId: stocktakeId,
+          tableName: 'KIEM_KE',
         }, transaction);
         return {
           stocktakeId,

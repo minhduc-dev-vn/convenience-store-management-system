@@ -206,6 +206,11 @@ test('change password is common to every authenticated role and audits without p
       },
     };
     const service = new AuthService({
+      auditService: {
+        async record(audit) {
+          events.push(['audit', audit.actorAccountId, audit.ipAddress]);
+        },
+      },
       authRepository: repository,
       passwordHasher: createPasswordHasher(),
       settingsProvider: () => ({ bcryptRounds: 4 }),

@@ -6,6 +6,7 @@ const { AppError } = require('../utils/app-error');
 const { requireString, validationError } = require('../utils/input-validation');
 const { getSqlErrorNumber, isUniqueConstraintError } = require('../utils/sql-error');
 const { withTransaction } = require('../utils/transaction');
+const { AuditService } = require('./audit.service');
 
 const RETURN_CONDITIONS = Object.freeze(['RESALABLE', 'DAMAGED']);
 const MAX_BIGINT = 9_223_372_036_854_775_807n;
@@ -191,10 +192,12 @@ function mapReturnError(error) {
 
 class ReturnService {
   constructor({
+    auditService = new AuditService(),
     returnIdGenerator = createReturnId,
     returnRepository = new ReturnRepository(),
     transactionRunner = withTransaction,
   } = {}) {
+    this.auditService = auditService;
     this.returnIdGenerator = returnIdGenerator;
     this.returnRepository = returnRepository;
     this.transactionRunner = transactionRunner;
@@ -220,18 +223,21 @@ class ReturnService {
           returnId,
         }, transaction);
         const persistedReturn = serializeReturn(result);
-        await this.returnRepository.writeReturnAudit({
+        await this.auditService.record({
+          action: 'RETURN_COMPLETED',
           actorAccountId: identity.accountId,
           ipAddress,
-          newData: JSON.stringify({
+          newData: {
             invoiceId: persistedReturn.invoiceId,
             invoiceStatus: persistedReturn.invoiceStatus,
             itemCount: persistedReturn.items.length,
             loyaltyPointsAdjusted: persistedReturn.loyaltyPointsAdjusted,
             refundAmount: persistedReturn.refundAmount,
             status: persistedReturn.status,
-          }),
-          returnId: persistedReturn.returnId,
+          },
+          oldData: null,
+          recordId: persistedReturn.returnId,
+          tableName: 'PHIEU_TRA',
         }, transaction);
         return { return: persistedReturn };
       });

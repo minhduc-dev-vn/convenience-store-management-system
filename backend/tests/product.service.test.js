@@ -132,6 +132,11 @@ test('general product update cannot bypass validation with price or status field
 test('price update and audit share one transaction and contain old/new price plus reason', async () => {
   const calls = [];
   const service = new ProductService({
+    auditService: {
+      async record(audit, receivedTransaction) {
+        calls.push(['audit', audit, receivedTransaction]);
+      },
+    },
     productRepository: {
       async findProductForUpdate(productId, receivedTransaction) {
         calls.push(['find', productId, receivedTransaction]);
@@ -139,9 +144,6 @@ test('price update and audit share one transaction and contain old/new price plu
       },
       async updateProductPrice(productId, price, receivedTransaction) {
         calls.push(['update', productId, price, receivedTransaction]);
-      },
-      async writeAudit(audit, receivedTransaction) {
-        calls.push(['audit', audit, receivedTransaction]);
       },
     },
     transactionRunner,
@@ -165,8 +167,8 @@ test('price update and audit share one transaction and contain old/new price plu
   assert.equal(calls[2][2], transaction);
   assert.equal(calls[2][1].action, 'UPDATE_PRICE');
   assert.equal(calls[2][1].actorAccountId, 16);
-  assert.deepEqual(JSON.parse(calls[2][1].oldData), { price: 25000 });
-  assert.deepEqual(JSON.parse(calls[2][1].newData), {
+  assert.deepEqual(calls[2][1].oldData, { price: 25000 });
+  assert.deepEqual(calls[2][1].newData, {
     price: 27500,
     reason: 'Market adjustment',
   });

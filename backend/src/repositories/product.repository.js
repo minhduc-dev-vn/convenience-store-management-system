@@ -368,33 +368,6 @@ class ProductRepository extends BaseRepository {
     });
   }
 
-  async writeAudit(
-    { action, actorAccountId, ipAddress, newData, oldData, recordId, tableName },
-    transaction,
-  ) {
-    await this.query({
-      text: `
-        EXEC dbo.usp_NHAT_KY_HE_THONG_Ghi
-          @MaTK = @ActorAccountId,
-          @HanhDong = @Action,
-          @TenBang = @TableName,
-          @MaBanGhi = @RecordId,
-          @DuLieuCu = @OldData,
-          @DuLieuMoi = @NewData,
-          @DiaChiIP = @IpAddress
-      `,
-      parameters: {
-        Action: { type: this.sql.VarChar(50), value: action },
-        ActorAccountId: { type: this.sql.Int, value: actorAccountId },
-        IpAddress: { type: this.sql.VarChar(45), value: ipAddress },
-        NewData: { type: this.sql.NVarChar(this.sql.MAX), value: newData },
-        OldData: { type: this.sql.NVarChar(this.sql.MAX), value: oldData },
-        RecordId: { type: this.sql.VarChar(100), value: String(recordId) },
-        TableName: { type: this.sql.VarChar(128), value: tableName },
-      },
-      transaction,
-    });
-  }
 }
 
 module.exports = {

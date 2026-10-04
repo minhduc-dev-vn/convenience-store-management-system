@@ -93,6 +93,9 @@ test('employee list normalizes filters and never exposes database-only fields', 
 test('employee creation validates identifiers and writes an audit in the same transaction', async () => {
   const calls = [];
   const service = new AdminService({
+    auditService: {
+      async record(audit, transaction) { calls.push(['audit', audit, transaction]); },
+    },
     adminRepository: {
       async findEmployeeIdentifierConflicts(employee, transaction) {
         calls.push(['conflicts', employee.employeeId, transaction]);
@@ -107,9 +110,6 @@ test('employee creation validates identifiers and writes an audit in the same tr
           Email: employee.email,
           LuongCoBan: employee.baseSalary,
         });
-      },
-      async writeAudit(audit, transaction) {
-        calls.push(['audit', audit, transaction]);
       },
     },
     employeeIdGenerator: () => 'NVC11UNIT',
@@ -135,6 +135,9 @@ test('employee update uses status instead of deletion and audits before/after va
   let updateChanges;
   let auditRecord;
   const service = new AdminService({
+    auditService: {
+      async record(audit) { auditRecord = audit; },
+    },
     adminRepository: {
       async findEmployeeById() {
         return employeeRow();
@@ -145,9 +148,6 @@ test('employee update uses status instead of deletion and audits before/after va
       async updateEmployee(_employeeId, changes) {
         updateChanges = changes;
         return employeeRow({ HoTen: changes.fullName, TrangThai: changes.status });
-      },
-      async writeAudit(audit) {
-        auditRecord = audit;
       },
     },
     transactionRunner,
@@ -161,8 +161,8 @@ test('employee update uses status instead of deletion and audits before/after va
   assert.deepEqual(updateChanges, { fullName: 'Updated Employee', status: 'INACTIVE' });
   assert.equal(result.status, 'INACTIVE');
   assert.equal(auditRecord.action, 'EMPLOYEE_UPDATED');
-  assert.equal(JSON.parse(auditRecord.oldData).status, 'ACTIVE');
-  assert.equal(JSON.parse(auditRecord.newData).status, 'INACTIVE');
+  assert.equal(auditRecord.oldData.status, 'ACTIVE');
+  assert.equal(auditRecord.newData.status, 'INACTIVE');
 });
 
 test('manager customer list supports member filters without exposing account secrets', async () => {
@@ -251,6 +251,7 @@ test('customer account lock uses shared status rules and writes a secret-free au
   let updatedStatus;
   let audit;
   const service = new AdminService({
+    auditService: { async record(value) { audit = value; } },
     adminRepository: {
       async findCustomerAccountForUpdate(customerId) {
         assert.equal(customerId, 'KHTEST001');
@@ -263,7 +264,6 @@ test('customer account lock uses shared status rules and writes a secret-free au
         });
       },
       async updateAccountStatus(_accountId, status) { updatedStatus = status; },
-      async writeAudit(value) { audit = value; },
       async findAccountById() {
         return accountRow({
           MaTK: 43,
@@ -337,6 +337,7 @@ test('account creation supports either owner type while enforcing the owner-role
   };
   const service = new AdminService({
     adminRepository: repository,
+    auditService: { async record() {} },
     passwordHasher,
     settingsProvider,
     transactionRunner,
@@ -397,6 +398,7 @@ test('lock, role change and employee password reset are audited without secret p
   };
   const service = new AdminService({
     adminRepository: repository,
+    auditService: { async record(audit) { audits.push(audit); } },
     passwordHasher,
     settingsProvider,
     transactionRunner,

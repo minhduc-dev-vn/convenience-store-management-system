@@ -2,6 +2,7 @@
 
 const express = require('express');
 const adminController = require('../controllers/admin.controller');
+const auditController = require('../controllers/audit.controller');
 const productController = require('../controllers/product.controller');
 const promotionController = require('../controllers/promotion.controller');
 const supplierController = require('../controllers/supplier.controller');
@@ -106,8 +107,14 @@ const validateStocktakeList = validateQuery({
 });
 const validateStocktakeDecision = validateBody({ optional: ['comment'] });
 const validateStocktakeRejection = validateBody({ required: ['comment'] });
+const validateAuditList = validateQuery({
+  allowed: ['page', 'pageSize', 'from', 'to', 'username', 'action', 'table', 'recordId'],
+});
 
 router.use(authenticate, authorize('MANAGER'));
+
+router.get('/audit-logs', validateAuditList, asyncHandler(auditController.listAuditLogs));
+router.get('/audit-logs/:auditLogId', asyncHandler(auditController.getAuditLog));
 
 router.get('/employees', validateEmployeeList, asyncHandler(adminController.listEmployees));
 router.post('/employees', validateEmployeeCreate, asyncHandler(adminController.createEmployee));

@@ -94,16 +94,19 @@ test('normalization accepts BIGINT strings and canonicalizes the condition', () 
 
 test('createReturn delegates authoritative calculation to C36 and audits in one transaction', async () => {
   const calls = [];
+  const auditService = {
+    async record(audit, receivedTransaction) {
+      calls.push(['audit', audit, receivedTransaction]);
+    },
+  };
   const repository = {
     async completeReturn(request, receivedTransaction) {
       calls.push(['complete', request, receivedTransaction]);
       return storedResult();
     },
-    async writeReturnAudit(audit, receivedTransaction) {
-      calls.push(['audit', audit, receivedTransaction]);
-    },
   };
   const service = new ReturnService({
+    auditService,
     returnIdGenerator: () => 'PTC37SERVICE01',
     returnRepository: repository,
     transactionRunner,
@@ -129,7 +132,7 @@ test('createReturn delegates authoritative calculation to C36 and audits in one 
     TinhTrangHang: 'RESALABLE',
   }]);
   assert.equal(calls[1][1].actorAccountId, 37);
-  assert.doesNotMatch(calls[1][1].newData, /password|token|secret/i);
+  assert.doesNotMatch(JSON.stringify(calls[1][1].newData), /password|token|secret/i);
   assert.deepEqual(result.return, {
     employeeId: 'C37CASH',
     invoiceId: 'C37INV001',

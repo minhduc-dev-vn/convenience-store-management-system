@@ -45,6 +45,13 @@ function validateQuery({ allowed = [] }) {
       return;
     }
 
+    const structuredField = Object.entries(request.query)
+      .find(([, value]) => Array.isArray(value) || (value !== null && typeof value === 'object'));
+    if (structuredField) {
+      next(validationError(`Query field ${structuredField[0]} must be a single value`));
+      return;
+    }
+
     next();
   };
 }

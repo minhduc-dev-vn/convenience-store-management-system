@@ -6,6 +6,7 @@ const { AppError } = require('../utils/app-error');
 const { normalizeOptionalText, requireString, validationError } = require('../utils/input-validation');
 const { getSqlErrorNumber, isUniqueConstraintError } = require('../utils/sql-error');
 const { withTransaction } = require('../utils/transaction');
+const { AuditService } = require('./audit.service');
 
 const RECEIPT_STATUSES = Object.freeze(['DRAFT', 'CONFIRMED', 'CANCELLED']);
 const DEFAULT_PAGE = 1;
@@ -263,11 +264,13 @@ function assertDraft(row) {
 
 class ReceivingService {
   constructor({
+    auditService = new AuditService(),
     lotIdGenerator = createLotId,
     receiptIdGenerator = createReceiptId,
     receivingRepository = new ReceivingRepository(),
     transactionRunner = withTransaction,
   } = {}) {
+    this.auditService = auditService;
     this.lotIdGenerator = lotIdGenerator;
     this.receiptIdGenerator = receiptIdGenerator;
     this.receivingRepository = receivingRepository;
@@ -488,16 +491,19 @@ class ReceivingService {
     try {
       return await this.transactionRunner(async (transaction) => {
         const confirmation = await this.receivingRepository.confirmReceipt(receiptId, transaction);
-        await this.receivingRepository.writeConfirmAudit({
+        await this.auditService.record({
+          action: 'RECEIPT_CONFIRMED',
           actorAccountId: identity.accountId,
           ipAddress,
-          newData: JSON.stringify({
+          newData: {
             confirmedAt: dateTime(confirmation.NgayXacNhan),
             status: confirmation.TrangThai,
             stockTransactionCount: Number(confirmation.SoGiaoDichNhap),
             total: Number(confirmation.TongTien),
-          }),
-          receiptId,
+          },
+          oldData: { status: 'DRAFT' },
+          recordId: receiptId,
+          tableName: 'PHIEU_NHAP',
         }, transaction);
         return this.getReceiptById(receiptId, transaction);
       });

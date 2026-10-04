@@ -190,6 +190,11 @@ test('line creation returns PRODUCT_NOT_FOUND before creating a lot shell', asyn
 
 test('confirm delegates inventory to C22 procedure and writes audit in the same transaction', async () => {
   const calls = [];
+  const auditService = {
+    async record(audit, receivedTransaction) {
+      calls.push(['audit', audit, receivedTransaction]);
+    },
+  };
   const repository = {
     async confirmReceipt(receiptId, receivedTransaction) {
       calls.push(['confirm', receiptId, receivedTransaction]);
@@ -201,9 +206,6 @@ test('confirm delegates inventory to C22 procedure and writes audit in the same 
         SoGiaoDichNhap: 1,
       };
     },
-    async writeConfirmAudit(audit, receivedTransaction) {
-      calls.push(['audit', audit, receivedTransaction]);
-    },
     async findReceiptById() {
       return receiptRow({
         TrangThai: 'CONFIRMED',
@@ -212,7 +214,7 @@ test('confirm delegates inventory to C22 procedure and writes audit in the same 
     },
     async listReceiptLines() { return [lineRow()]; },
   };
-  const service = new ReceivingService({ receivingRepository: repository, transactionRunner });
+  const service = new ReceivingService({ auditService, receivingRepository: repository, transactionRunner });
 
   const result = await service.confirmReceipt(
     warehouseIdentity,
@@ -224,7 +226,7 @@ test('confirm delegates inventory to C22 procedure and writes audit in the same 
   assert.equal(calls[0][2], transaction);
   assert.equal(calls[1][2], transaction);
   assert.equal(calls[1][1].actorAccountId, 23);
-  assert.match(calls[1][1].newData, /"stockTransactionCount":1/);
+  assert.equal(calls[1][1].newData.stockTransactionCount, 1);
   assert.equal(result.status, 'CONFIRMED');
 });
 

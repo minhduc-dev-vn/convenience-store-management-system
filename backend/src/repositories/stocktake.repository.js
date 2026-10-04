@@ -233,30 +233,6 @@ class StocktakeRepository extends BaseRepository {
     };
   }
 
-  async writeWorkflowAudit({ action, actorAccountId, ipAddress, newData, oldData, stocktakeId }, transaction) {
-    const result = await this.query({
-      text: `
-        EXEC dbo.usp_NHAT_KY_HE_THONG_Ghi
-          @MaTK = @ActorAccountId,
-          @HanhDong = @Action,
-          @TenBang = 'KIEM_KE',
-          @MaBanGhi = @StocktakeId,
-          @DuLieuCu = @OldData,
-          @DuLieuMoi = @NewData,
-          @DiaChiIP = @IpAddress
-      `,
-      parameters: {
-        Action: { type: this.sql.VarChar(50), value: action },
-        ActorAccountId: { type: this.sql.Int, value: actorAccountId },
-        IpAddress: { type: this.sql.VarChar(45), value: ipAddress },
-        NewData: { type: this.sql.NVarChar(this.sql.MAX), value: newData },
-        OldData: { type: this.sql.NVarChar(this.sql.MAX), value: oldData },
-        StocktakeId: { type: this.sql.VarChar(100), value: stocktakeId },
-      },
-      transaction,
-    });
-    return result.recordset[0] ?? null;
-  }
 }
 
 module.exports = {

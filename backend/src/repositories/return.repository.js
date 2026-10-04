@@ -43,27 +43,6 @@ class ReturnRepository extends BaseRepository {
     };
   }
 
-  async writeReturnAudit({ actorAccountId, ipAddress, newData, returnId }, transaction) {
-    await this.query({
-      text: `
-        EXEC dbo.usp_NHAT_KY_HE_THONG_Ghi
-          @MaTK = @ActorAccountId,
-          @HanhDong = 'RETURN_COMPLETED',
-          @TenBang = 'PHIEU_TRA',
-          @MaBanGhi = @ReturnId,
-          @DuLieuCu = NULL,
-          @DuLieuMoi = @NewData,
-          @DiaChiIP = @IpAddress
-      `,
-      parameters: {
-        ActorAccountId: { type: this.sql.Int, value: actorAccountId },
-        IpAddress: { type: this.sql.VarChar(45), value: ipAddress },
-        NewData: { type: this.sql.NVarChar(this.sql.MAX), value: newData },
-        ReturnId: { type: this.sql.VarChar(100), value: returnId },
-      },
-      transaction,
-    });
-  }
 }
 
 module.exports = {

@@ -50,6 +50,12 @@ function header(overrides = {}) {
 
 function serviceWith(repository) {
   return new StocktakeService({
+    auditService: {
+      async record(input) {
+        if (repository.writeWorkflowAudit) return repository.writeWorkflowAudit(input);
+        return null;
+      },
+    },
     stocktakeIdGenerator: () => 'KK001',
     stocktakeRepository: repository,
     transactionRunner: (work) => work({ id: 'tx' }),
@@ -139,7 +145,7 @@ test('proposal requires a discrepancy and reason, then writes an append-only wor
   assert.equal(result.workflow.state, 'PENDING_APPROVAL');
   assert.equal(audits[0].action, 'STOCKTAKE_PROPOSED');
   assert.equal(audits[0].actorAccountId, 41);
-  assert.match(audits[0].newData, /PENDING_APPROVAL/);
+  assert.equal(audits[0].newData.workflowState, 'PENDING_APPROVAL');
 
   repository.getStocktake = async () => ({
     header: header(),
@@ -192,7 +198,7 @@ test('manager rejection records a recount request without changing the schema st
   const result = await service.rejectStocktake(manager, 'KK001', { comment: 'Kiem dem lai lo nay' });
   assert.equal(audit.action, 'STOCKTAKE_RECOUNT_REQUESTED');
   assert.equal(result.workflow.state, 'RECOUNT_REQUIRED');
-  assert.match(audit.newData, /Kiem dem lai lo nay/);
+  assert.equal(audit.newData.managerComment, 'Kiem dem lai lo nay');
 });
 
 test('RBAC is enforced again inside the service boundary', async () => {

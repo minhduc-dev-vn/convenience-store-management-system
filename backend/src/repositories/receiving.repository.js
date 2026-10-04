@@ -411,31 +411,6 @@ class ReceivingRepository extends BaseRepository {
     };
   }
 
-  async writeConfirmAudit({ actorAccountId, ipAddress, newData, receiptId }, transaction) {
-    await this.query({
-      text: `
-        EXEC dbo.usp_NHAT_KY_HE_THONG_Ghi
-          @MaTK = @ActorAccountId,
-          @HanhDong = 'RECEIPT_CONFIRMED',
-          @TenBang = 'PHIEU_NHAP',
-          @MaBanGhi = @ReceiptId,
-          @DuLieuCu = @OldData,
-          @DuLieuMoi = @NewData,
-          @DiaChiIP = @IpAddress
-      `,
-      parameters: {
-        ActorAccountId: { type: this.sql.Int, value: actorAccountId },
-        IpAddress: { type: this.sql.VarChar(45), value: ipAddress },
-        NewData: { type: this.sql.NVarChar(this.sql.MAX), value: newData },
-        OldData: {
-          type: this.sql.NVarChar(this.sql.MAX),
-          value: JSON.stringify({ status: 'DRAFT' }),
-        },
-        ReceiptId: { type: this.sql.VarChar(100), value: receiptId },
-      },
-      transaction,
-    });
-  }
 }
 
 module.exports = {

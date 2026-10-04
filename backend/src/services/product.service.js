@@ -5,6 +5,7 @@ const { AppError } = require('../utils/app-error');
 const { requireString, validationError } = require('../utils/input-validation');
 const { isUniqueConstraintError } = require('../utils/sql-error');
 const { withTransaction } = require('../utils/transaction');
+const { AuditService } = require('./audit.service');
 
 const PRODUCT_STATUSES = Object.freeze(['ACTIVE', 'INACTIVE']);
 const DEFAULT_PAGE = 1;
@@ -170,11 +171,6 @@ function conflict(code, message) {
   return new AppError(message, { code, statusCode: 409 });
 }
 
-function normalizeIpAddress(value) {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  return value.trim().slice(0, 45);
-}
-
 function parseAuditPayload(value) {
   if (typeof value !== 'string' || !value) return {};
   try {
@@ -209,9 +205,11 @@ function serializePriceHistory(row) {
 
 class ProductService {
   constructor({
+    auditService = new AuditService(),
     productRepository = new ProductRepository(),
     transactionRunner = withTransaction,
   } = {}) {
+    this.auditService = auditService;
     this.productRepository = productRepository;
     this.transactionRunner = transactionRunner;
   }
@@ -362,12 +360,12 @@ class ProductService {
         throw validationError('newPrice must be different from the current price');
       }
       await this.productRepository.updateProductPrice(productId, newPrice, transaction);
-      await this.productRepository.writeAudit({
+      await this.auditService.record({
         action: 'UPDATE_PRICE',
         actorAccountId: identity.accountId,
-        ipAddress: normalizeIpAddress(ipAddress),
-        newData: JSON.stringify({ price: newPrice, reason }),
-        oldData: JSON.stringify({ price: oldPrice }),
+        ipAddress,
+        newData: { price: newPrice, reason },
+        oldData: { price: oldPrice },
         recordId: productId,
         tableName: 'SAN_PHAM',
       }, transaction);
