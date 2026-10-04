@@ -1,50 +1,54 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { LoadingState } from '../components/StateViews';
 import AppLayout from '../layouts/AppLayout';
 import CashierLayout from '../layouts/CashierLayout';
 import CustomerLayout from '../layouts/CustomerLayout';
 import ManagerLayout from '../layouts/ManagerLayout';
 import WarehouseLayout from '../layouts/WarehouseLayout';
-import ChangePasswordPage from '../pages/ChangePasswordPage';
-import CashierDashboardPage from '../pages/cashier/CashierDashboardPage';
-import CashierInvoiceLookupPage from '../pages/cashier/CashierInvoiceLookupPage';
-import CashierPosPage from '../pages/cashier/CashierPosPage';
-import CashierReceiptPage from '../pages/cashier/CashierReceiptPage';
-import CashierReturnPage from '../pages/cashier/CashierReturnPage';
-import CustomerHistoryPage from '../pages/CustomerHistoryPage';
-import CustomerOverviewPage from '../pages/CustomerOverviewPage';
-import CustomerProfilePage from '../pages/CustomerProfilePage';
-import HomePage from '../pages/HomePage';
-import LoginPage from '../pages/LoginPage';
-import AccountManagementPage from '../pages/manager/AccountManagementPage';
-import AuditLogPage from '../pages/manager/AuditLogPage';
-import CustomerMemberManagementPage from '../pages/manager/CustomerMemberManagementPage';
-import EmployeeManagementPage from '../pages/manager/EmployeeManagementPage';
-import ManagerInventoryPage from '../pages/manager/InventoryPage';
-import ManagerInvoiceLookupPage from '../pages/manager/InvoiceLookupPage';
-import ManagerDashboardPage from '../pages/manager/ManagerDashboardPage';
-import ProductManagementPage from '../pages/manager/ProductManagementPage';
-import ProductPricingPage from '../pages/manager/ProductPricingPage';
-import PromotionManagementPage from '../pages/manager/PromotionManagementPage';
-import MerchandiseReportPage from '../pages/manager/reports/MerchandiseReportPage';
-import ReportsDashboardPage from '../pages/manager/reports/ReportsDashboardPage';
-import RevenueReportPage from '../pages/manager/reports/RevenueReportPage';
-import WorkforceReportPage from '../pages/manager/reports/WorkforceReportPage';
-import SupplierManagementPage from '../pages/manager/SupplierManagementPage';
-import StocktakeApprovalPage from '../pages/manager/StocktakeApprovalPage';
-import NotFoundPage from '../pages/NotFoundPage';
-import ProductCatalogPage from '../pages/customer/ProductCatalogPage';
-import PromotionPage from '../pages/customer/PromotionPage';
-import RegisterPage from '../pages/RegisterPage';
-import ReceivingEditorPage from '../pages/warehouse/ReceivingEditorPage';
-import ReceivingManagementPage from '../pages/warehouse/ReceivingManagementPage';
-import WarehouseInventoryPage from '../pages/warehouse/InventoryPage';
-import WarehouseDashboardPage from '../pages/warehouse/WarehouseDashboardPage';
-import WarehouseStocktakePage from '../pages/warehouse/StocktakePage';
 import { ProtectedRoute, PublicOnlyRoute } from './RouteGuards';
+
+const ChangePasswordPage = lazy(() => import('../pages/ChangePasswordPage'));
+const CashierDashboardPage = lazy(() => import('../pages/cashier/CashierDashboardPage'));
+const CashierInvoiceLookupPage = lazy(() => import('../pages/cashier/CashierInvoiceLookupPage'));
+const CashierPosPage = lazy(() => import('../pages/cashier/CashierPosPage'));
+const CashierReceiptPage = lazy(() => import('../pages/cashier/CashierReceiptPage'));
+const CashierReturnPage = lazy(() => import('../pages/cashier/CashierReturnPage'));
+const CustomerHistoryPage = lazy(() => import('../pages/CustomerHistoryPage'));
+const CustomerOverviewPage = lazy(() => import('../pages/CustomerOverviewPage'));
+const CustomerProfilePage = lazy(() => import('../pages/CustomerProfilePage'));
+const HomePage = lazy(() => import('../pages/HomePage'));
+const LoginPage = lazy(() => import('../pages/LoginPage'));
+const AccountManagementPage = lazy(() => import('../pages/manager/AccountManagementPage'));
+const AuditLogPage = lazy(() => import('../pages/manager/AuditLogPage'));
+const CustomerMemberManagementPage = lazy(() => import('../pages/manager/CustomerMemberManagementPage'));
+const EmployeeManagementPage = lazy(() => import('../pages/manager/EmployeeManagementPage'));
+const ManagerInventoryPage = lazy(() => import('../pages/manager/InventoryPage'));
+const ManagerInvoiceLookupPage = lazy(() => import('../pages/manager/InvoiceLookupPage'));
+const ManagerDashboardPage = lazy(() => import('../pages/manager/ManagerDashboardPage'));
+const ProductManagementPage = lazy(() => import('../pages/manager/ProductManagementPage'));
+const ProductPricingPage = lazy(() => import('../pages/manager/ProductPricingPage'));
+const PromotionManagementPage = lazy(() => import('../pages/manager/PromotionManagementPage'));
+const MerchandiseReportPage = lazy(() => import('../pages/manager/reports/MerchandiseReportPage'));
+const ReportsDashboardPage = lazy(() => import('../pages/manager/reports/ReportsDashboardPage'));
+const RevenueReportPage = lazy(() => import('../pages/manager/reports/RevenueReportPage'));
+const WorkforceReportPage = lazy(() => import('../pages/manager/reports/WorkforceReportPage'));
+const SupplierManagementPage = lazy(() => import('../pages/manager/SupplierManagementPage'));
+const StocktakeApprovalPage = lazy(() => import('../pages/manager/StocktakeApprovalPage'));
+const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
+const ProductCatalogPage = lazy(() => import('../pages/customer/ProductCatalogPage'));
+const PromotionPage = lazy(() => import('../pages/customer/PromotionPage'));
+const RegisterPage = lazy(() => import('../pages/RegisterPage'));
+const ReceivingEditorPage = lazy(() => import('../pages/warehouse/ReceivingEditorPage'));
+const ReceivingManagementPage = lazy(() => import('../pages/warehouse/ReceivingManagementPage'));
+const WarehouseInventoryPage = lazy(() => import('../pages/warehouse/InventoryPage'));
+const WarehouseDashboardPage = lazy(() => import('../pages/warehouse/WarehouseDashboardPage'));
+const WarehouseStocktakePage = lazy(() => import('../pages/warehouse/StocktakePage'));
 
 function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<LoadingState message="Đang tải màn hình…" />}>
+      <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="public" element={<HomePage />} />
@@ -113,7 +117,8 @@ function AppRoutes() {
 
         <Route path="*" element={<NotFoundPage />} />
       </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 
