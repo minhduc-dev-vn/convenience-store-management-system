@@ -96,12 +96,15 @@ Backend tuân theo luồng `Route -> Middleware -> Controller -> Service -> Repo
 │   ├── constraints/
 │   ├── indexes/
 │   ├── maintenance/
+│   ├── migrations/
 │   ├── procedures/
 │   ├── schema/
 │   ├── seed/
 │   ├── tests/
 │   ├── views/
 │   ├── create_database.sql
+│   ├── init.schema.sql
+│   ├── init.production.sql
 │   ├── init.sql
 │   └── README.md
 ├── .gitignore
@@ -120,7 +123,7 @@ Database có đúng 23 bảng core:
 
 Không có bảng `DON_VI_TINH` hoặc `LICH_SU_GIA`: đơn vị tính nằm trên `SAN_PHAM`, còn lịch sử giá lấy từ audit log. Tồn kho được tính từ các lô, không lưu một tổng tồn trùng lặp trên sản phẩm.
 
-`database/init.sql` dựng schema, constraints, indexes, views, procedures và seed theo thứ tự phụ thuộc. Runner này xóa và dựng lại 23 bảng core trong database đích, vì vậy chỉ được dùng trên database development/test đã kiểm tra đúng tên. Xem [database/README.md](database/README.md) để biết đầy đủ thứ tự script, test, backup và restore.
+`database/init.sql` dựng lại schema và development seed, đồng thời reset migration history; chỉ dùng cho development/test. `database/init.production.sql` chỉ bootstrap production database mới/rỗng một lần, seed đúng bốn role và không có dữ liệu DEV. Production đã có baseline chỉ cập nhật bằng Node migration runner. Xem [database/README.md](database/README.md) để biết đầy đủ thứ tự script, test, backup và restore.
 
 ## 7. Yêu cầu hệ thống
 
@@ -209,6 +212,8 @@ sqlcmd -S ".\SQLEXPRESS" -E -C -I -d "ConvenienceStore" -b -f 65001 -i ".\init.s
 Nếu dùng default instance, thay `-S ".\SQLEXPRESS"` bằng `-S "localhost"`. Nếu dùng SQL Authentication, thay `-E` bằng thông tin đăng nhập được cấp qua cơ chế an toàn của môi trường; không ghi credential vào script hoặc tài liệu.
 
 Seed nền tạo bốn role chuẩn và dữ liệu catalog/kho tối thiểu, nhưng không tạo tài khoản dùng chung. Khách hàng có thể tự đăng ký. Tài khoản nhân viên demo phải được cấp riêng trong database demo bởi người quản trị; không dùng credential cố định trong repository.
+
+Production first bootstrap dùng `database/init.production.sql` đúng một lần trên database mới/rỗng, sau đó chạy `npm run db:migrate` từ `backend/` để ghi baseline. Các lần cập nhật production tiếp theo chỉ chạy migration; không chạy lại bất kỳ init script nào.
 
 ## 11. Chạy project
 

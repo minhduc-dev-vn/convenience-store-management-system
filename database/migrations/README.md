@@ -1,6 +1,6 @@
 # SQL Server database migrations
 
-Thư mục này chứa các thay đổi schema gia tăng dùng sau khi database đã được khởi tạo. `database/init.sql` vẫn là runner phá hủy dùng để dựng mới database development/test; tuyệt đối không dùng `init.sql` để nâng cấp database production đang có dữ liệu.
+Thư mục này chứa các thay đổi schema gia tăng dùng sau khi database đã được khởi tạo. `database/init.sql` là runner phá hủy dành cho development/test; `database/init.production.sql` chỉ bootstrap một database production mới, rỗng đúng một lần. Tuyệt đối không dùng bất kỳ init script nào để nâng cấp production đang có dữ liệu.
 
 ## Quy ước file
 
@@ -15,12 +15,19 @@ Thư mục này chứa các thay đổi schema gia tăng dùng sau khi database 
 
 `000_baseline.sql` không tạo/xóa bảng và không thay đổi dữ liệu. File chỉ xác minh baseline hiện tại: đủ 23 bảng core theo Chương 4, không có `LICH_SU_GIA`/`DON_VI_TINH`, và các view/procedure authoritative quan trọng tồn tại.
 
-Quy trình database mới:
+Quy trình database development/test mới:
 
 1. Tạo database rỗng riêng cho môi trường.
-2. Chạy `database/init.sql` **một lần** để dựng baseline và seed development khi phù hợp.
+2. Chạy `database/init.sql` để dựng baseline, bốn role và seed development. Clean build này xóa 23 bảng core và `dbo.SCHEMA_MIGRATIONS`, nên history luôn được reset cùng schema.
 3. Từ `backend/`, bật cờ an toàn và chạy `npm run db:migrate` để xác minh/ghi nhận `000_baseline`.
 4. Từ sau baseline, chỉ nâng cấp database bằng migration mới.
+
+Quy trình production/Azure SQL mới:
+
+1. Tạo Azure SQL database mới, không có bảng `dbo`.
+2. Từ thư mục `database/`, chạy `init.production.sql` một lần bằng `sqlcmd` để dựng cùng baseline và chỉ seed bốn role chuẩn. Script từ chối database đã có bất kỳ bảng `dbo` nào và không chạy `seed/02_development_data.sql`.
+3. Từ `backend/`, chạy `npm run db:migrate` để xác minh/ghi nhận `000_baseline`.
+4. Mọi release sau đó chỉ dùng `npm run db:migrate`; không chạy lại `init.production.sql` hoặc `init.sql`.
 
 ## Metadata và an toàn
 
@@ -51,7 +58,7 @@ npm run db:migrate:status
 
 ## Production và Azure SQL
 
-Production bắt buộc dùng `DB_DRIVER=tedious`, SQL authentication qua TCP, `DB_ENCRYPT=true`, `DB_TRUST_SERVER_CERTIFICATE=false`, `DB_INSTANCE` rỗng và `DB_PORT=1433`. Runner dùng package `mssql` sẵn có; production không phụ thuộc `sqlcmd` hay Windows Authentication.
+Production bắt buộc dùng `DB_DRIVER=tedious`, `DB_TRUSTED_CONNECTION=false`, SQL authentication qua TCP, `DB_ENCRYPT=true`, `DB_TRUST_SERVER_CERTIFICATE=false`, `DB_INSTANCE` rỗng và `DB_PORT=1433`. CLI kiểm tra và từ chối cấu hình sai trước khi kết nối. Runner dùng package `mssql` sẵn có; chỉ bootstrap lần đầu có thể dùng `sqlcmd`, còn production migration không phụ thuộc `sqlcmd` hay Windows Authentication.
 
 Trước mỗi release:
 
@@ -78,4 +85,4 @@ $env:ALLOW_DB_MIGRATIONS='true'
 npm run test:migrations
 ```
 
-Bộ test phủ fresh metadata/baseline, chạy lần hai skip, ordering, rollback khi SQL lỗi, không ghi metadata cho file lỗi, không chạy file kế tiếp, checksum mismatch và chặn system database.
+Bộ test phủ fresh metadata/baseline, chạy lần hai skip, ordering, out-of-order rejection, rollback khi SQL lỗi, không ghi metadata cho file lỗi, không chạy file kế tiếp, checksum mismatch, concurrent lock, Azure production config và chặn system database.

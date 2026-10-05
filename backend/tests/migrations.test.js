@@ -7,12 +7,47 @@ const path = require('node:path');
 const test = require('node:test');
 const {
   MigrationError,
+  assertProductionMigrationConfiguration,
+  assertProductionMigrationEnvironment,
   assertSafeDatabaseName,
   calculateChecksum,
   compareMigrationHistory,
   discoverMigrations,
   readLockTimeout,
 } = require('../src/utils/migration-runner');
+
+const repositoryRoot = path.resolve(__dirname, '../..');
+
+function productionSettings(overrides = {}) {
+  return {
+    driver: overrides.driver || 'tedious',
+    config: {
+      port: Object.hasOwn(overrides, 'port') ? overrides.port : 1433,
+      options: {
+        encrypt: Object.hasOwn(overrides, 'encrypt') ? overrides.encrypt : true,
+        trustServerCertificate: Object.hasOwn(overrides, 'trustServerCertificate')
+          ? overrides.trustServerCertificate
+          : false,
+        trustedConnection: Object.hasOwn(overrides, 'trustedConnection')
+          ? overrides.trustedConnection
+          : false,
+        ...(overrides.instanceName ? { instanceName: overrides.instanceName } : {}),
+      },
+    },
+  };
+}
+
+function productionEnvironment(overrides = {}) {
+  return {
+    DB_DRIVER: 'tedious',
+    DB_TRUSTED_CONNECTION: 'false',
+    DB_ENCRYPT: 'true',
+    DB_TRUST_SERVER_CERTIFICATE: 'false',
+    DB_INSTANCE: '',
+    DB_PORT: '1433',
+    ...overrides,
+  };
+}
 
 async function withMigrationDirectory(files, callback) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'convenience-store-migrations-'));
@@ -119,6 +154,107 @@ test('history comparison marks pending/applied and rejects changed or missing ap
     (error) => error instanceof MigrationError && error.code === 'APPLIED_MIGRATION_MISSING',
   );
 });
+
+test('history comparison rejects pending migrations below the highest applied sequence', () => {
+  const migrations = [1, 2, 3].map((sequence) => ({
+    sequence,
+    id: `${String(sequence).padStart(3, '0')}_migration`,
+    fileName: `${String(sequence).padStart(3, '0')}_migration.sql`,
+    checksum: String(sequence).repeat(64),
+    sqlText: `SELECT ${sequence};`,
+  }));
+  const appliedRows = [migrations[0], migrations[2]].map((migration) => ({
+    MigrationId: migration.id,
+    FileName: migration.fileName,
+    Checksum: migration.checksum,
+    AppliedAt: new Date('2026-10-05T00:00:00.000Z'),
+    ExecutionTimeMs: 1,
+  }));
+
+  assert.throws(
+    () => compareMigrationHistory(migrations, appliedRows),
+    (error) => error instanceof MigrationError && error.code === 'OUT_OF_ORDER_MIGRATION',
+  );
+});
+
+test('production migration configuration enforces Azure SQL TLS, TCP and port rules', () => {
+  assert.throws(
+    () => assertProductionMigrationConfiguration(productionSettings({ driver: 'msnodesqlv8' }), 'production'),
+    (error) => error instanceof MigrationError && error.code === 'PRODUCTION_DRIVER_REJECTED',
+  );
+  assert.throws(
+    () => assertProductionMigrationConfiguration(productionSettings({ trustedConnection: true }), 'production'),
+    (error) => error instanceof MigrationError && error.code === 'PRODUCTION_TRUSTED_CONNECTION_REJECTED',
+  );
+  assert.throws(
+    () => assertProductionMigrationConfiguration(productionSettings({ encrypt: false }), 'production'),
+    (error) => error instanceof MigrationError && error.code === 'PRODUCTION_ENCRYPTION_REQUIRED',
+  );
+  assert.throws(
+    () => assertProductionMigrationConfiguration(productionSettings({ trustServerCertificate: true }), 'production'),
+    (error) => error instanceof MigrationError && error.code === 'PRODUCTION_TRUST_CERTIFICATE_REJECTED',
+  );
+  assert.throws(
+    () => assertProductionMigrationConfiguration(productionSettings({ instanceName: 'SQLEXPRESS' }), 'production'),
+    (error) => error instanceof MigrationError && error.code === 'PRODUCTION_INSTANCE_REJECTED',
+  );
+  assert.throws(
+    () => assertProductionMigrationConfiguration(productionSettings({ port: 1434 }), 'production'),
+    (error) => error instanceof MigrationError && error.code === 'PRODUCTION_PORT_REJECTED',
+  );
+
+  assert.doesNotThrow(() => assertProductionMigrationConfiguration(productionSettings(), 'production'));
+  assert.doesNotThrow(() => assertProductionMigrationConfiguration(
+    productionSettings({ driver: 'msnodesqlv8', encrypt: false, trustServerCertificate: true }),
+    'development',
+  ));
+});
+
+test('production migration environment rejects unsafe values before config parsing', () => {
+  const cases = [
+    [{ DB_DRIVER: 'msnodesqlv8' }, 'PRODUCTION_DRIVER_REJECTED'],
+    [{ DB_TRUSTED_CONNECTION: 'true' }, 'PRODUCTION_TRUSTED_CONNECTION_REJECTED'],
+    [{ DB_ENCRYPT: 'false' }, 'PRODUCTION_ENCRYPTION_REQUIRED'],
+    [{ DB_TRUST_SERVER_CERTIFICATE: 'true' }, 'PRODUCTION_TRUST_CERTIFICATE_REJECTED'],
+    [{ DB_INSTANCE: 'SQLEXPRESS' }, 'PRODUCTION_INSTANCE_REJECTED'],
+    [{ DB_PORT: '1434' }, 'PRODUCTION_PORT_REJECTED'],
+  ];
+
+  for (const [overrides, expectedCode] of cases) {
+    assert.throws(
+      () => assertProductionMigrationEnvironment('production', productionEnvironment(overrides)),
+      (error) => error instanceof MigrationError && error.code === expectedCode,
+    );
+  }
+
+  assert.doesNotThrow(() => assertProductionMigrationEnvironment(
+    'production',
+    productionEnvironment(),
+  ));
+  assert.doesNotThrow(() => assertProductionMigrationEnvironment(
+    'development',
+    productionEnvironment({ DB_DRIVER: 'msnodesqlv8' }),
+  ));
+});
+
+test('bootstrap entry points reset metadata locally and exclude development seed in production', async () => {
+  const [dropScript, localInit, productionInit, sharedSchema] = await Promise.all([
+    fs.readFile(path.join(repositoryRoot, 'database/schema/00_drop_core_schema.sql'), 'utf8'),
+    fs.readFile(path.join(repositoryRoot, 'database/init.sql'), 'utf8'),
+    fs.readFile(path.join(repositoryRoot, 'database/init.production.sql'), 'utf8'),
+    fs.readFile(path.join(repositoryRoot, 'database/init.schema.sql'), 'utf8'),
+  ]);
+
+  assert.match(dropScript, /DROP TABLE dbo\.SCHEMA_MIGRATIONS/i);
+  assert.match(localInit, /:r \.\\init\.schema\.sql/i);
+  assert.match(localInit, /:r \.\\seed\\02_development_data\.sql/i);
+  assert.match(productionInit, /:r \.\\init\.schema\.sql/i);
+  assert.match(productionInit, /:r \.\\seed\\01_roles\.sql/i);
+  assert.doesNotMatch(productionInit, /:r .*02_development_data\.sql/i);
+  assert.match(productionInit, /Production bootstrap requires a new database with no dbo tables/i);
+  assert.match(sharedSchema, /:r \.\\schema\\00_drop_core_schema\.sql/i);
+});
+
 test('system database names are rejected case-insensitively', () => {
   for (const databaseName of ['master', 'MODEL', ' msdb ', 'tempdb']) {
     assert.throws(

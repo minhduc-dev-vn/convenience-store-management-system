@@ -10,9 +10,9 @@ Thư mục này là gói triển khai cơ sở dữ liệu của hệ thống qu
 
 ## Thứ tự script
 
-`init.sql` chạy các file theo đúng dependency:
+`init.schema.sql` gom các include schema dùng chung. `init.sql` và `init.production.sql` gọi runner này thay vì sao chép các script business. Thứ tự dependency là:
 
-1. `schema/00_drop_core_schema.sql`: xóa đúng 23 bảng core theo thứ tự FK ngược.
+1. `schema/00_drop_core_schema.sql`: xóa đúng 23 bảng core theo thứ tự FK ngược và reset `dbo.SCHEMA_MIGRATIONS` trong clean-build flow.
 2. `schema/01_identity.sql`: vai trò, nhân viên, khách hàng, tài khoản.
 3. `schema/02_catalog.sql`: loại sản phẩm, sản phẩm, khuyến mãi và nhà cung cấp.
 4. `schema/03_inventory.sql`: ca làm việc, nhập hàng, lô, kiểm kê và giao dịch kho.
@@ -25,9 +25,9 @@ Thư mục này là gói triển khai cơ sở dữ liệu của hệ thống qu
 11. `seed/01_roles.sql`: seed bốn vai trò chuẩn.
 12. `seed/02_development_data.sql`: seed tối thiểu một nhân viên, danh mục, sản phẩm, nhà cung cấp và lô hàng development.
 
-> `init.sql` dựng lại toàn bộ 23 bảng core và sẽ xóa dữ liệu hiện có trong các bảng này. Chỉ chạy trên database rỗng hoặc database development/test đã được chọn rõ ràng.
+> `init.sql` dựng lại toàn bộ 23 bảng core, xóa migration history và sẽ xóa dữ liệu hiện có. Chỉ chạy trên database development/test đã được chọn rõ ràng; script này có development seed.
 
-`init.sql` không phải công cụ nâng cấp production. Sau lần dựng baseline, mọi thay đổi schema phải đi qua các file gia tăng trong [`migrations/`](migrations/) và Node runner ở `backend/scripts/db-migrate.js`. Bảng `dbo.SCHEMA_MIGRATIONS` do runner quản lý là metadata hạ tầng, không làm thay đổi số lượng 23 bảng core trong thiết kế nghiệp vụ.
+`init.production.sql` chỉ dùng một lần trên production database mới hoàn toàn. Script từ chối database đã có bảng `dbo`, dựng đúng 23 bảng/object và seed đúng bốn role chuẩn, nhưng không chạy development seed. Sau lần dựng baseline, mọi thay đổi production phải đi qua các file gia tăng trong [`migrations/`](migrations/) và Node runner ở `backend/scripts/db-migrate.js`. Bảng `dbo.SCHEMA_MIGRATIONS` do runner quản lý là metadata hạ tầng, không làm thay đổi số lượng 23 bảng core trong thiết kế nghiệp vụ.
 
 ## Tạo cơ sở dữ liệu
 
@@ -59,6 +59,17 @@ npm run db:migrate:status
 ```
 
 Không dùng `sqlcmd` để chạy từng file trong `migrations/`; runner Node là entry point authoritative cho ordering, checksum, lock và transaction. Hướng dẫn production/Azure SQL và rollback nằm trong [`migrations/README.md`](migrations/README.md).
+
+### Production bootstrap lần đầu
+
+Chỉ trên Azure SQL database mới, rỗng và từ thư mục `database/`:
+
+```powershell
+sqlcmd -S "<server>.database.windows.net" -d "ConvenienceStore" `
+  -G -N -I -b -f 65001 -i ".\init.production.sql"
+```
+
+Ví dụ dùng Microsoft Entra authentication để không đặt credential trong command hoặc repository; chọn cơ chế xác thực an toàn phù hợp môi trường triển khai. Sau bootstrap, chạy `npm run db:migrate` từ backend để ghi baseline. Không chạy lại init script trên production đã có dữ liệu.
 
 ## Kiểm tra số bảng
 
@@ -106,7 +117,7 @@ Không có bảng `LICH_SU_GIA` hoặc `DON_VI_TINH`; `DonViTinh` là thuộc t�
 
 ## Baseline seed
 
-Runner seed đúng bốn role `CUSTOMER`, `CASHIER`, `WAREHOUSE`, `MANAGER` và một bộ dữ liệu có mã chứa `DEV` để smoke test lookup. Seed không tạo tài khoản demo, không chứa password/hash hoặc production secret.
+Local/test `init.sql` seed đúng bốn role `CUSTOMER`, `CASHIER`, `WAREHOUSE`, `MANAGER` và một bộ dữ liệu có mã chứa `DEV` để smoke test lookup. Production `init.production.sql` chỉ seed bốn role và không tạo `NVDEV001`, `LDEV001`, `SPDEV001`, `NCCDEV001` hoặc `LODEV001`. Cả hai flow đều không tạo tài khoản demo, password/hash hoặc production secret.
 
 Có thể kiểm tra nhanh sau khi chạy init:
 

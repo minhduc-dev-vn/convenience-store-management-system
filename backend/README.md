@@ -46,7 +46,13 @@ npm run db:migrate
 
 `db:migrate:status` chỉ đọc và hiển thị `APPLIED`/`PENDING`. `db:migrate` yêu cầu cờ an toàn rõ ràng, dùng checksum SHA-256, SQL Server application lock và transaction riêng cho từng file. Xem đầy đủ quy trình baseline, production và rollback tại [`database/migrations/README.md`](../database/migrations/README.md).
 
-Local Windows Authentication dùng `DB_DRIVER=msnodesqlv8`. Production/Azure SQL dùng `DB_DRIVER=tedious`, SQL authentication, `DB_PORT=1433`, `DB_INSTANCE` rỗng, `DB_ENCRYPT=true` và `DB_TRUST_SERVER_CERTIFICATE=false`. Không đặt `ALLOW_DB_MIGRATIONS=true` cho web service chạy thường trực; chỉ bật trong terminal/release job thực hiện migration.
+Local Windows Authentication dùng `DB_DRIVER=msnodesqlv8`. Production/Azure SQL bắt buộc `DB_DRIVER=tedious`, `DB_TRUSTED_CONNECTION=false`, SQL authentication, `DB_PORT=1433`, `DB_INSTANCE` rỗng, `DB_ENCRYPT=true` và `DB_TRUST_SERVER_CERTIFICATE=false`; migration CLI từ chối cấu hình production không đạt các điều kiện này trước khi kết nối. Không đặt `ALLOW_DB_MIGRATIONS=true` cho web service chạy thường trực; chỉ bật trong terminal/release job thực hiện migration.
+
+Ba workflow database tách biệt:
+
+- Local/test clean build: chạy `database/init.sql`; có development seed và reset migration metadata.
+- Production first bootstrap: chạy `database/init.production.sql` đúng một lần trên database mới/rỗng, sau đó chạy `npm run db:migrate` để ghi baseline.
+- Existing production update: chỉ chạy `npm run db:migrate`; không chạy lại init script.
 
 ## Chạy API
 

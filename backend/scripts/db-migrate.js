@@ -7,6 +7,8 @@ const { getDatabaseSettings } = require('../src/config/database.config');
 const { getSqlDriver } = require('../src/config/database.driver');
 const {
   MigrationError,
+  assertProductionMigrationConfiguration,
+  assertProductionMigrationEnvironment,
   assertSafeDatabaseName,
   createMigrationPool,
   getMigrationStatus,
@@ -15,24 +17,6 @@ const {
 } = require('../src/utils/migration-runner');
 
 const MIGRATIONS_DIRECTORY = path.resolve(__dirname, '../../database/migrations');
-
-function assertProductionConfiguration(settings) {
-  if (nodeEnv !== 'production') return;
-
-  if (settings.driver !== 'tedious') {
-    throw new MigrationError(
-      'PRODUCTION_DRIVER_REJECTED',
-      'Production migrations require DB_DRIVER=tedious with SQL authentication over TCP.',
-    );
-  }
-
-  if (settings.config.options.trustedConnection) {
-    throw new MigrationError(
-      'PRODUCTION_AUTHENTICATION_REJECTED',
-      'Production migrations do not allow a Windows trusted connection.',
-    );
-  }
-}
 
 function printTarget(target, settings) {
   console.log(`[migration] environment=${nodeEnv}`);
@@ -62,9 +46,10 @@ async function main() {
     throw new MigrationError('INVALID_MIGRATION_COMMAND', 'Use "up" or "status".');
   }
 
+  assertProductionMigrationEnvironment(nodeEnv);
   const settings = getDatabaseSettings();
   assertSafeDatabaseName(settings.config.database);
-  assertProductionConfiguration(settings);
+  assertProductionMigrationConfiguration(settings, nodeEnv);
 
   const sql = getSqlDriver(settings.driver);
   const pool = createMigrationPool(settings, sql);

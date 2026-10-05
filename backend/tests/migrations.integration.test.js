@@ -150,6 +150,40 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
     assert.deepEqual(orderingState.recordset.map((row) => row.SequenceValue), [1, 2, 3]);
 
     await cleanupTestObjects(pool);
+    const firstMigrationSql = `
+      CREATE TABLE dbo.MIGRATION_TEST_EVENTS (SequenceValue INT NOT NULL);
+      INSERT INTO dbo.MIGRATION_TEST_EVENTS (SequenceValue) VALUES (1);
+    `;
+    const thirdMigrationSql = 'INSERT INTO dbo.MIGRATION_TEST_EVENTS (SequenceValue) VALUES (3);';
+    const partialHistoryDirectory = await writeMigrations({
+      '901_first.sql': firstMigrationSql,
+      '903_third.sql': thirdMigrationSql,
+    });
+    temporaryDirectories.push(partialHistoryDirectory);
+    await migrate(partialHistoryDirectory);
+
+    const outOfOrderDirectory = await writeMigrations({
+      '901_first.sql': firstMigrationSql,
+      '902_second.sql': 'INSERT INTO dbo.MIGRATION_TEST_EVENTS (SequenceValue) VALUES (2);',
+      '903_third.sql': thirdMigrationSql,
+    });
+    temporaryDirectories.push(outOfOrderDirectory);
+    await assert.rejects(
+      migrate(outOfOrderDirectory),
+      (error) => error instanceof MigrationError && error.code === 'OUT_OF_ORDER_MIGRATION',
+    );
+
+    const outOfOrderState = await pool.request().query(`
+      SELECT SequenceValue FROM dbo.MIGRATION_TEST_EVENTS ORDER BY SequenceValue;
+      SELECT MigrationId FROM dbo.SCHEMA_MIGRATIONS ORDER BY MigrationId;
+    `);
+    assert.deepEqual(outOfOrderState.recordsets[0].map((row) => row.SequenceValue), [1, 3]);
+    assert.deepEqual(
+      outOfOrderState.recordsets[1].map((row) => row.MigrationId),
+      ['901_first', '903_third'],
+    );
+
+    await cleanupTestObjects(pool);
     await migrate(productionMigrationsDirectory);
 
     await lockHolderPool.connect();

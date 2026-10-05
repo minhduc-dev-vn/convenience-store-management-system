@@ -48,6 +48,99 @@ function readLockTimeout(value = process.env.DB_MIGRATION_LOCK_TIMEOUT_MS) {
   return timeout;
 }
 
+function assertProductionMigrationEnvironment(environment = process.env.NODE_ENV, env = process.env) {
+  if (environment !== 'production') return;
+
+  if (env.DB_DRIVER?.trim().toLowerCase() !== 'tedious') {
+    throw new MigrationError(
+      'PRODUCTION_DRIVER_REJECTED',
+      'Production migrations require DB_DRIVER=tedious with SQL authentication over TCP.',
+    );
+  }
+
+  if (env.DB_TRUSTED_CONNECTION?.trim().toLowerCase() !== 'false') {
+    throw new MigrationError(
+      'PRODUCTION_TRUSTED_CONNECTION_REJECTED',
+      'Production migrations require DB_TRUSTED_CONNECTION=false.',
+    );
+  }
+
+  if (env.DB_ENCRYPT?.trim().toLowerCase() !== 'true') {
+    throw new MigrationError(
+      'PRODUCTION_ENCRYPTION_REQUIRED',
+      'Production migrations require DB_ENCRYPT=true.',
+    );
+  }
+
+  if (env.DB_TRUST_SERVER_CERTIFICATE?.trim().toLowerCase() !== 'false') {
+    throw new MigrationError(
+      'PRODUCTION_TRUST_CERTIFICATE_REJECTED',
+      'Production migrations require DB_TRUST_SERVER_CERTIFICATE=false.',
+    );
+  }
+
+  if (env.DB_INSTANCE?.trim()) {
+    throw new MigrationError(
+      'PRODUCTION_INSTANCE_REJECTED',
+      'Production Azure SQL migrations require DB_INSTANCE to be empty.',
+    );
+  }
+
+  if (env.DB_PORT?.trim() !== '1433') {
+    throw new MigrationError(
+      'PRODUCTION_PORT_REJECTED',
+      'Production Azure SQL migrations require DB_PORT=1433.',
+    );
+  }
+}
+
+function assertProductionMigrationConfiguration(settings, environment = process.env.NODE_ENV) {
+  if (environment !== 'production') return;
+
+  if (settings.driver !== 'tedious') {
+    throw new MigrationError(
+      'PRODUCTION_DRIVER_REJECTED',
+      'Production migrations require DB_DRIVER=tedious with SQL authentication over TCP.',
+    );
+  }
+
+  const options = settings.config?.options || {};
+  if (options.trustedConnection === true) {
+    throw new MigrationError(
+      'PRODUCTION_TRUSTED_CONNECTION_REJECTED',
+      'Production migrations require DB_TRUSTED_CONNECTION=false.',
+    );
+  }
+
+  if (options.encrypt !== true) {
+    throw new MigrationError(
+      'PRODUCTION_ENCRYPTION_REQUIRED',
+      'Production migrations require DB_ENCRYPT=true.',
+    );
+  }
+
+  if (options.trustServerCertificate !== false) {
+    throw new MigrationError(
+      'PRODUCTION_TRUST_CERTIFICATE_REJECTED',
+      'Production migrations require DB_TRUST_SERVER_CERTIFICATE=false.',
+    );
+  }
+
+  if (options.instanceName) {
+    throw new MigrationError(
+      'PRODUCTION_INSTANCE_REJECTED',
+      'Production Azure SQL migrations require DB_INSTANCE to be empty.',
+    );
+  }
+
+  if (settings.config?.port !== 1433) {
+    throw new MigrationError(
+      'PRODUCTION_PORT_REJECTED',
+      'Production Azure SQL migrations require DB_PORT=1433.',
+    );
+  }
+}
+
 function calculateChecksum(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
@@ -162,7 +255,7 @@ function compareMigrationHistory(migrations, appliedRows) {
     }
   }
 
-  return migrations.map((migration) => {
+  const migrationsWithStatus = migrations.map((migration) => {
     const applied = appliedById.get(migration.id.toLowerCase());
     if (!applied) return { ...migration, status: 'PENDING', appliedAt: null, executionTimeMs: null };
 
@@ -183,6 +276,26 @@ function compareMigrationHistory(migrations, appliedRows) {
       executionTimeMs: Number(applied.ExecutionTimeMs),
     };
   });
+
+  const appliedSequences = migrationsWithStatus
+    .filter((migration) => migration.status === 'APPLIED')
+    .map((migration) => migration.sequence);
+
+  if (appliedSequences.length > 0) {
+    const maxAppliedSequence = Math.max(...appliedSequences);
+    const outOfOrderMigration = migrationsWithStatus.find(
+      (migration) => migration.status === 'PENDING' && migration.sequence < maxAppliedSequence,
+    );
+
+    if (outOfOrderMigration) {
+      throw new MigrationError(
+        'OUT_OF_ORDER_MIGRATION',
+        `Pending migration ${outOfOrderMigration.id} has a lower sequence than already applied migration ${String(maxAppliedSequence).padStart(3, '0')}.`,
+      );
+    }
+  }
+
+  return migrationsWithStatus;
 }
 
 async function inspectTarget(pool, expectedDatabaseName) {
@@ -428,6 +541,8 @@ module.exports = {
   MIGRATION_FILENAME_PATTERN,
   MigrationError,
   TRACKING_TABLE,
+  assertProductionMigrationConfiguration,
+  assertProductionMigrationEnvironment,
   assertSafeDatabaseName,
   calculateChecksum,
   compareMigrationHistory,

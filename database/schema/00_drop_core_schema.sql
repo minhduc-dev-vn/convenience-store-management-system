@@ -2,6 +2,12 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 GO
 
+-- Destructive clean rebuilds are local/test/bootstrap-only. Reset migration
+-- metadata so the recorded history cannot outlive the schema it describes.
+IF OBJECT_ID(N'dbo.SCHEMA_MIGRATIONS', N'U') IS NOT NULL
+    DROP TABLE dbo.SCHEMA_MIGRATIONS;
+GO
+
 DROP TRIGGER IF EXISTS dbo.trg_NHAT_KY_HE_THONG_AppendOnly;
 DROP PROCEDURE IF EXISTS dbo.usp_NHAT_KY_HE_THONG_TraCuu;
 DROP PROCEDURE IF EXISTS dbo.usp_NHAT_KY_HE_THONG_Ghi;
