@@ -21,11 +21,17 @@ VALUES
     ('CHI_TIET_HOA_DON'), ('CHI_TIET_XUAT_LO'), ('THANH_TOAN'),
     ('PHIEU_TRA'), ('CHI_TIET_PHIEU_TRA'), ('NHAT_KY_HE_THONG');
 
-IF (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo')) <> 23
+IF (
+    SELECT COUNT(*)
+    FROM sys.tables
+    WHERE schema_id = SCHEMA_ID('dbo')
+      AND name <> 'SCHEMA_MIGRATIONS'
+) <> 23
    OR EXISTS (
        SELECT 1
        FROM sys.tables AS actual
        WHERE actual.schema_id = SCHEMA_ID('dbo')
+         AND actual.name <> 'SCHEMA_MIGRATIONS'
          AND NOT EXISTS (
              SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = actual.name
          )
@@ -37,33 +43,83 @@ IF (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo')) <> 23
    )
     THROW 53001, 'The database must contain exactly the documented 23 dbo core tables.', 1;
 
-IF (SELECT COUNT(*) FROM sys.key_constraints WHERE schema_id = SCHEMA_ID('dbo') AND type = 'PK') <> 23
+IF (
+    SELECT COUNT(*)
+    FROM sys.key_constraints AS key_constraint
+    JOIN sys.tables AS core_table ON core_table.object_id = key_constraint.parent_object_id
+    WHERE key_constraint.schema_id = SCHEMA_ID('dbo')
+      AND key_constraint.type = 'PK'
+      AND EXISTS (
+          SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = core_table.name
+      )
+) <> 23
     THROW 53002, 'Every core table must have exactly one primary key.', 1;
 
-IF (SELECT COUNT(*) FROM sys.foreign_keys WHERE schema_id = SCHEMA_ID('dbo')) <> 31
+IF (
+    SELECT COUNT(*)
+    FROM sys.foreign_keys AS foreign_key
+    JOIN sys.tables AS core_table ON core_table.object_id = foreign_key.parent_object_id
+    WHERE foreign_key.schema_id = SCHEMA_ID('dbo')
+      AND EXISTS (
+          SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = core_table.name
+      )
+) <> 31
     THROW 53003, 'The documented core schema must contain exactly 31 foreign keys.', 1;
 
 IF EXISTS (
     SELECT 1
-    FROM sys.foreign_keys
-    WHERE schema_id = SCHEMA_ID('dbo')
-      AND (is_disabled = 1 OR is_not_trusted = 1)
+    FROM sys.foreign_keys AS foreign_key
+    JOIN sys.tables AS core_table ON core_table.object_id = foreign_key.parent_object_id
+    WHERE foreign_key.schema_id = SCHEMA_ID('dbo')
+      AND EXISTS (
+          SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = core_table.name
+      )
+      AND (foreign_key.is_disabled = 1 OR foreign_key.is_not_trusted = 1)
 )
     THROW 53004, 'All dbo foreign keys must be enabled and trusted.', 1;
 
-IF (SELECT COUNT(*) FROM sys.check_constraints WHERE schema_id = SCHEMA_ID('dbo')) <> 56
+IF (
+    SELECT COUNT(*)
+    FROM sys.check_constraints AS check_constraint
+    JOIN sys.tables AS core_table ON core_table.object_id = check_constraint.parent_object_id
+    WHERE check_constraint.schema_id = SCHEMA_ID('dbo')
+      AND EXISTS (
+          SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = core_table.name
+      )
+) <> 56
    OR EXISTS (
        SELECT 1
-       FROM sys.check_constraints
-       WHERE schema_id = SCHEMA_ID('dbo')
-         AND (is_disabled = 1 OR is_not_trusted = 1)
+       FROM sys.check_constraints AS check_constraint
+       JOIN sys.tables AS core_table ON core_table.object_id = check_constraint.parent_object_id
+       WHERE check_constraint.schema_id = SCHEMA_ID('dbo')
+         AND EXISTS (
+             SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = core_table.name
+         )
+         AND (check_constraint.is_disabled = 1 OR check_constraint.is_not_trusted = 1)
    )
     THROW 53005, 'The 56 documented CHECK constraints must be present, enabled and trusted.', 1;
 
-IF (SELECT COUNT(*) FROM sys.default_constraints WHERE schema_id = SCHEMA_ID('dbo')) <> 41
+IF (
+    SELECT COUNT(*)
+    FROM sys.default_constraints AS default_constraint
+    JOIN sys.tables AS core_table ON core_table.object_id = default_constraint.parent_object_id
+    WHERE default_constraint.schema_id = SCHEMA_ID('dbo')
+      AND EXISTS (
+          SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = core_table.name
+      )
+) <> 41
     THROW 53006, 'The 41 documented DEFAULT constraints must be present.', 1;
 
-IF (SELECT COUNT(*) FROM sys.key_constraints WHERE schema_id = SCHEMA_ID('dbo') AND type = 'UQ') <> 8
+IF (
+    SELECT COUNT(*)
+    FROM sys.key_constraints AS key_constraint
+    JOIN sys.tables AS core_table ON core_table.object_id = key_constraint.parent_object_id
+    WHERE key_constraint.schema_id = SCHEMA_ID('dbo')
+      AND key_constraint.type = 'UQ'
+      AND EXISTS (
+          SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = core_table.name
+      )
+) <> 8
     THROW 53007, 'The documented schema-level UNIQUE constraints must be preserved.', 1;
 
 IF EXISTS (

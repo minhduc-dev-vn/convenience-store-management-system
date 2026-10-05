@@ -18,7 +18,10 @@ IF OBJECT_ID('dbo.vw_BAO_CAO_DOANH_THU_SU_KIEN', 'V') IS NULL
    OR OBJECT_ID('dbo.usp_BAO_CAO_CaLamViec', 'P') IS NULL
     THROW 52900, 'One or more C45 report objects are missing.', 1;
 
-IF (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo')) <> 23
+IF (
+    SELECT COUNT(*) FROM sys.tables
+    WHERE schema_id = SCHEMA_ID('dbo') AND name <> 'SCHEMA_MIGRATIONS'
+) <> 23
     THROW 52901, 'C45 must preserve exactly 23 dbo core tables.', 1;
 
 DECLARE @RequiredIndexes TABLE (TableName SYSNAME, IndexName SYSNAME);

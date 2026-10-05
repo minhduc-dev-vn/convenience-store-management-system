@@ -34,6 +34,7 @@ IF (
     SELECT COUNT(*)
     FROM sys.tables
     WHERE schema_id = SCHEMA_ID('dbo')
+      AND name <> 'SCHEMA_MIGRATIONS'
 ) <> 23
     THROW 52301, 'C22 must preserve exactly 23 dbo core tables.', 1;
 GO

@@ -27,7 +27,10 @@ IF EXISTS (
 )
     THROW 52400, 'One or more C25 inventory query objects are missing.', 1;
 
-IF (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo')) <> 23
+IF (
+    SELECT COUNT(*) FROM sys.tables
+    WHERE schema_id = SCHEMA_ID('dbo') AND name <> 'SCHEMA_MIGRATIONS'
+) <> 23
     THROW 52401, 'C25 must preserve exactly 23 dbo core tables.', 1;
 GO
 

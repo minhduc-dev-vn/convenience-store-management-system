@@ -27,7 +27,10 @@ IF EXISTS (
 )
     THROW 52700, 'One or more C39 stocktake objects are missing.', 1;
 
-IF (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo')) <> 23
+IF (
+    SELECT COUNT(*) FROM sys.tables
+    WHERE schema_id = SCHEMA_ID('dbo') AND name <> 'SCHEMA_MIGRATIONS'
+) <> 23
     THROW 52701, 'C39 must preserve exactly 23 dbo core tables.', 1;
 
 IF NOT EXISTS (

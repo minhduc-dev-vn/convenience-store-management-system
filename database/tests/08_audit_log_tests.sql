@@ -27,7 +27,10 @@ IF EXISTS (
 )
     THROW 52800, 'One or more C42 audit objects are missing.', 1;
 
-IF (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('dbo')) <> 23
+IF (
+    SELECT COUNT(*) FROM sys.tables
+    WHERE schema_id = SCHEMA_ID('dbo') AND name <> 'SCHEMA_MIGRATIONS'
+) <> 23
     THROW 52801, 'C42 must preserve exactly 23 dbo core tables.', 1;
 
 DECLARE @RequiredIndexes TABLE (IndexName SYSNAME PRIMARY KEY);

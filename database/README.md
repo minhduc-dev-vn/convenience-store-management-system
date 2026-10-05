@@ -27,6 +27,8 @@ Thư mục này là gói triển khai cơ sở dữ liệu của hệ thống qu
 
 > `init.sql` dựng lại toàn bộ 23 bảng core và sẽ xóa dữ liệu hiện có trong các bảng này. Chỉ chạy trên database rỗng hoặc database development/test đã được chọn rõ ràng.
 
+`init.sql` không phải công cụ nâng cấp production. Sau lần dựng baseline, mọi thay đổi schema phải đi qua các file gia tăng trong [`migrations/`](migrations/) và Node runner ở `backend/scripts/db-migrate.js`. Bảng `dbo.SCHEMA_MIGRATIONS` do runner quản lý là metadata hạ tầng, không làm thay đổi số lượng 23 bảng core trong thiết kế nghiệp vụ.
+
 ## Tạo cơ sở dữ liệu
 
 Nếu cơ sở dữ liệu chưa tồn tại trên SQL Server, chạy script `create_database.sql`:
@@ -46,6 +48,17 @@ sqlcmd -S "localhost" -E -C -I -d "ConvenienceStore" -b -f 65001 -i ".\init.sql"
 ```
 
 Thay server và database bằng môi trường của bạn. Tùy chọn `-C` dùng cho mã hóa tin cậy trên ODBC Driver 18 trở lên; `-I` bật `QUOTED_IDENTIFIER`, cần thiết khi thao tác với filtered index; `-b` trả exit code khác 0 khi SQL lỗi. Credential không được lưu trong repository; nếu không dùng Windows Authentication, hãy truyền thông tin kết nối bằng cơ chế bảo mật của môi trường triển khai.
+
+Sau khi khởi tạo database mới, chuyển sang `backend/` và ghi nhận baseline bằng migration runner:
+
+```powershell
+npm run db:migrate:status
+$env:ALLOW_DB_MIGRATIONS='true'
+npm run db:migrate
+npm run db:migrate:status
+```
+
+Không dùng `sqlcmd` để chạy từng file trong `migrations/`; runner Node là entry point authoritative cho ordering, checksum, lock và transaction. Hướng dẫn production/Azure SQL và rollback nằm trong [`migrations/README.md`](migrations/README.md).
 
 ## Kiểm tra số bảng
 

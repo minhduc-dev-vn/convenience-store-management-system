@@ -25,6 +25,7 @@ Không commit `.env`, mật khẩu SQL Server hoặc JWT secret.
 | HTTP security | `CORS_ALLOWED_ORIGINS`, `REQUEST_BODY_LIMIT`, `TRUST_PROXY` |
 | SQL Server | `DB_DRIVER`, `DB_ODBC_DRIVER`, `DB_SERVER`, `DB_INSTANCE`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_TRUSTED_CONNECTION`, `DB_ENCRYPT`, `DB_TRUST_SERVER_CERTIFICATE` |
 | Connection pool | `DB_POOL_MAX`, `DB_POOL_MIN`, `DB_POOL_IDLE_TIMEOUT_MS` |
+| Database migrations | `ALLOW_DB_MIGRATIONS`, `DB_MIGRATION_LOCK_TIMEOUT_MS` |
 | Authentication | `JWT_SECRET`, `JWT_EXPIRES_IN`, `BCRYPT_ROUNDS` |
 
 `CORS_ALLOWED_ORIGINS` là danh sách origin HTTP(S) chính xác, phân tách bằng dấu phẩy. Không dùng wildcard cho API có Bearer token. `TRUST_PROXY=true` chỉ phù hợp khi ứng dụng thực sự chạy sau reverse proxy được kiểm soát.
@@ -32,6 +33,20 @@ Không commit `.env`, mật khẩu SQL Server hoặc JWT secret.
 Giá trị `JWT_SECRET` trong `.env.example` chỉ giúp khởi động môi trường development. Server từ chối giá trị mẫu này khi `NODE_ENV=production`; staging và production phải dùng secret ngẫu nhiên tối thiểu 32 byte.
 
 Với SQL authentication, cấu hình `DB_USER` và `DB_PASSWORD`. Với Windows authentication, dùng `DB_DRIVER=msnodesqlv8` và `DB_TRUSTED_CONNECTION=true`.
+
+## Database migrations
+
+Migration là lệnh vận hành độc lập, không chạy tự động cùng `npm start`:
+
+```powershell
+npm run db:migrate:status
+$env:ALLOW_DB_MIGRATIONS='true'
+npm run db:migrate
+```
+
+`db:migrate:status` chỉ đọc và hiển thị `APPLIED`/`PENDING`. `db:migrate` yêu cầu cờ an toàn rõ ràng, dùng checksum SHA-256, SQL Server application lock và transaction riêng cho từng file. Xem đầy đủ quy trình baseline, production và rollback tại [`database/migrations/README.md`](../database/migrations/README.md).
+
+Local Windows Authentication dùng `DB_DRIVER=msnodesqlv8`. Production/Azure SQL dùng `DB_DRIVER=tedious`, SQL authentication, `DB_PORT=1433`, `DB_INSTANCE` rỗng, `DB_ENCRYPT=true` và `DB_TRUST_SERVER_CERTIFICATE=false`. Không đặt `ALLOW_DB_MIGRATIONS=true` cho web service chạy thường trực; chỉ bật trong terminal/release job thực hiện migration.
 
 ## Chạy API
 
@@ -66,6 +81,12 @@ Chạy riêng security smoke:
 npm run test:security
 ```
 
+Chạy bộ test migration (unit test luôn chạy; integration test theo cờ database bên dưới):
+
+```bash
+npm run test:migrations
+```
+
 Các integration test dùng database chỉ chạy khi `RUN_DB_INTEGRATION_TESTS=true`. Luôn trỏ đến database test sạch đã dựng từ `database/init.sql`, không dùng database production. Ví dụ PowerShell:
 
 ```powershell
@@ -90,6 +111,7 @@ npm run test:db
 - Khai báo đúng frontend origin trong `CORS_ALLOWED_ORIGINS`.
 - Chỉ bật `TRUST_PROXY` sau reverse proxy được kiểm soát.
 - Dùng TLS tại reverse proxy và cấu hình kết nối SQL Server phù hợp môi trường.
+- Chạy migration bằng một release job duy nhất trước khi chuyển traffic; không chạy đồng thời trong nhiều web instance.
 - Không ghi request body, Authorization header, password, token hoặc raw SQL error vào log.
 - Kiểm tra cả liveness và database readiness trước khi nhận traffic.
 - Chạy `npm test`, SQL-backed integration suite và `npm audit` trước khi triển khai.

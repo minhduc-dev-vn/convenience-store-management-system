@@ -104,7 +104,10 @@ SET @Sql = N'DBCC CHECKDB (' + QUOTENAME(@RestoreDatabase, '''') + N') WITH NO_I
 EXEC sys.sp_executesql @Sql;
 
 SET @Sql = N'USE ' + QUOTENAME(@RestoreDatabase) + N';
-IF (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID(''dbo'')) <> 23
+IF (
+    SELECT COUNT(*) FROM sys.tables
+    WHERE schema_id = SCHEMA_ID(''dbo'') AND name <> ''SCHEMA_MIGRATIONS''
+) <> 23
     THROW 53109, ''Restored database does not contain exactly 23 dbo core tables.'', 1;
 IF (SELECT COUNT(*) FROM dbo.VAI_TRO) <> 4
    OR NOT EXISTS (SELECT 1 FROM dbo.SAN_PHAM WHERE MaSP = ''SPDEV001'')
