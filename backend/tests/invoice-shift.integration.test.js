@@ -81,6 +81,10 @@ integrationTest('invoice search/detail and close-shift reconciliation enforce C3
   const passwordHash = await bcrypt.hash(password, 4);
   const fixture = await repository.query({
     text: `
+      DECLARE @FixtureDate DATE = CONVERT(DATE, SYSDATETIME());
+      DECLARE @FixtureTime DATETIME2(0) =
+        DATEADD(HOUR, 12, CONVERT(DATETIME2(0), @FixtureDate));
+
       INSERT INTO dbo.NHAN_VIEN (
         MaNV, HoTen, SDT, NgayVaoLam, LuongCoBan, TrangThai
       ) VALUES
@@ -125,11 +129,11 @@ integrationTest('invoice search/detail and close-shift reconciliation enforce C3
         MaHD, NgayLap, MaCa, MaKH, TongTienHang, TongGiamGia,
         TongThanhToan, DiemSuDung, DiemTichLuy, TrangThai, GhiChu
       ) VALUES
-        ('C34PAID001', DATEADD(MINUTE, -90, SYSDATETIME()), @ShiftOne, 'C34CUST', 30000, 0, 30000, 0, 3, 'PAID', N'C34 cash sale'),
-        ('C34CARD001', DATEADD(MINUTE, -60, SYSDATETIME()), @ShiftOne, NULL, 20000, 0, 20000, 0, 0, 'PAID', N'C34 card sale'),
-        ('C34CANCEL1', DATEADD(MINUTE, -40, SYSDATETIME()), @ShiftOne, NULL, 0, 0, 0, 0, 0, 'CANCELLED', NULL),
-        ('C34DRAFT01', DATEADD(MINUTE, -20, SYSDATETIME()), @ShiftOne, NULL, 0, 0, 0, 0, 0, 'DRAFT', NULL),
-        ('C34OTHER01', DATEADD(MINUTE, -10, SYSDATETIME()), @ShiftTwo, NULL, 10000, 0, 10000, 0, 0, 'PAID', NULL);
+        ('C34PAID001', DATEADD(MINUTE, -90, @FixtureTime), @ShiftOne, 'C34CUST', 30000, 0, 30000, 0, 3, 'PAID', N'C34 cash sale'),
+        ('C34CARD001', DATEADD(MINUTE, -60, @FixtureTime), @ShiftOne, NULL, 20000, 0, 20000, 0, 0, 'PAID', N'C34 card sale'),
+        ('C34CANCEL1', DATEADD(MINUTE, -40, @FixtureTime), @ShiftOne, NULL, 0, 0, 0, 0, 0, 'CANCELLED', NULL),
+        ('C34DRAFT01', DATEADD(MINUTE, -20, @FixtureTime), @ShiftOne, NULL, 0, 0, 0, 0, 0, 'DRAFT', NULL),
+        ('C34OTHER01', DATEADD(MINUTE, -10, @FixtureTime), @ShiftTwo, NULL, 10000, 0, 10000, 0, 0, 'PAID', NULL);
 
       INSERT INTO dbo.CHI_TIET_HOA_DON (MaHD, MaSP, SoLuong, DonGiaBan, TienGiam)
       VALUES ('C34PAID001', 'C34P001', 3, 10000, 0);
@@ -144,7 +148,7 @@ integrationTest('invoice search/detail and close-shift reconciliation enforce C3
         ('C34OTHER01', 'CASH', 10000, 'SUCCESS');
 
       SELECT @ShiftOne AS ShiftOne, @ShiftTwo AS ShiftTwo,
-        CONVERT(VARCHAR(10), CONVERT(DATE, SYSDATETIME()), 23) AS FixtureDate;
+        CONVERT(VARCHAR(10), @FixtureDate, 23) AS FixtureDate;
     `,
     parameters: {
       PasswordHash: { type: sql.VarChar(255), value: passwordHash },
