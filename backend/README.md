@@ -46,6 +46,8 @@ npm run db:migrate
 
 `db:migrate:status` chỉ đọc và hiển thị `APPLIED`/`PENDING`. `db:migrate` yêu cầu cờ an toàn rõ ràng, dùng checksum SHA-256, SQL Server application lock và transaction riêng cho từng file. Xem đầy đủ quy trình baseline, production và rollback tại [`database/migrations/README.md`](../database/migrations/README.md).
 
+Checksum migration canonicalize UTF-8 BOM và line ending `CRLF`/`CR` thành LF trước khi hash và thực thi, nên cùng SQL không false-fail khi đi từ Windows qua GitHub sang Linux/Render. Whitespace khác và nội dung SQL thật không bị bỏ qua; migration đã apply vẫn bất biến.
+
 Local Windows Authentication dùng `DB_DRIVER=msnodesqlv8`. Production/Azure SQL bắt buộc `DB_DRIVER=tedious`, `DB_TRUSTED_CONNECTION=false`, SQL authentication, `DB_PORT=1433`, `DB_INSTANCE` rỗng, `DB_ENCRYPT=true` và `DB_TRUST_SERVER_CERTIFICATE=false`; migration CLI từ chối cấu hình production không đạt các điều kiện này trước khi kết nối. Không đặt `ALLOW_DB_MIGRATIONS=true` cho web service chạy thường trực; chỉ bật trong terminal/release job thực hiện migration.
 
 Ba workflow database tách biệt:
@@ -92,6 +94,8 @@ Chạy bộ test migration (unit test luôn chạy; integration test theo cờ d
 ```bash
 npm run test:migrations
 ```
+
+Để chạy thêm local/production bootstrap E2E, cần `sqlcmd` và opt-in destructive test bằng `RUN_DB_BOOTSTRAP_TESTS=true`, đồng thời truyền hai tên database riêng kết thúc bằng `Test` qua `DB_BOOTSTRAP_LOCAL_TEST_NAME` và `DB_BOOTSTRAP_PRODUCTION_TEST_NAME`. Không có tên mặc định; test từ chối system/non-test/current database và chỉ cleanup database nó vừa tạo. Command đầy đủ nằm trong migration README.
 
 Các integration test dùng database chỉ chạy khi `RUN_DB_INTEGRATION_TESTS=true`. Luôn trỏ đến database test sạch đã dựng từ `database/init.sql`, không dùng database production. Ví dụ PowerShell:
 

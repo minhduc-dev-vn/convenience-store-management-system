@@ -60,6 +60,8 @@ npm run db:migrate:status
 
 Không dùng `sqlcmd` để chạy từng file trong `migrations/`; runner Node là entry point authoritative cho ordering, checksum, lock và transaction. Hướng dẫn production/Azure SQL và rollback nằm trong [`migrations/README.md`](migrations/README.md).
 
+Migration checksum dùng canonical UTF-8 text: bỏ BOM đầu file và chuẩn hóa `CRLF`/`CR` thành LF nhưng giữ nguyên mọi whitespace khác. `.gitattributes` đồng thời ép `*.sql` checkout với LF để kết quả ổn định giữa Windows, GitHub và Linux/Render.
+
 ### Production bootstrap lần đầu
 
 Chỉ trên Azure SQL database mới, rỗng và từ thư mục `database/`:
@@ -154,6 +156,8 @@ Runner chạy lần lượt 10 bộ test và dừng ngay khi có lỗi:
 - Toàn vẹn cuối: đúng 23 bảng, 23 PK, 31 FK, 56 CHECK, 41 DEFAULT, role/seed chuẩn và negative test cho PK/FK/UNIQUE/CHECK.
 
 Các fixture test được rollback hoặc dọn dẹp sau khi kiểm tra. Chuỗi nhạy cảm trong negative test chỉ là marker tổng hợp, không phải credential thật.
+
+Bootstrap E2E nằm trong backend migration suite và cần opt-in riêng vì test tạo/xóa database. Cấu hình `RUN_DB_BOOTSTRAP_TESTS=true` cùng hai tên `DB_BOOTSTRAP_LOCAL_TEST_NAME` và `DB_BOOTSTRAP_PRODUCTION_TEST_NAME` kết thúc bằng `Test`; xem [`migrations/README.md`](migrations/README.md) để biết command và guard đầy đủ. Test local xác minh DEV seed, baseline apply, clean reset và reapply; test production xác minh 23 bảng, bốn role, không DEV seed, object đại diện và baseline apply/skip.
 
 ## Full backup và restore smoke
 

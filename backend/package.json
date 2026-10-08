@@ -11,7 +11,7 @@
     "db:migrate:status": "node scripts/db-migrate.js status",
     "test": "node --test",
     "test:db": "node --test --test-concurrency=1",
-    "test:migrations": "node --test --test-concurrency=1 tests/migrations.test.js tests/migrations.integration.test.js",
+    "test:migrations": "node --test --test-concurrency=1 tests/migrations.test.js tests/migrations.integration.test.js tests/migrations.bootstrap.integration.test.js",
     "test:security": "node --test tests/security.test.js tests/sql-security.test.js tests/error.middleware.test.js tests/auth.middleware.test.js tests/auth.http.test.js"
   },
   "engines": {

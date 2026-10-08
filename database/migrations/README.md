@@ -10,6 +10,7 @@ Thư mục này chứa các thay đổi schema gia tăng dùng sau khi database 
 - Không dùng `GO`, `:r`, `:setvar` hoặc directive của `sqlcmd`. Mỗi file được gửi tới SQL Server như một batch và được runner bọc trong transaction.
 - Không sửa, đổi tên hoặc xóa migration đã apply. Hãy thêm migration mới để tiến hoặc sửa schema.
 - Migration không chứa credential, production data, absolute path hoặc logic seed.
+- Repository ép file `*.sql` checkout với LF qua `.gitattributes`. Runner cũng canonicalize UTF-8 BOM và `CRLF`/`CR` thành LF trước khi thực thi và tính SHA-256; không trim hoặc xóa trailing whitespace, nên thay đổi nội dung thật vẫn bị phát hiện.
 
 ## Baseline 000
 
@@ -31,7 +32,7 @@ Quy trình production/Azure SQL mới:
 
 ## Metadata và an toàn
 
-Runner tạo idempotent `dbo.SCHEMA_MIGRATIONS` với `MigrationId`, `FileName`, SHA-256 `Checksum`, `AppliedAt` theo UTC và `ExecutionTimeMs`. Đây là bảng hạ tầng, không phải bảng core thứ 24.
+Runner tạo idempotent `dbo.SCHEMA_MIGRATIONS` với `MigrationId`, `FileName`, SHA-256 `Checksum`, `AppliedAt` theo UTC và `ExecutionTimeMs`. Checksum được tính trên canonical UTF-8 text độc lập với line ending Windows/Linux. Đây là bảng hạ tầng, không phải bảng core thứ 24.
 
 Trước khi thay đổi schema, runner:
 
@@ -85,4 +86,18 @@ $env:ALLOW_DB_MIGRATIONS='true'
 npm run test:migrations
 ```
 
-Bộ test phủ fresh metadata/baseline, chạy lần hai skip, ordering, out-of-order rejection, rollback khi SQL lỗi, không ghi metadata cho file lỗi, không chạy file kế tiếp, checksum mismatch, concurrent lock, Azure production config và chặn system database.
+Bootstrap E2E là destructive test có opt-in riêng. Test tự tạo rồi chỉ xóa đúng hai database vừa tạo; tên không có default và bắt buộc là SQL identifier an toàn kết thúc bằng `Test`, khác nhau và khác `DB_NAME`:
+
+```powershell
+$env:RUN_DB_INTEGRATION_TESTS='true'
+$env:RUN_DB_BOOTSTRAP_TESTS='true'
+$env:DB_BOOTSTRAP_LOCAL_TEST_NAME='ConvenienceStoreLocalBootstrapTest'
+$env:DB_BOOTSTRAP_PRODUCTION_TEST_NAME='ConvenienceStoreProductionBootstrapTest'
+npm run test:migrations
+```
+
+Máy chạy bootstrap E2E phải có `sqlcmd` trong `PATH`; có thể đặt `SQLCMD_PATH` tới executable khác. SQL authentication truyền password cho child process qua `SQLCMDPASSWORD`, không đưa password vào command line hoặc log. `sqlcmd` chỉ chạy `init.sql`/`init.production.sql` có `:r` và `GO`; Node runner vẫn là entry point duy nhất cho production migrations.
+
+Bộ test phủ canonical checksum LF/CRLF/CR/BOM, fresh metadata/baseline, clean-init history reset và reapply, production bootstrap không DEV seed, chạy lần hai skip, ordering, out-of-order rejection, rollback khi SQL lỗi, không ghi metadata cho file lỗi, không chạy file kế tiếp, checksum mismatch, concurrent lock, Azure production config và chặn system database.
+
+Thuật toán canonical checksum là production contract kể từ trước lần bootstrap production đầu tiên. Không được sửa migration đã apply hoặc thay thuật toán để bypass `APPLIED_MIGRATION_MODIFIED`. Local/test metadata từng được tạo bởi runner thử nghiệm cũ có thể được reset bằng clean `init.sql`; production đang có dữ liệu không được sửa history thủ công.

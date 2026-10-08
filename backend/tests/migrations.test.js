@@ -13,6 +13,7 @@ const {
   calculateChecksum,
   compareMigrationHistory,
   discoverMigrations,
+  normalizeMigrationContent,
   readLockTimeout,
 } = require('../src/utils/migration-runner');
 
@@ -77,6 +78,22 @@ test('migration discovery ignores the template and orders strict filenames', asy
     );
     assert.equal(migrations[0].checksum, calculateChecksum(Buffer.from('SELECT 1;')));
   });
+});
+
+test('migration checksum canonicalizes line endings and UTF-8 BOM without hiding SQL changes', () => {
+  const lf = 'SELECT 1;\nSELECT 2;\n';
+  const crlf = 'SELECT 1;\r\nSELECT 2;\r\n';
+  const cr = 'SELECT 1;\rSELECT 2;\r';
+  const bomCrlf = `\uFEFF${crlf}`;
+
+  assert.equal(normalizeMigrationContent(crlf), lf);
+  assert.equal(normalizeMigrationContent(cr), lf);
+  assert.equal(normalizeMigrationContent(bomCrlf), lf);
+  assert.equal(calculateChecksum(lf), calculateChecksum(crlf));
+  assert.equal(calculateChecksum(lf), calculateChecksum(cr));
+  assert.equal(calculateChecksum(lf), calculateChecksum(bomCrlf));
+  assert.notEqual(calculateChecksum('SELECT 2;\n'), calculateChecksum('SELECT 3;\n'));
+  assert.notEqual(calculateChecksum('SELECT 1; \n'), calculateChecksum('SELECT 1;\n'));
 });
 
 test('migration discovery rejects malformed filenames, duplicate sequences and batch separators', async () => {
@@ -174,6 +191,31 @@ test('history comparison rejects pending migrations below the highest applied se
   assert.throws(
     () => compareMigrationHistory(migrations, appliedRows),
     (error) => error instanceof MigrationError && error.code === 'OUT_OF_ORDER_MIGRATION',
+  );
+});
+
+test('history comparison accepts canonical line-ending checksum and still rejects SQL changes', () => {
+  const migration = {
+    sequence: 1,
+    id: '001_line_endings',
+    fileName: '001_line_endings.sql',
+    checksum: calculateChecksum('SELECT 1;\r\nSELECT 2;\r\n'),
+    sqlText: 'SELECT 1;\nSELECT 2;\n',
+  };
+  const applied = {
+    MigrationId: migration.id,
+    FileName: migration.fileName,
+    Checksum: calculateChecksum('SELECT 1;\nSELECT 2;\n'),
+    AppliedAt: new Date('2026-10-08T00:00:00.000Z'),
+    ExecutionTimeMs: 1,
+  };
+
+  assert.equal(compareMigrationHistory([migration], [applied])[0].status, 'APPLIED');
+  assert.throws(
+    () => compareMigrationHistory([
+      { ...migration, checksum: calculateChecksum('SELECT 1;\nSELECT 3;\n') },
+    ], [applied]),
+    (error) => error instanceof MigrationError && error.code === 'APPLIED_MIGRATION_MODIFIED',
   );
 });
 

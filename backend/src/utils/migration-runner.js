@@ -141,8 +141,16 @@ function assertProductionMigrationConfiguration(settings, environment = process.
   }
 }
 
+function normalizeMigrationContent(content) {
+  const text = Buffer.isBuffer(content) ? content.toString('utf8') : String(content);
+  return text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+}
+
 function calculateChecksum(content) {
-  return crypto.createHash('sha256').update(content).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(normalizeMigrationContent(content), 'utf8')
+    .digest('hex');
 }
 
 function validateMigrationSql(fileName, sqlText) {
@@ -191,7 +199,7 @@ async function discoverMigrations(migrationsDirectory) {
     }
 
     const buffer = await fs.readFile(path.join(migrationsDirectory, entry.name));
-    const sqlText = buffer.toString('utf8').replace(/^\uFEFF/, '');
+    const sqlText = normalizeMigrationContent(buffer);
     validateMigrationSql(entry.name, sqlText);
 
     migrationEntries.push({
@@ -549,6 +557,7 @@ module.exports = {
   createMigrationPool,
   discoverMigrations,
   getMigrationStatus,
+  normalizeMigrationContent,
   readLockTimeout,
   runMigrations,
 };
