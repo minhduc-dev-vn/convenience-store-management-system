@@ -10,6 +10,7 @@ export { default as PageHeader } from './PageHeader';
 export { default as Pagination } from './Pagination';
 export { default as Modal } from './Modal';
 export { default as ProductCard } from './ProductCard';
+export { default as ProductImage } from './ProductImage';
 export { default as PromotionCard } from './PromotionCard';
 export { default as RoleDashboardHeader } from './RoleDashboardHeader';
 export { default as StocktakeSummary, StocktakeStatus } from './StocktakeSummary';

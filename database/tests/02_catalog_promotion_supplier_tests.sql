@@ -14,6 +14,27 @@ GO
 IF OBJECT_ID('dbo.vw_SAN_PHAM_DANH_MUC', 'V') IS NULL
     THROW 52100, 'Catalog/category view is missing.', 1;
 
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.columns AS column_definition
+    JOIN sys.types AS type_definition
+        ON type_definition.user_type_id = column_definition.user_type_id
+    WHERE column_definition.object_id = OBJECT_ID('dbo.SAN_PHAM', 'U')
+      AND column_definition.name = 'ImageUrl'
+      AND type_definition.name = 'varchar'
+      AND column_definition.max_length = 500
+      AND column_definition.is_nullable = 1
+)
+    THROW 52130, 'SAN_PHAM.ImageUrl must be nullable VARCHAR(500).', 1;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID('dbo.vw_SAN_PHAM_DANH_MUC', 'V')
+      AND name = 'ImageUrl'
+)
+    THROW 52131, 'Catalog view does not expose ImageUrl.', 1;
+
 IF OBJECT_ID('dbo.vw_KHUYEN_MAI_SAN_PHAM_CHI_TIET', 'V') IS NULL
     THROW 52101, 'Promotion/product detail view is missing.', 1;
 

@@ -13,6 +13,7 @@ SELECT
     product.MaVach,
     product.DonViTinh,
     product.GiaBan,
+    product.ImageUrl,
     product.MucTonToiThieu,
     product.MaLoai,
     category.TenLoai,

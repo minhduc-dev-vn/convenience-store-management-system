@@ -29,6 +29,7 @@ class ProductRepository extends BaseRepository {
           product.MaVach,
           product.DonViTinh,
           product.GiaBan,
+          product.ImageUrl,
           product.MucTonToiThieu,
           product.MaLoai,
           product.TenLoai,
@@ -77,6 +78,7 @@ class ProductRepository extends BaseRepository {
           product.MaVach,
           product.DonViTinh,
           product.GiaBan,
+          product.ImageUrl,
           product.MucTonToiThieu,
           product.MaLoai,
           product.TenLoai,
@@ -101,7 +103,7 @@ class ProductRepository extends BaseRepository {
   async findProductForUpdate(productId, transaction) {
     const result = await this.query({
       text: `
-        SELECT MaSP, TenSP, MaVach, DonViTinh, GiaBan,
+        SELECT MaSP, TenSP, MaVach, DonViTinh, GiaBan, ImageUrl,
                MucTonToiThieu, MaLoai, TrangThai
         FROM dbo.SAN_PHAM WITH (UPDLOCK, HOLDLOCK)
         WHERE MaSP = @ProductId
@@ -136,16 +138,17 @@ class ProductRepository extends BaseRepository {
     await this.query({
       text: `
         INSERT INTO dbo.SAN_PHAM (
-          MaSP, TenSP, MaVach, DonViTinh, GiaBan,
+          MaSP, TenSP, MaVach, DonViTinh, GiaBan, ImageUrl,
           MucTonToiThieu, MaLoai, TrangThai
         ) VALUES (
-          @ProductId, @Name, @Barcode, @Unit, @Price,
+          @ProductId, @Name, @Barcode, @Unit, @Price, @ImageUrl,
           @MinimumStock, @CategoryId, @Status
         )
       `,
       parameters: {
         Barcode: { type: this.sql.VarChar(30), value: product.barcode },
         CategoryId: { type: this.sql.VarChar(10), value: product.categoryId },
+        ImageUrl: { type: this.sql.VarChar(500), value: product.imageUrl },
         MinimumStock: { type: this.sql.Int, value: product.minimumStock },
         Name: { type: this.sql.NVarChar(150), value: product.name },
         Price: { type: this.sql.Decimal(18, 2), value: product.price },
@@ -164,6 +167,7 @@ class ProductRepository extends BaseRepository {
         SET TenSP = CASE WHEN @SetName = 1 THEN @Name ELSE TenSP END,
             MaVach = CASE WHEN @SetBarcode = 1 THEN @Barcode ELSE MaVach END,
             DonViTinh = CASE WHEN @SetUnit = 1 THEN @Unit ELSE DonViTinh END,
+            ImageUrl = CASE WHEN @SetImageUrl = 1 THEN @ImageUrl ELSE ImageUrl END,
             MucTonToiThieu = CASE
               WHEN @SetMinimumStock = 1 THEN @MinimumStock ELSE MucTonToiThieu
             END,
@@ -173,11 +177,13 @@ class ProductRepository extends BaseRepository {
       parameters: {
         Barcode: { type: this.sql.VarChar(30), value: changes.barcode ?? null },
         CategoryId: { type: this.sql.VarChar(10), value: changes.categoryId ?? null },
+        ImageUrl: { type: this.sql.VarChar(500), value: changes.imageUrl ?? null },
         MinimumStock: { type: this.sql.Int, value: changes.minimumStock ?? null },
         Name: { type: this.sql.NVarChar(150), value: changes.name ?? null },
         ProductId: { type: this.sql.VarChar(10), value: productId },
         SetBarcode: { type: this.sql.Bit, value: Object.hasOwn(changes, 'barcode') },
         SetCategoryId: { type: this.sql.Bit, value: Object.hasOwn(changes, 'categoryId') },
+        SetImageUrl: { type: this.sql.Bit, value: Object.hasOwn(changes, 'imageUrl') },
         SetMinimumStock: { type: this.sql.Bit, value: Object.hasOwn(changes, 'minimumStock') },
         SetName: { type: this.sql.Bit, value: Object.hasOwn(changes, 'name') },
         SetUnit: { type: this.sql.Bit, value: Object.hasOwn(changes, 'unit') },

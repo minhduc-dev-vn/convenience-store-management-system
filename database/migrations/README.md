@@ -16,18 +16,23 @@ Thư mục này chứa các thay đổi schema gia tăng dùng sau khi database 
 
 `000_baseline.sql` không tạo/xóa bảng và không thay đổi dữ liệu. File chỉ xác minh baseline hiện tại: đủ 23 bảng core theo Chương 4, không có `LICH_SU_GIA`/`DON_VI_TINH`, và các view/procedure authoritative quan trọng tồn tại.
 
+## Migration hiện hành
+
+- `000_baseline.sql`: xác minh và ghi nhận baseline production ban đầu; không được chỉnh sửa sau khi đã apply.
+- `001_add_product_image_url.sql`: thêm nullable `SAN_PHAM.ImageUrl VARCHAR(500)` và cập nhật `vw_SAN_PHAM_DANH_MUC` để trả URL ảnh sản phẩm. Migration không seed URL và không lưu dữ liệu ảnh nhị phân.
+
 Quy trình database development/test mới:
 
 1. Tạo database rỗng riêng cho môi trường.
 2. Chạy `database/init.sql` để dựng baseline, bốn role và seed development. Clean build này xóa 23 bảng core và `dbo.SCHEMA_MIGRATIONS`, nên history luôn được reset cùng schema.
-3. Từ `backend/`, bật cờ an toàn và chạy `npm run db:migrate` để xác minh/ghi nhận `000_baseline`.
+3. Từ `backend/`, bật cờ an toàn và chạy `npm run db:migrate` để ghi nhận tất cả migration hiện hành theo thứ tự.
 4. Từ sau baseline, chỉ nâng cấp database bằng migration mới.
 
 Quy trình production/Azure SQL mới:
 
 1. Tạo Azure SQL database mới, không có bảng `dbo`.
 2. Từ thư mục `database/`, chạy `init.production.sql` một lần bằng `sqlcmd` để dựng cùng baseline và chỉ seed bốn role chuẩn. Script từ chối database đã có bất kỳ bảng `dbo` nào và không chạy `seed/02_development_data.sql`.
-3. Từ `backend/`, chạy `npm run db:migrate` để xác minh/ghi nhận `000_baseline`.
+3. Từ `backend/`, chạy `npm run db:migrate` để ghi nhận tất cả migration hiện hành theo thứ tự.
 4. Mọi release sau đó chỉ dùng `npm run db:migrate`; không chạy lại `init.production.sql` hoặc `init.sql`.
 
 ## Metadata và an toàn

@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { ProductService } = require('../src/services/product.service');
+const { normalizeImageUrl, ProductService } = require('../src/services/product.service');
 
 const transaction = { id: 'c16-transaction' };
 const transactionRunner = async (work) => work(transaction);
@@ -15,6 +15,7 @@ function productRow(overrides = {}) {
     MaVach: 'C16-BARCODE',
     DonViTinh: 'Box',
     GiaBan: 25000,
+    ImageUrl: 'https://cdn.example.com/c16-product.jpg',
     MucTonToiThieu: 4,
     MaLoai: 'LSPC1601',
     TenLoai: 'C16 Category',
@@ -57,6 +58,7 @@ test('public catalog forces active records and omits internal product fields', a
   assert.deepEqual(result.pagination, { page: 2, pageSize: 5, totalItems: 1, totalPages: 1 });
   assert.deepEqual(result.items[0], {
     category: { categoryId: 'LSPC1601', name: 'C16 Category' },
+    imageUrl: 'https://cdn.example.com/c16-product.jpg',
     name: 'C16 Product',
     price: 25000,
     productId: 'SPC160001',
@@ -65,6 +67,22 @@ test('public catalog forces active records and omits internal product fields', a
   assert.equal(Object.hasOwn(result.items[0], 'barcode'), false);
   assert.equal(Object.hasOwn(result.items[0], 'minimumStock'), false);
   assert.equal(Object.hasOwn(result.items[0], 'status'), false);
+});
+
+test('product image URL normalization accepts HTTP(S), clears blanks and rejects unsafe schemes', () => {
+  assert.equal(normalizeImageUrl(undefined), undefined);
+  assert.equal(normalizeImageUrl(null), null);
+  assert.equal(normalizeImageUrl('   '), null);
+  assert.equal(
+    normalizeImageUrl('  https://cdn.example.com/product image.jpg  '),
+    'https://cdn.example.com/product image.jpg',
+  );
+  assert.throws(() => normalizeImageUrl('javascript:alert(1)'), /HTTP or HTTPS/);
+  assert.throws(() => normalizeImageUrl('data:image/png;base64,abc'), /HTTP or HTTPS/);
+  assert.throws(() => normalizeImageUrl('file:///tmp/product.jpg'), /HTTP or HTTPS/);
+  assert.throws(() => normalizeImageUrl('http:example.com/product.jpg'), /HTTP or HTTPS/);
+  assert.throws(() => normalizeImageUrl('not-a-url'), /HTTP or HTTPS/);
+  assert.throws(() => normalizeImageUrl(`https://example.com/${'a'.repeat(490)}`), /500/);
 });
 
 test('public detail returns 404 when repository excludes a non-public product', async () => {
@@ -108,6 +126,33 @@ test('product creation rejects a duplicate barcode before insert', async () => {
     (error) => error.code === 'PRODUCT_BARCODE_CONFLICT' && error.statusCode === 409,
   );
   assert.equal(inserted, false);
+});
+
+test('product create and update persist normalized nullable image URLs', async () => {
+  const writes = [];
+  const repository = {
+    async findProductForUpdate() { return productRow(); },
+    async findCategoryForUpdate() { return categoryRow(); },
+    async findBarcodeConflict() { return null; },
+    async findProductById() { return productRow({ ImageUrl: writes.at(-1)?.imageUrl ?? null }); },
+    async createProduct(product) { writes.push(product); },
+    async updateProduct(_productId, changes) { writes.push(changes); },
+  };
+  const service = new ProductService({ productRepository: repository, transactionRunner });
+
+  repository.findProductForUpdate = async () => null;
+  const created = await service.createProduct({
+    categoryId: 'LSPC1601', imageUrl: ' https://cdn.example.com/product.jpg ',
+    minimumStock: 0, name: 'C16 Product', price: 25000,
+    productId: 'SPC160001', unit: 'Box',
+  });
+  assert.equal(writes[0].imageUrl, 'https://cdn.example.com/product.jpg');
+  assert.equal(created.imageUrl, 'https://cdn.example.com/product.jpg');
+
+  repository.findProductForUpdate = async () => productRow();
+  const updated = await service.updateProduct('SPC160001', { imageUrl: '' });
+  assert.deepEqual(writes[1], { imageUrl: null });
+  assert.equal(updated.imageUrl, null);
 });
 
 test('general product update cannot bypass validation with price or status fields', async () => {

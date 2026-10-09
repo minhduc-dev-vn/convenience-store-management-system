@@ -80,6 +80,20 @@ test('migration discovery ignores the template and orders strict filenames', asy
   });
 });
 
+test('repository migrations keep baseline first and add product image URL incrementally', async () => {
+  const migrations = await discoverMigrations(path.join(repositoryRoot, 'database/migrations'));
+  assert.deepEqual(
+    migrations.map((migration) => migration.id),
+    ['000_baseline', '001_add_product_image_url'],
+  );
+
+  const productImageMigration = migrations[1].sqlText;
+  assert.match(productImageMigration, /ADD ImageUrl VARCHAR\(500\) NULL/i);
+  assert.match(productImageMigration, /CREATE OR ALTER VIEW dbo\.vw_SAN_PHAM_DANH_MUC/i);
+  assert.match(productImageMigration, /product\.ImageUrl/i);
+  assert.doesNotMatch(productImageMigration, /^\s*GO\s*$/im);
+});
+
 test('migration checksum canonicalizes line endings and UTF-8 BOM without hiding SQL changes', () => {
   const lf = 'SELECT 1;\nSELECT 2;\n';
   const crlf = 'SELECT 1;\r\nSELECT 2;\r\n';

@@ -10,6 +10,7 @@ import {
   Notice,
   PageHeader,
   Pagination,
+  ProductImage,
 } from '../../components';
 import {
   createProduct,
@@ -22,6 +23,7 @@ import CategoryManagementModal from './CategoryManagementModal';
 import {
   buildProductPayload,
   EMPTY_PRODUCT_FORM,
+  isValidProductImageUrl,
   productToForm,
   validateProductForm,
 } from './productForms';
@@ -60,6 +62,16 @@ function ProductForm({ categories, isSubmitting, onCancel, onSubmit, product }) 
         <FormField htmlFor="productBarcode" label="Mã vạch">
           <input id="productBarcode" value={form.barcode} maxLength="30" onChange={(event) => update('barcode', event.target.value)} />
         </FormField>
+        <FormField htmlFor="productImageUrl" label="URL hình ảnh" error={errors.imageUrl}>
+          <input
+            id="productImageUrl"
+            type="url"
+            value={form.imageUrl}
+            maxLength="500"
+            placeholder="https://example.com/product.jpg"
+            onChange={(event) => update('imageUrl', event.target.value)}
+          />
+        </FormField>
         <FormField htmlFor="productUnit" label="Đơn vị tính" required error={errors.unit}>
           <input id="productUnit" value={form.unit} maxLength="20" onChange={(event) => update('unit', event.target.value)} />
         </FormField>
@@ -88,6 +100,16 @@ function ProductForm({ categories, isSubmitting, onCancel, onSubmit, product }) 
           </>
         )}
       </div>
+      {form.imageUrl.trim() && isValidProductImageUrl(form.imageUrl) && (
+        <div className="product-form-preview">
+          <span>Xem trước hình ảnh</span>
+          <ProductImage
+            className="product-form-preview__image"
+            imageUrl={form.imageUrl.trim()}
+            name={form.name || 'Sản phẩm'}
+          />
+        </div>
+      )}
       {editing && <p className="form-note">Giá bán được thay đổi tại chức năng cập nhật giá để bảo đảm có lý do và lịch sử audit riêng.</p>}
       <div className="modal__actions">
         <button className="button button--ghost" type="button" onClick={onCancel} disabled={isSubmitting}>Hủy</button>
@@ -184,6 +206,17 @@ function ProductManagementPage() {
   };
 
   const columns = useMemo(() => [
+    {
+      key: 'imageUrl',
+      header: 'Hình ảnh',
+      render: (row) => (
+        <ProductImage
+          className="product-thumbnail"
+          imageUrl={row.imageUrl}
+          name={row.name}
+        />
+      ),
+    },
     { key: 'productId', header: 'Mã SP / SKU' },
     { key: 'barcode', header: 'Barcode', render: (row) => row.barcode || '—' },
     { key: 'name', header: 'Tên sản phẩm' },

@@ -43,6 +43,27 @@ function normalizeOptionalText(value, fieldName, maxLength) {
   return requireString(value, fieldName, { maxLength });
 }
 
+function normalizeImageUrl(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value === 'string' && value.trim() === '') return null;
+
+  const imageUrl = requireString(value, 'imageUrl', { maxLength: 500 });
+  if (!/^https?:\/\//i.test(imageUrl)) {
+    throw validationError('imageUrl must use the HTTP or HTTPS protocol');
+  }
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(imageUrl);
+  } catch {
+    throw validationError('imageUrl must be a valid HTTP or HTTPS URL');
+  }
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw validationError('imageUrl must use the HTTP or HTTPS protocol');
+  }
+  return imageUrl;
+}
+
 function normalizePrice(value, fieldName = 'price') {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
     throw validationError(`${fieldName} must be a positive number`);
@@ -112,6 +133,7 @@ function serializePublicProduct(row) {
       categoryId: row.MaLoai,
       name: row.TenLoai,
     },
+    imageUrl: row.ImageUrl ?? null,
     name: row.TenSP,
     price: Number(row.GiaBan),
     productId: row.MaSP,
@@ -127,6 +149,7 @@ function serializeProduct(row) {
       name: row.TenLoai,
       status: row.TrangThaiLoai,
     },
+    imageUrl: row.ImageUrl ?? null,
     minimumStock: row.MucTonToiThieu,
     name: row.TenSP,
     price: Number(row.GiaBan),
@@ -259,6 +282,7 @@ class ProductService {
     const product = {
       barcode: normalizeOptionalText(input.barcode, 'barcode', 30) ?? null,
       categoryId: normalizeId(input.categoryId, 'categoryId'),
+      imageUrl: normalizeImageUrl(input.imageUrl) ?? null,
       minimumStock: normalizeMinimumStock(input.minimumStock),
       name: requireString(input.name, 'name', { maxLength: 150 }),
       price: normalizePrice(input.price),
@@ -308,6 +332,9 @@ class ProductService {
     }
     if (Object.hasOwn(input, 'categoryId')) {
       changes.categoryId = normalizeId(input.categoryId, 'categoryId');
+    }
+    if (Object.hasOwn(input, 'imageUrl')) {
+      changes.imageUrl = normalizeImageUrl(input.imageUrl);
     }
 
     try {
@@ -521,6 +548,7 @@ class ProductService {
 
 module.exports = {
   ProductService,
+  normalizeImageUrl,
   normalizeListQuery,
   serializePriceHistory,
   serializeProduct,

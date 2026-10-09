@@ -202,6 +202,13 @@ async function readBootstrapState(pool) {
           AND is_disabled = 0
           AND is_not_trusted = 0
       ) THEN 1 ELSE 0 END AS HasTrustedForeignKey,
+      CASE WHEN COL_LENGTH(N'dbo.SAN_PHAM', N'ImageUrl') = 500
+        THEN 1 ELSE 0 END AS HasProductImageColumn,
+      CASE WHEN EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'dbo.vw_SAN_PHAM_DANH_MUC', N'V')
+          AND name = N'ImageUrl'
+      ) THEN 1 ELSE 0 END AS ProductViewHasImageUrl,
       CASE WHEN OBJECT_ID(N'dbo.SCHEMA_MIGRATIONS', N'U') IS NOT NULL THEN 1 ELSE 0 END AS HasMigrationTable;
   `);
 
@@ -227,6 +234,8 @@ function assertBootstrapState(state, { developmentSeedExpected }) {
       HasIndex: state.objects.HasIndex,
       HasTrustedCheck: state.objects.HasTrustedCheck,
       HasTrustedForeignKey: state.objects.HasTrustedForeignKey,
+      HasProductImageColumn: state.objects.HasProductImageColumn,
+      ProductViewHasImageUrl: state.objects.ProductViewHasImageUrl,
     },
     {
       HasView: 1,
@@ -234,6 +243,8 @@ function assertBootstrapState(state, { developmentSeedExpected }) {
       HasIndex: 1,
       HasTrustedCheck: 1,
       HasTrustedForeignKey: 1,
+      HasProductImageColumn: 1,
+      ProductViewHasImageUrl: 1,
     },
   );
 }
@@ -266,8 +277,11 @@ async function runLocalBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED']);
-    assert.deepEqual(await readAppliedMigrationIds(pool), ['000_baseline']);
+    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED']);
+    assert.deepEqual(
+      await readAppliedMigrationIds(pool),
+      ['000_baseline', '001_add_product_image_url'],
+    );
   } finally {
     await pool.close().catch(() => {});
   }
@@ -289,8 +303,11 @@ async function runLocalBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(reapplied.results.map((migration) => migration.action), ['APPLIED']);
-    assert.deepEqual(await readAppliedMigrationIds(pool), ['000_baseline']);
+    assert.deepEqual(reapplied.results.map((migration) => migration.action), ['APPLIED', 'APPLIED']);
+    assert.deepEqual(
+      await readAppliedMigrationIds(pool),
+      ['000_baseline', '001_add_product_image_url'],
+    );
   } finally {
     await pool.close().catch(() => {});
   }
@@ -315,8 +332,11 @@ async function runProductionBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED']);
-    assert.deepEqual(await readAppliedMigrationIds(pool), ['000_baseline']);
+    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED']);
+    assert.deepEqual(
+      await readAppliedMigrationIds(pool),
+      ['000_baseline', '001_add_product_image_url'],
+    );
 
     const secondRun = await runMigrations({
       pool,
@@ -326,7 +346,7 @@ async function runProductionBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED']);
+    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED', 'SKIPPED']);
 
     const migratedState = await readBootstrapState(pool);
     assert.equal(migratedState.counts.CoreTableCount, 23);

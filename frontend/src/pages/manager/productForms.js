@@ -4,6 +4,7 @@ export const EMPTY_PRODUCT_FORM = Object.freeze({
   barcode: '',
   unit: '',
   price: '',
+  imageUrl: '',
   minimumStock: '0',
   categoryId: '',
   status: 'ACTIVE',
@@ -27,6 +28,17 @@ function hasAtMostTwoDecimals(value) {
   return /^\d+(?:\.\d{1,2})?$/.test(String(value));
 }
 
+export function isValidProductImageUrl(value) {
+  if (typeof value !== 'string' || value.trim() === '') return true;
+  if (!/^https?:\/\//i.test(value.trim())) return false;
+  try {
+    const parsedUrl = new URL(value.trim());
+    return ['http:', 'https:'].includes(parsedUrl.protocol);
+  } catch {
+    return false;
+  }
+}
+
 export function productToForm(product) {
   return {
     ...EMPTY_PRODUCT_FORM,
@@ -35,6 +47,7 @@ export function productToForm(product) {
     barcode: product?.barcode ?? '',
     unit: product?.unit ?? '',
     price: product?.price ?? '',
+    imageUrl: product?.imageUrl ?? '',
     minimumStock: product?.minimumStock ?? '0',
     categoryId: product?.category?.categoryId ?? '',
     status: product?.status ?? 'ACTIVE',
@@ -55,6 +68,11 @@ export function validateProductForm(form, { editing = false } = {}) {
       errors.price = 'Giá bán phải lớn hơn 0 và có tối đa 2 chữ số thập phân.';
     }
   }
+  if (typeof form.imageUrl === 'string' && form.imageUrl.trim().length > 500) {
+    errors.imageUrl = 'URL hình ảnh không được vượt quá 500 ký tự.';
+  } else if (!isValidProductImageUrl(form.imageUrl)) {
+    errors.imageUrl = 'URL hình ảnh phải sử dụng giao thức HTTP hoặc HTTPS.';
+  }
   return errors;
 }
 
@@ -63,6 +81,7 @@ export function buildProductPayload(form, { editing = false } = {}) {
     name: form.name.trim(),
     barcode: optionalText(form.barcode),
     unit: form.unit.trim(),
+    imageUrl: optionalText(form.imageUrl ?? ''),
     minimumStock: Number(form.minimumStock),
     categoryId: form.categoryId,
   };

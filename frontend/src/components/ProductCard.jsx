@@ -1,25 +1,19 @@
+import ProductImage from './ProductImage';
+
 const money = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
   currency: 'VND',
   maximumFractionDigits: 0,
 });
 
-function initials(name) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(-2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-}
-
 function ProductCard({ onView, product, promotions = [] }) {
   return (
     <article className="product-card">
-      <div className="product-card__visual" aria-hidden="true">
-        <span>{initials(product.name)}</span>
-      </div>
+      <ProductImage
+        className="product-card__visual"
+        imageUrl={product.imageUrl}
+        name={product.name}
+      />
       <div className="product-card__body">
         <h2>{product.name}</h2>
         {promotions.length > 0 && (

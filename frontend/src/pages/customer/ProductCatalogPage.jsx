@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AsyncContent, FormField, Modal, PageHeader, Pagination, ProductCard, PromotionCard } from '../../components';
+import {
+  AsyncContent,
+  FormField,
+  Modal,
+  PageHeader,
+  Pagination,
+  ProductCard,
+  ProductImage,
+  PromotionCard,
+} from '../../components';
 import {
   getPublicProduct,
   listPublicCategories,
@@ -201,6 +210,11 @@ function ProductCatalogPage() {
           onClose={() => setDetail({ data: null, error: null, isLoading: false })}
           size="small"
         >
+          <ProductImage
+            className="product-detail-image"
+            imageUrl={detail.data.imageUrl}
+            name={detail.data.name}
+          />
           <dl className="description-list product-detail-list">
             <div><dt>Loại sản phẩm</dt><dd>{detail.data.category.name}</dd></div>
             <div><dt>Đơn vị tính</dt><dd>{detail.data.unit}</dd></div>

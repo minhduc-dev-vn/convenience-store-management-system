@@ -4,6 +4,8 @@ import {
   buildCategoryPayload,
   buildPricePayload,
   buildProductPayload,
+  isValidProductImageUrl,
+  productToForm,
   validateCategoryForm,
   validatePriceForm,
   validateProductForm,
@@ -37,11 +39,11 @@ test('C16 product paths include only backend-supported filters', () => {
 test('new product payload follows exact C16 create contract', () => {
   const form = {
     productId: ' SP01 ', name: ' Sữa tươi ', barcode: '', unit: ' Hộp ',
-    price: '12500', minimumStock: '5', categoryId: 'L01', status: 'ACTIVE',
+    price: '12500', imageUrl: '', minimumStock: '5', categoryId: 'L01', status: 'ACTIVE',
   };
   assert.deepEqual(validateProductForm(form), {});
   assert.deepEqual(buildProductPayload(form), {
-    productId: 'SP01', name: 'Sữa tươi', barcode: null, unit: 'Hộp',
+    productId: 'SP01', name: 'Sữa tươi', barcode: null, unit: 'Hộp', imageUrl: null,
     price: 12500, minimumStock: 5, categoryId: 'L01', status: 'ACTIVE',
   });
 });
@@ -49,12 +51,46 @@ test('new product payload follows exact C16 create contract', () => {
 test('product edit excludes price, status and immutable product id', () => {
   const form = {
     productId: 'SP01', name: 'Sữa tươi mới', barcode: '8930001', unit: 'Hộp',
-    price: '999', minimumStock: '7', categoryId: 'L02', status: 'INACTIVE',
+    price: '999', imageUrl: ' https://cdn.example.com/sp01.jpg ',
+    minimumStock: '7', categoryId: 'L02', status: 'INACTIVE',
   };
   assert.deepEqual(validateProductForm(form, { editing: true }), {});
   assert.deepEqual(buildProductPayload(form, { editing: true }), {
-    name: 'Sữa tươi mới', barcode: '8930001', unit: 'Hộp', minimumStock: 7, categoryId: 'L02',
+    name: 'Sữa tươi mới', barcode: '8930001', unit: 'Hộp',
+    imageUrl: 'https://cdn.example.com/sp01.jpg', minimumStock: 7, categoryId: 'L02',
   });
+});
+
+test('product image URL validation only permits optional HTTP(S) URLs up to 500 characters', () => {
+  assert.equal(isValidProductImageUrl(''), true);
+  assert.equal(isValidProductImageUrl('https://cdn.example.com/sp01.jpg'), true);
+  assert.equal(isValidProductImageUrl('http://images.example.com/sp01.png'), true);
+  assert.equal(isValidProductImageUrl('javascript:alert(1)'), false);
+  assert.equal(isValidProductImageUrl('data:image/png;base64,abc'), false);
+  assert.equal(isValidProductImageUrl('http:example.com/sp01.jpg'), false);
+
+  const baseForm = {
+    productId: 'SP01', name: 'Sữa tươi', barcode: '', unit: 'Hộp', price: '12500',
+    imageUrl: 'file:///tmp/sp01.jpg', minimumStock: '5', categoryId: 'L01', status: 'ACTIVE',
+  };
+  assert.ok(validateProductForm(baseForm).imageUrl);
+  assert.ok(validateProductForm({
+    ...baseForm,
+    imageUrl: `https://example.com/${'a'.repeat(490)}`,
+  }).imageUrl);
+});
+
+test('editing a product populates its image URL and preserves it in the update payload', () => {
+  const form = productToForm({
+    productId: 'SP01', name: 'Sữa tươi', barcode: null, unit: 'Hộp', price: 12500,
+    imageUrl: 'https://cdn.example.com/sp01.jpg', minimumStock: 5,
+    category: { categoryId: 'L01' }, status: 'ACTIVE',
+  });
+  assert.equal(form.imageUrl, 'https://cdn.example.com/sp01.jpg');
+  assert.equal(
+    buildProductPayload(form, { editing: true }).imageUrl,
+    'https://cdn.example.com/sp01.jpg',
+  );
 });
 
 test('price change requires a different positive price and audit reason', () => {

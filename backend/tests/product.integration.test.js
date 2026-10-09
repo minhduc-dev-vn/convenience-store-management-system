@@ -152,11 +152,39 @@ integrationTest('public catalog and manager product, category and price APIs enf
       price: 25000,
       productId: 'C16P0001',
       unit: 'Can',
+      imageUrl: 'https://cdn.example.com/c16-coffee.jpg',
     },
   });
   assert.equal(result.response.status, 201);
   assert.equal(result.payload.data.barcode, 'C16-BAR-0001');
+  assert.equal(result.payload.data.imageUrl, 'https://cdn.example.com/c16-coffee.jpg');
   assert.equal(result.payload.data.minimumStock, 5);
+
+  result = await requestJson(baseUrl, '/api/admin/products', {
+    method: 'POST',
+    token: managerToken,
+    body: {
+      categoryId: 'C16CAT01', imageUrl: null, minimumStock: 0,
+      name: 'C16 Product Without Image', price: 10000,
+      productId: 'C16P0003', unit: 'Box',
+    },
+  });
+  assert.equal(result.response.status, 201);
+  assert.equal(result.payload.data.imageUrl, null);
+
+  for (const imageUrl of ['javascript:alert(1)', 'data:image/png;base64,abc']) {
+    result = await requestJson(baseUrl, '/api/admin/products', {
+      method: 'POST',
+      token: managerToken,
+      body: {
+        categoryId: 'C16CAT01', imageUrl, minimumStock: 0,
+        name: 'C16 Invalid Image', price: 10000,
+        productId: 'C16BAD01', unit: 'Box',
+      },
+    });
+    assert.equal(result.response.status, 400);
+    assert.equal(result.payload.error.code, 'VALIDATION_ERROR');
+  }
 
   result = await requestJson(baseUrl, '/api/admin/products', {
     method: 'POST',
@@ -199,6 +227,7 @@ integrationTest('public catalog and manager product, category and price APIs enf
     page: 1, pageSize: 1, totalItems: 1, totalPages: 1,
   });
   assert.equal(result.payload.data.items[0].productId, 'C16P0001');
+  assert.equal(result.payload.data.items[0].imageUrl, 'https://cdn.example.com/c16-coffee.jpg');
   assert.equal(result.payload.data.items[0].price, 25000);
   assert.equal(Object.hasOwn(result.payload.data.items[0], 'barcode'), false);
   assert.equal(Object.hasOwn(result.payload.data.items[0], 'minimumStock'), false);
@@ -207,6 +236,7 @@ integrationTest('public catalog and manager product, category and price APIs enf
   result = await requestJson(baseUrl, '/api/products/C16P0001');
   assert.equal(result.response.status, 200);
   assert.equal(result.payload.data.unit, 'Can');
+  assert.equal(result.payload.data.imageUrl, 'https://cdn.example.com/c16-coffee.jpg');
   assert.equal(Object.hasOwn(result.payload.data, 'barcode'), false);
 
   result = await requestJson(
@@ -216,6 +246,7 @@ integrationTest('public catalog and manager product, category and price APIs enf
   );
   assert.equal(result.response.status, 200);
   assert.equal(result.payload.data.items[0].barcode, 'C16-BAR-0001');
+  assert.equal(result.payload.data.items[0].imageUrl, 'https://cdn.example.com/c16-coffee.jpg');
   assert.equal(result.payload.data.items[0].minimumStock, 5);
 
   result = await requestJson(baseUrl, '/api/admin/products/C16P0001', {
@@ -238,6 +269,20 @@ integrationTest('public catalog and manager product, category and price APIs enf
   assert.equal(result.response.status, 200);
   assert.equal(result.payload.data.minimumStock, 8);
   assert.equal(result.payload.data.name, 'C16 Coffee Updated');
+
+  result = await requestJson(baseUrl, '/api/admin/products/C16P0001', {
+    method: 'PATCH',
+    token: managerToken,
+    body: { imageUrl: 'https://cdn.example.com/c16-coffee-new.jpg' },
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.imageUrl, 'https://cdn.example.com/c16-coffee-new.jpg');
+
+  result = await requestJson(baseUrl, '/api/admin/products/C16P0001', {
+    method: 'PATCH', token: managerToken, body: { imageUrl: '' },
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.imageUrl, null);
 
   result = await requestJson(baseUrl, '/api/admin/products/C16P0001/price', {
     method: 'PATCH', token: managerToken, body: { newPrice: 0, reason: 'Invalid' },

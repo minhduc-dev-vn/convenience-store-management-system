@@ -66,6 +66,18 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
     await pool.request().batch(`
       IF OBJECT_ID(N'dbo.SCHEMA_MIGRATIONS', N'U') IS NOT NULL
         DROP TABLE dbo.SCHEMA_MIGRATIONS;
+      EXEC(N'
+        CREATE OR ALTER VIEW dbo.vw_SAN_PHAM_DANH_MUC
+        AS
+        SELECT
+          product.MaSP, product.TenSP, product.MaVach, product.DonViTinh,
+          product.GiaBan, product.MucTonToiThieu, product.MaLoai,
+          category.TenLoai, category.TrangThai AS TrangThaiLoai, product.TrangThai
+        FROM dbo.SAN_PHAM AS product
+        JOIN dbo.LOAI_SAN_PHAM AS category ON category.MaLoai = product.MaLoai;
+      ');
+      IF COL_LENGTH(N'dbo.SAN_PHAM', N'ImageUrl') IS NOT NULL
+        ALTER TABLE dbo.SAN_PHAM DROP COLUMN ImageUrl;
     `);
 
     const freshStatus = await getMigrationStatus({
@@ -74,7 +86,10 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
       expectedDatabaseName: settings.config.database,
     });
     assert.equal(freshStatus.trackingTableExists, false);
-    assert.deepEqual(freshStatus.migrations.map((migration) => migration.status), ['PENDING']);
+    assert.deepEqual(
+      freshStatus.migrations.map((migration) => migration.status),
+      ['PENDING', 'PENDING'],
+    );
 
     const absentCheck = await pool.request().query(`
       SELECT CASE WHEN OBJECT_ID(N'dbo.SCHEMA_MIGRATIONS', N'U') IS NULL THEN 1 ELSE 0 END AS IsAbsent;
@@ -82,18 +97,37 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
     assert.equal(absentCheck.recordset[0].IsAbsent, 1, 'status must not create migration metadata');
 
     const firstRun = await migrate(productionMigrationsDirectory);
-    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED']);
+    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED']);
 
     const secondRun = await migrate(productionMigrationsDirectory);
-    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED']);
+    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED', 'SKIPPED']);
 
     const baselineRows = await pool.request().query(`
       SELECT MigrationId FROM dbo.SCHEMA_MIGRATIONS ORDER BY MigrationId;
     `);
-    assert.deepEqual(baselineRows.recordset.map((row) => row.MigrationId), ['000_baseline']);
+    assert.deepEqual(
+      baselineRows.recordset.map((row) => row.MigrationId),
+      ['000_baseline', '001_add_product_image_url'],
+    );
+
+    const imageSchema = await pool.request().query(`
+      SELECT
+        CASE WHEN COL_LENGTH(N'dbo.SAN_PHAM', N'ImageUrl') = 500 THEN 1 ELSE 0 END AS HasColumn,
+        CASE WHEN EXISTS (
+          SELECT 1
+          FROM sys.columns
+          WHERE object_id = OBJECT_ID(N'dbo.vw_SAN_PHAM_DANH_MUC', N'V')
+            AND name = N'ImageUrl'
+        ) THEN 1 ELSE 0 END AS ViewExposesColumn;
+    `);
+    assert.deepEqual(imageSchema.recordset[0], { HasColumn: 1, ViewExposesColumn: 1 });
 
     const changedBaselineDirectory = await writeMigrations({
       '000_baseline.sql': `${await fs.readFile(path.join(productionMigrationsDirectory, '000_baseline.sql'), 'utf8')}\n-- changed after apply\n`,
+      '001_add_product_image_url.sql': await fs.readFile(
+        path.join(productionMigrationsDirectory, '001_add_product_image_url.sql'),
+        'utf8',
+      ),
     });
     temporaryDirectories.push(changedBaselineDirectory);
     await assert.rejects(

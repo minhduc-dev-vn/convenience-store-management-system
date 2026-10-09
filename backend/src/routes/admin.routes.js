@@ -53,9 +53,11 @@ const validateProductList = validateQuery({
 });
 const validateProductCreate = validateBody({
   required: ['productId', 'name', 'unit', 'price', 'minimumStock', 'categoryId'],
-  optional: ['barcode', 'status'],
+  optional: ['barcode', 'imageUrl', 'status'],
 });
-const productUpdateFields = ['name', 'barcode', 'unit', 'minimumStock', 'categoryId'];
+const productUpdateFields = [
+  'name', 'barcode', 'unit', 'minimumStock', 'categoryId', 'imageUrl',
+];
 const validateProductUpdate = validateBody({
   optional: productUpdateFields,
   atLeastOne: productUpdateFields,
