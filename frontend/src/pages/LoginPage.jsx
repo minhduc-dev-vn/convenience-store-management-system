@@ -44,7 +44,6 @@ function LoginPage() {
   return (
     <section className="auth-shell">
       <div className="auth-intro">
-        <p className="eyebrow">Đăng nhập hệ thống</p>
         <h1>Tiếp tục công việc theo đúng vai trò của bạn.</h1>
         <p>
           Một tài khoản dùng chung cho khách hàng, thu ngân, nhân viên kho và quản lý.
@@ -54,7 +53,6 @@ function LoginPage() {
 
       <form className="form-card" onSubmit={handleSubmit} noValidate>
         <div className="form-card__heading">
-          <span>MH-01</span>
           <h2>Đăng nhập</h2>
           <p>Nhập tên đăng nhập, số điện thoại hoặc email đã đăng ký.</p>
         </div>

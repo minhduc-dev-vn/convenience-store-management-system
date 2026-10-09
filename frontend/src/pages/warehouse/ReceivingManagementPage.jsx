@@ -45,7 +45,6 @@ function ReceiptDetail({ receipt, onCancel, onConfirm }) {
     <section className="receipt-detail-card">
       <div className="receiving-card-heading receipt-detail-heading">
         <div>
-          <p className="eyebrow">Chi tiết phiếu được chọn</p>
           <h2>{receipt.receiptId}</h2>
           <p>{receipt.supplier.supplierId} · {receipt.supplier.name}</p>
         </div>
@@ -176,7 +175,6 @@ function ReceivingManagementPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-12 · F21"
         title="Danh sách và xác nhận nhập kho"
         description="Kiểm tra phiếu nháp và chi tiết lô trước khi gọi transaction xác nhận nhập kho."
         actions={<Link className="button button--primary" to="/warehouse/receiving/new">Tạo phiếu nhập</Link>}

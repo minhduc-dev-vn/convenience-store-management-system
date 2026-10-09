@@ -103,7 +103,6 @@ function CustomerHistoryPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-27"
         title="Lịch sử mua hàng và điểm"
         description="Dữ liệu chỉ gồm các hóa đơn thuộc tài khoản khách hàng hiện tại."
         actions={loyaltyState.data && (
@@ -164,7 +163,7 @@ function CustomerHistoryPage() {
             {detailState.data && (
               <>
                 <div className="invoice-detail__heading">
-                  <div><p className="eyebrow">Chi tiết hóa đơn</p><h2>{detailState.data.invoiceId}</h2></div>
+                  <div><h2>{detailState.data.invoiceId}</h2></div>
                   <button className="button button--ghost" type="button" onClick={() => setDetailState({ data: null, error: null, isLoading: false })}>Đóng</button>
                 </div>
                 <p>Mua lúc {formatDate(detailState.data.purchasedAt)} · {detailState.data.status}</p>

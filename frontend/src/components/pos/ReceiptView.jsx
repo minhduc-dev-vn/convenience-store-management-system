@@ -23,7 +23,7 @@ function ReceiptView({ onNewOrder, onPrint, receipt }) {
   return (
     <section className="receipt-screen">
       <div className="receipt-actions no-print">
-        <div><p className="eyebrow">MH-07 · Giao dịch thành công</p><h2>Hóa đơn đã được lưu</h2></div>
+        <div><h2>Hóa đơn đã được lưu</h2></div>
         <div className="inline-actions">
           <button className="button button--secondary" type="button" onClick={onPrint}>In hóa đơn</button>
           <button className="button button--primary" type="button" onClick={onNewOrder}>Đơn hàng mới</button>
@@ -32,7 +32,6 @@ function ReceiptView({ onNewOrder, onPrint, receipt }) {
 
       <article className="receipt-print-area">
         <header className="receipt-header">
-          <p className="eyebrow">Hóa đơn bán hàng</p>
           <h1>{receipt.invoiceId}</h1>
           <span className="status-badge status-badge--active">{receipt.status}</span>
         </header>

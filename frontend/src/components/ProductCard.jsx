@@ -21,7 +21,6 @@ function ProductCard({ onView, product, promotions = [] }) {
         <span>{initials(product.name)}</span>
       </div>
       <div className="product-card__body">
-        <p className="eyebrow">{product.category.name}</p>
         <h2>{product.name}</h2>
         {promotions.length > 0 && (
           <div className="product-card__promotion" title={promotions.map((promotion) => promotion.name).join(', ')}>

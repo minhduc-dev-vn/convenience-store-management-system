@@ -29,7 +29,6 @@ function ProductSearch({
     <section className="pos-panel pos-product-panel" aria-labelledby="pos-product-heading">
       <div className="pos-panel__heading">
         <div>
-          <p className="eyebrow">Quét hoặc tìm kiếm</p>
           <h2 id="pos-product-heading">Chọn sản phẩm</h2>
         </div>
         <span className="keyboard-hint">Enter để quét nhanh</span>

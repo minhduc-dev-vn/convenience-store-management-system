@@ -14,17 +14,17 @@ import {
 } from './reports/reportingPresentation';
 
 const MANAGER_ACTIONS = Object.freeze([
-  { eyebrow: 'MH-19 · F31', title: 'Nhân viên', description: 'Tra cứu, thêm, cập nhật hồ sơ và trạng thái nhân viên.', to: '/manager/employees' },
-  { eyebrow: 'MH-20 · F32', title: 'Tài khoản và phân quyền', description: 'Tạo tài khoản, gán role, khóa/mở và cấp lại mật khẩu.', to: '/manager/accounts' },
-  { eyebrow: 'MH-21 · F16/F32', title: 'Khách hàng thành viên', description: 'Tra cứu thành viên, điểm, hạng, hóa đơn và trạng thái tài khoản.', to: '/manager/customers' },
-  { eyebrow: 'MH-16 · F28', title: 'Sản phẩm và loại hàng', description: 'Quản lý danh mục, barcode, giá niêm yết và trạng thái kinh doanh.', to: '/manager/products' },
-  { eyebrow: 'MH-17 · F29', title: 'Giá bán và lịch sử', description: 'Cập nhật giá có xác nhận, lý do và lịch sử audit.', to: '/manager/products/pricing' },
-  { eyebrow: 'MH-18 · F30', title: 'Chương trình khuyến mãi', description: 'Quản lý điều kiện, thời gian và sản phẩm áp dụng.', to: '/manager/promotions' },
-  { eyebrow: 'MH-10 · F19', title: 'Nhà cung cấp', description: 'Quản lý hồ sơ và trạng thái hợp tác của nhà cung cấp.', to: '/manager/suppliers' },
-  { eyebrow: 'MH-13 · F22/F23/F24', title: 'Tồn kho và cảnh báo', description: 'Theo dõi tồn tổng, lô, tồn thấp và hạn sử dụng.', to: '/manager/inventory' },
-  { eyebrow: 'MH-15 · F33', title: 'Phê duyệt điều chỉnh kho', description: 'Xem chênh lệch kiểm kê và phê duyệt hoặc yêu cầu kiểm lại.', to: '/manager/stocktakes' },
-  { eyebrow: 'MH-22 · F34', title: 'Nhật ký hệ thống', description: 'Tra cứu actor, hành động, đối tượng và dữ liệu thay đổi.', to: '/manager/audit-logs' },
-  { eyebrow: 'MH-23/24/25 · F35', title: 'Báo cáo kinh doanh', description: 'Phân tích doanh thu, hàng hóa, nhập kho, nhân viên và ca.', to: '/manager/reports' },
+  { title: 'Nhân viên', description: 'Tra cứu, thêm, cập nhật hồ sơ và trạng thái nhân viên.', to: '/manager/employees' },
+  { title: 'Tài khoản và phân quyền', description: 'Tạo tài khoản, gán role, khóa/mở và cấp lại mật khẩu.', to: '/manager/accounts' },
+  { title: 'Khách hàng thành viên', description: 'Tra cứu thành viên, điểm, hạng, hóa đơn và trạng thái tài khoản.', to: '/manager/customers' },
+  { title: 'Sản phẩm và loại hàng', description: 'Quản lý danh mục, barcode, giá niêm yết và trạng thái kinh doanh.', to: '/manager/products' },
+  { title: 'Giá bán và lịch sử', description: 'Cập nhật giá có xác nhận, lý do và lịch sử audit.', to: '/manager/products/pricing' },
+  { title: 'Chương trình khuyến mãi', description: 'Quản lý điều kiện, thời gian và sản phẩm áp dụng.', to: '/manager/promotions' },
+  { title: 'Nhà cung cấp', description: 'Quản lý hồ sơ và trạng thái hợp tác của nhà cung cấp.', to: '/manager/suppliers' },
+  { title: 'Tồn kho và cảnh báo', description: 'Theo dõi tồn tổng, lô, tồn thấp và hạn sử dụng.', to: '/manager/inventory' },
+  { title: 'Phê duyệt điều chỉnh kho', description: 'Xem chênh lệch kiểm kê và phê duyệt hoặc yêu cầu kiểm lại.', to: '/manager/stocktakes' },
+  { title: 'Nhật ký hệ thống', description: 'Tra cứu actor, hành động, đối tượng và dữ liệu thay đổi.', to: '/manager/audit-logs' },
+  { title: 'Báo cáo kinh doanh', description: 'Phân tích doanh thu, hàng hóa, nhập kho, nhân viên và ca.', to: '/manager/reports' },
 ]);
 
 function ManagerDashboardPage() {
@@ -105,7 +105,7 @@ function ManagerDashboardPage() {
             <DashboardMetricGrid items={metrics} />
             <article className="dashboard-task-panel dashboard-task-panel--wide">
               <div className="dashboard-task-panel__heading">
-                <div><p className="eyebrow">Công việc ưu tiên</p><h2>Đề nghị điều chỉnh kho chờ duyệt</h2></div>
+                <div><h2>Đề nghị điều chỉnh kho chờ duyệt</h2></div>
                 <Link to="/manager/stocktakes">Xem tất cả</Link>
               </div>
               {data.pendingStocktakes.items.length === 0 ? (
@@ -129,13 +129,11 @@ function ManagerDashboardPage() {
       </AsyncContent>
 
       <div className="dashboard-section-heading">
-        <p className="eyebrow">Thao tác nhanh</p>
         <h2>Không gian quản trị</h2>
       </div>
       <div className="dashboard-grid dashboard-grid--compact">
         {MANAGER_ACTIONS.map((action) => (
           <article className="action-card" key={action.to}>
-            <p className="eyebrow">{action.eyebrow}</p>
             <h2>{action.title}</h2>
             <p>{action.description}</p>
             <Link className="button button--primary" to={action.to}>Mở chức năng</Link>

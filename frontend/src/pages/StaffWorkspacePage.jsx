@@ -15,7 +15,6 @@ function StaffWorkspacePage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow={user.role}
         title={`Xin chào, ${user.displayName || user.username}`}
         description={workspaceCopy[user.role]}
       />
@@ -26,7 +25,6 @@ function StaffWorkspacePage() {
           <p>Quyền truy cập được xác nhận lại tại backend cho từng yêu cầu.</p>
         </article>
         <article className="action-card">
-          <p className="eyebrow">Tài khoản</p>
           <h2>Bảo mật phiên làm việc</h2>
           <p>Bạn có thể đổi mật khẩu dùng chung cho mọi vai trò hoặc kết thúc phiên hiện tại.</p>
           <div className="inline-actions">

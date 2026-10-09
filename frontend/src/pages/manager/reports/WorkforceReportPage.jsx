@@ -70,7 +70,6 @@ function WorkforceReportPage() {
   return (
     <section className="workspace-page report-page">
       <PageHeader
-        eyebrow="MH-25 · F35"
         title="Doanh thu theo nhân viên và ca"
         description="Đánh giá hiệu suất thu ngân, doanh thu hợp lệ và chênh lệch tiền mặt của từng ca."
       />

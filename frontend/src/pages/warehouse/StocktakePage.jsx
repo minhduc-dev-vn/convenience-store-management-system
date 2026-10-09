@@ -150,7 +150,7 @@ function WarehouseStocktakeDetail({ data, onChanged, onPropose }) {
   return (
     <section className="stocktake-detail-card">
       <div className="stocktake-detail-heading">
-        <div><p className="eyebrow">Snapshot kiểm kê</p><h2>{data.stocktake.stocktakeId}</h2></div>
+        <div><h2>{data.stocktake.stocktakeId}</h2></div>
         <StocktakeStatus stocktake={data.stocktake} />
       </div>
       <StocktakeSummary stocktake={data.stocktake} />
@@ -299,7 +299,6 @@ function StocktakePage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-14 · F25/F26/F27"
         title="Kiểm kê kho"
         description="Tạo snapshot tồn theo lô, ghi nhận số lượng thực tế và gửi chênh lệch cho quản lý phê duyệt."
       />
@@ -307,7 +306,7 @@ function StocktakePage() {
       <Notice tone="error">{actionError && getErrorMessage(actionError)}</Notice>
 
       <section className="stocktake-create-card">
-        <div><p className="eyebrow">Tạo đợt mới</p><h2>Chụp snapshot tồn hiện tại</h2><p>Hệ thống tự lấy toàn bộ lô tồn kho; không chỉnh sửa trực tiếp dữ liệu lô tại đây.</p></div>
+        <div><h2>Chụp snapshot tồn hiện tại</h2><p>Hệ thống tự lấy toàn bộ lô tồn kho; không chỉnh sửa trực tiếp dữ liệu lô tại đây.</p></div>
         <FormField htmlFor="stocktakeNote" label="Ghi chú đợt kiểm kê">
           <input id="stocktakeNote" maxLength="255" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Ví dụ: Kiểm kê cuối tháng" />
         </FormField>

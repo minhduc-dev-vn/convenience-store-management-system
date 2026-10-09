@@ -69,7 +69,6 @@ function HealthCheckPanel() {
     <section className="health-section" aria-labelledby="health-heading">
       <div className="section-heading health-section__heading">
         <div>
-          <p className="eyebrow">Kiểm tra tích hợp</p>
           <h2 id="health-heading">Trạng thái hệ thống</h2>
         </div>
         <button className="button button--secondary" type="button" onClick={loadHealth}>

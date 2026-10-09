@@ -105,7 +105,6 @@ function ProductCatalogPage() {
   return (
     <section className="workspace-page catalog-page">
       <PageHeader
-        eyebrow="MH-26 · F05/F06 · PUBLIC"
         title="Danh mục sản phẩm"
         description="Tra cứu sản phẩm đang kinh doanh và giá bán công khai. Bạn không cần đăng nhập để sử dụng trang này."
       />
@@ -113,7 +112,6 @@ function ProductCatalogPage() {
       <section className="promotion-highlights" aria-labelledby="promotion-highlights-title">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Ưu đãi nổi bật</p>
             <h2 id="promotion-highlights-title">Khuyến mãi hiện hành</h2>
           </div>
           <Link className="button button--ghost" to="/promotions">Xem tất cả ưu đãi</Link>

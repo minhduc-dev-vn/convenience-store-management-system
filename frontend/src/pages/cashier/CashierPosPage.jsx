@@ -286,7 +286,7 @@ function CashierPosPage() {
   if (!shift) {
     return (
       <section className="workspace-page">
-        <PageHeader eyebrow="MH-06 · POS" title="Chưa có ca làm việc OPEN" description="Backend chưa ghi nhận ca mở cho tài khoản thu ngân hiện tại." />
+        <PageHeader title="Chưa có ca làm việc OPEN" description="Backend chưa ghi nhận ca mở cho tài khoản thu ngân hiện tại." />
         <div className="shift-required-card">
           <strong>Mở ca trước khi bán hàng</strong>
           <p>Việc mở ca ghi nhận tiền đầu ca và là điều kiện bắt buộc trước khi tìm sản phẩm hoặc lập đơn hàng.</p>
@@ -299,7 +299,6 @@ function CashierPosPage() {
   return (
     <section className="workspace-page cashier-pos-page">
       <PageHeader
-        eyebrow="MH-06 · F10/F11"
         title="Bán hàng tại quầy"
         description="Quét sản phẩm, điều chỉnh giỏ và xác nhận báo giá trực tiếp từ backend."
       />

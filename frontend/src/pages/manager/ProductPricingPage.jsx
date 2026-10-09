@@ -171,7 +171,6 @@ function ProductPricingPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-17 · F29"
         title="Cập nhật giá bán"
         description="Chọn sản phẩm, nhập giá mới và lý do. Mỗi lần đổi giá được backend ghi audit với người thực hiện và thời gian."
       />
@@ -197,7 +196,6 @@ function ProductPricingPage() {
       {selected && (
         <section className="pricing-workspace">
           <div className="pricing-form-card">
-            <p className="eyebrow">Sản phẩm đã chọn</p>
             <h2>{selected.productId} · {selected.name}</h2>
             <p className="current-price">Giá hiện tại <strong>{money.format(selected.price)}</strong></p>
             <form className="admin-form" onSubmit={prepareChange} noValidate>
@@ -212,7 +210,7 @@ function ProductPricingPage() {
           </div>
           <div className="price-history-card">
             <div className="section-heading section-heading--compact">
-              <div><p className="eyebrow">NHAT_KY_HE_THONG</p><h3>Lịch sử đổi giá</h3></div>
+              <div><h3>Lịch sử đổi giá</h3></div>
             </div>
             <AsyncContent error={history.error} isLoading={history.isLoading} loadingMessage="Đang tải lịch sử giá…" onRetry={() => setHistoryReloadKey((value) => value + 1)} isEmpty={history.data?.items.length === 0} emptyTitle="Chưa có lịch sử đổi giá" emptyMessage="Các lần đổi giá mới sẽ xuất hiện tại đây.">
               {history.data?.items.length > 0 && (

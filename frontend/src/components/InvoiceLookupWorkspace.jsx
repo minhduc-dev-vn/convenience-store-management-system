@@ -45,7 +45,6 @@ function InvoiceDetail({ invoice, isCashier, onSelectReturn }) {
     <article className="invoice-lookup-detail invoice-print-area">
       <header className="invoice-lookup-detail__header">
         <div>
-          <p className="eyebrow">Chi tiết hóa đơn</p>
           <h2>{invoice.invoiceId}</h2>
           <p>{formatDateTime(invoice.issuedAt)} · Ca #{invoice.shiftId}</p>
         </div>
@@ -192,7 +191,6 @@ function InvoiceLookupWorkspace({ role }) {
   return (
     <section className="workspace-page invoice-lookup-page">
       <PageHeader
-        eyebrow="MH-08 · F16"
         title="Tra cứu hóa đơn"
         description="Tìm hóa đơn theo mã, khoảng ngày hoặc thu ngân và xem lại dữ liệu giao dịch đã lưu."
       />

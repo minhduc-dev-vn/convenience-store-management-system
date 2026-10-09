@@ -37,7 +37,6 @@ function CustomerOverviewPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="Cổng khách hàng"
         title="Tổng quan tài khoản"
         description="Theo dõi thông tin thành viên và truy cập nhanh các dịch vụ cá nhân."
       />
@@ -55,7 +54,6 @@ function CustomerOverviewPage() {
               <p>Hạng thành viên: {tierLabels[state.data.loyalty.membershipTier] ?? state.data.loyalty.membershipTier}</p>
             </article>
             <article className="profile-summary">
-              <p className="eyebrow">Thông tin thành viên</p>
               <h2>{state.data.profile.fullName}</h2>
               <dl className="description-list">
                 <div><dt>Số điện thoại</dt><dd>{state.data.profile.phone}</dd></div>
@@ -64,7 +62,6 @@ function CustomerOverviewPage() {
               <Link className="text-link" to="/customer/profile">Cập nhật hồ sơ</Link>
             </article>
             <article className="action-card action-card--wide">
-              <p className="eyebrow">Mua hàng</p>
               <h2>Hóa đơn và lịch sử tích lũy</h2>
               <p>Xem danh sách hóa đơn thuộc tài khoản của bạn, lọc theo thời gian và mở chi tiết từng giao dịch.</p>
               <Link className="button button--primary" to="/customer/history">Xem lịch sử mua hàng</Link>

@@ -64,7 +64,6 @@ function RegisterPage() {
   return (
     <section className="auth-shell auth-shell--register">
       <div className="auth-intro">
-        <p className="eyebrow">Thành viên cửa hàng</p>
         <h1>Tạo tài khoản khách hàng.</h1>
         <p>
           Đăng ký để xem lịch sử mua hàng, điểm tích lũy và quản lý thông tin liên hệ cá nhân.
@@ -73,7 +72,6 @@ function RegisterPage() {
 
       <form className="form-card form-card--wide" onSubmit={handleSubmit} noValidate>
         <div className="form-card__heading">
-          <span>MH-02</span>
           <h2>Đăng ký thành viên</h2>
           <p>Số điện thoại được dùng làm tên đăng nhập của tài khoản khách hàng.</p>
         </div>

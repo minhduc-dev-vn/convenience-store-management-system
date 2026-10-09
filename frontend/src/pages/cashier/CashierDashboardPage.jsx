@@ -225,7 +225,7 @@ function CashierDashboardPage() {
 
           <section className="shift-reconciliation-card">
             <div className="shift-reconciliation-card__heading">
-              <div><p className="eyebrow">MH-05 · F18</p><h2>Đối chiếu và đóng ca</h2></div>
+              <div><h2>Đối chiếu và đóng ca</h2></div>
               <button className="button button--ghost" type="button" disabled={isReconciliationLoading} onClick={loadReconciliation}>Làm mới số liệu</button>
             </div>
             <Notice tone="error">{reconciliationError}</Notice>
@@ -266,7 +266,6 @@ function CashierDashboardPage() {
       ) : (
         <form className="form-card cashier-open-form" onSubmit={handleOpenShift}>
           <div>
-            <p className="eyebrow">Thông tin bàn giao đầu ca</p>
             <h2>Ghi nhận tiền mặt đầu ca</h2>
             <p>Thời điểm bắt đầu, mã ca và thu ngân được hệ thống tự ghi nhận.</p>
           </div>
@@ -309,12 +308,10 @@ function CashierDashboardPage() {
       )}
 
       <div className="dashboard-section-heading">
-        <p className="eyebrow">Thao tác nhanh</p>
         <h2>Nghiệp vụ thu ngân</h2>
       </div>
       <div className="dashboard-grid dashboard-grid--compact">
         <article className="action-card">
-          <p className="eyebrow">MH-06 · F10/F11</p>
           <h2>Bán hàng tại quầy</h2>
           <p>Quét barcode, tìm sản phẩm và lập giỏ hàng. POS chỉ khả dụng khi ca đang OPEN.</p>
           <Link className={`button ${shift ? 'button--primary' : 'button--ghost'}`} to={shift ? '/cashier/pos' : '/cashier'}>
@@ -322,13 +319,11 @@ function CashierDashboardPage() {
           </Link>
         </article>
         <article className="action-card">
-          <p className="eyebrow">MH-08 · F16</p>
           <h2>Tra cứu hóa đơn</h2>
           <p>Tìm hóa đơn theo mã hoặc thời gian và xem chi tiết dữ liệu đã lưu.</p>
           <Link className="button button--primary" to="/cashier/invoices">Mở tra cứu</Link>
         </article>
         <article className="action-card action-card--wide">
-          <p className="eyebrow">MH-09 · F17</p>
           <h2>Đổi / trả hàng</h2>
           <p>Tạo yêu cầu trả hàng từ hóa đơn gốc và số lượng còn đủ điều kiện.</p>
           <Link className="button button--primary" to="/cashier/returns">Mở đổi trả</Link>

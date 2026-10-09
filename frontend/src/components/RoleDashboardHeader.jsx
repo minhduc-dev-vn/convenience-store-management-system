@@ -8,7 +8,6 @@ function RoleDashboardHeader({ description, title }) {
 
   return (
     <PageHeader
-      eyebrow={`MH-04 · ${roleLabel}`}
       title={title}
       description={description}
       actions={(

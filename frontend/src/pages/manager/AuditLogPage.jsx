@@ -160,7 +160,6 @@ function AuditLogPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-22 · F34"
         title="Nhật ký hoạt động hệ thống"
         description="Tra cứu các thao tác nhạy cảm theo người thực hiện, hành động, đối tượng và thời gian. Dữ liệu chỉ đọc và do backend phân quyền MANAGER."
       />

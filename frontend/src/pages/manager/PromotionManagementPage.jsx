@@ -308,7 +308,6 @@ function PromotionManagementPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-18 · F30"
         title="Quản lý chương trình khuyến mãi"
         description="Thiết lập ưu đãi, điều kiện, thời gian hiệu lực và danh sách sản phẩm áp dụng."
         actions={<button className="button button--primary" type="button" onClick={() => openEditor()}>Thêm chương trình</button>}

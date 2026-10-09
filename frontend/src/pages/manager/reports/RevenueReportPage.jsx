@@ -51,7 +51,6 @@ function RevenueReportPage() {
   return (
     <section className="workspace-page report-page report-print-area">
       <PageHeader
-        eyebrow="MH-23 · F35"
         title="Báo cáo doanh thu"
         description="Tổng hợp hóa đơn hoàn tất và tiền hoàn hợp lệ theo khoảng thời gian đã chọn."
         actions={(

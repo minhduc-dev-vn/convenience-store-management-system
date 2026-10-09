@@ -46,7 +46,7 @@ function ManagerStocktakeDetail({ data, comment, onAction, onCommentChange }) {
   return (
     <section className="stocktake-detail-card">
       <div className="stocktake-detail-heading">
-        <div><p className="eyebrow">Đề nghị điều chỉnh</p><h2>{data.stocktake.stocktakeId}</h2></div>
+        <div><h2>{data.stocktake.stocktakeId}</h2></div>
         <StocktakeStatus stocktake={data.stocktake} />
       </div>
       <StocktakeSummary stocktake={data.stocktake} />
@@ -184,7 +184,6 @@ function StocktakeApprovalPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-15 · F33"
         title="Phê duyệt điều chỉnh kho"
         description="Xem snapshot, số thực tế và lý do chênh lệch trước khi phê duyệt transaction điều chỉnh tồn."
       />

@@ -184,7 +184,6 @@ function EmployeeManagementPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-19 · F31"
         title="Quản lý nhân viên"
         description="Tra cứu và duy trì hồ sơ nhân viên; dữ liệu đã phát sinh chỉ được chuyển trạng thái, không xóa."
         actions={<button className="button button--primary" type="button" onClick={() => { setActionError(null); setEditor({ employee: null }); }}>Thêm nhân viên</button>}

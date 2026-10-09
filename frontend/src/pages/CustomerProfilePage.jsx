@@ -71,7 +71,6 @@ function CustomerProfilePage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-28"
         title="Hồ sơ cá nhân"
         description="Cập nhật thông tin liên hệ của chính tài khoản khách hàng đang đăng nhập."
       />

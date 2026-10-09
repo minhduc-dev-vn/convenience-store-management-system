@@ -30,7 +30,6 @@ function ReturnResult({ result }) {
     <article className="return-result" aria-live="polite">
       <header>
         <div>
-          <p className="eyebrow">Phiếu trả đã hoàn tất</p>
           <h2>{result.returnId}</h2>
         </div>
         <span className="status-badge status-badge--active">{result.status}</span>
@@ -149,7 +148,6 @@ function CashierReturnPage() {
   return (
     <section className="workspace-page return-page">
       <PageHeader
-        eyebrow="MH-09 · F17"
         title="Xử lý đổi / trả hàng"
         description="Tải hóa đơn gốc, chọn đúng lô hàng cần trả và để hệ thống xác nhận số tiền hoàn."
       />
@@ -189,7 +187,6 @@ function CashierReturnPage() {
           <article className="return-workspace">
             <header className="return-workspace__header">
               <div>
-                <p className="eyebrow">Hóa đơn gốc</p>
                 <h2>{invoiceState.data.invoiceId}</h2>
                 <p>{invoiceState.data.customer?.name || 'Khách lẻ'} · {formatMoney(invoiceState.data.totals.totalAmount)}</p>
               </div>

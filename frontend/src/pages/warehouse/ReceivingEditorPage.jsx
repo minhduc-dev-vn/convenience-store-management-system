@@ -226,7 +226,6 @@ function ReceivingEditorPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-11 · F20"
         title={receipt ? `Phiếu nhập ${receipt.receiptId}` : 'Lập phiếu nhập kho'}
         description="Lưu thông tin nhà cung cấp trước, sau đó thêm các mặt hàng và lô vào phiếu nháp."
         actions={receipt && (
@@ -251,7 +250,6 @@ function ReceivingEditorPage() {
         <form className="receiving-header-card" onSubmit={saveHeader} noValidate>
           <div className="receiving-card-heading">
             <div>
-              <p className="eyebrow">Thông tin phiếu</p>
               <h2>{receipt?.receiptId || 'Mã phiếu do hệ thống tự sinh'}</h2>
             </div>
             {receipt && <span className={`status-badge status-badge--${receipt.status.toLowerCase()}`}>{receipt.status}</span>}
@@ -285,7 +283,6 @@ function ReceivingEditorPage() {
           <section className="receiving-lines-section">
             <div className="section-heading section-heading--compact">
               <div>
-                <p className="eyebrow">Chi tiết hàng nhập</p>
                 <h3>{receipt.lineCount} dòng hàng</h3>
               </div>
               {isDraft && (

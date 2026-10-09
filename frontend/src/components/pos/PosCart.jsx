@@ -13,7 +13,6 @@ function PosCart({ cart, isQuoting, onClear, onQuantityChange, onRemove, quote }
     <section className="pos-panel pos-cart-panel" aria-labelledby="pos-cart-heading">
       <div className="pos-panel__heading">
         <div>
-          <p className="eyebrow">MH-06 · Giỏ hàng tại quầy</p>
           <h2 id="pos-cart-heading">Đơn hàng hiện tại</h2>
         </div>
         <span className="cart-count">{cart.reduce((total, item) => total + item.quantity, 0)} sản phẩm</span>

@@ -216,7 +216,6 @@ function SupplierManagementPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-10 · F19"
         title="Quản lý nhà cung cấp"
         description="Quản lý hồ sơ đối tác, thông tin liên hệ và trạng thái hợp tác mà không xóa dữ liệu đã phát sinh."
         actions={<button className="button button--primary" type="button" onClick={() => openEditor()}>Thêm nhà cung cấp</button>}

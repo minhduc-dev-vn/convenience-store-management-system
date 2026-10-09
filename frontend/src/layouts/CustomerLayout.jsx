@@ -4,7 +4,6 @@ function CustomerLayout() {
   return (
     <RolePortalLayout
       ariaLabel="Điều hướng khách hàng"
-      eyebrow="Cổng khách hàng"
     />
   );
 }

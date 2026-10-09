@@ -97,7 +97,6 @@ function MerchandiseReportPage() {
   return (
     <section className="workspace-page report-page">
       <PageHeader
-        eyebrow="MH-24 · F35"
         title="Hàng bán, tồn kho và nhập hàng"
         description="Theo dõi cơ cấu doanh thu, tốc độ bán, giá trị tồn hiện tại và chi phí nhập trong kỳ."
       />

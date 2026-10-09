@@ -4,7 +4,6 @@ function WarehouseLayout() {
   return (
     <RolePortalLayout
       ariaLabel="Điều hướng nhân viên kho"
-      eyebrow="Khu vực kho"
       portalClassName="warehouse-portal"
     />
   );

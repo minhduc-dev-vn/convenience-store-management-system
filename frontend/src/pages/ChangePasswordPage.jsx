@@ -51,7 +51,6 @@ function ChangePasswordPage() {
   return (
     <section className="narrow-page">
       <PageHeader
-        eyebrow="MH-03"
         title="Đổi mật khẩu"
         description="Màn hình bảo mật dùng chung cho mọi tài khoản đã đăng nhập."
       />

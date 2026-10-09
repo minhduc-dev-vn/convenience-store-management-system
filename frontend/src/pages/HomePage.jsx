@@ -13,7 +13,6 @@ function HomePage() {
     <>
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">Nền tảng vận hành tập trung</p>
           <h1>Một không gian chung cho mọi vai trò tại cửa hàng.</h1>
           <p className="hero-description">
             Đăng nhập một lần để hệ thống điều hướng đến đúng không gian làm việc theo vai trò,
@@ -38,7 +37,6 @@ function HomePage() {
       <section className="workspace-section" id="workspaces">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Điều hướng theo vai trò</p>
             <h2>Các không gian làm việc</h2>
           </div>
           <p>Hệ thống chỉ mở khu vực tương ứng với vai trò sau khi xác thực thành công.</p>

@@ -83,7 +83,7 @@ function CheckoutDialog({
 
         <section className="checkout-section">
           <div className="checkout-section__heading">
-            <div><p className="eyebrow">Khách hàng và ưu đãi</p><h3>Xác nhận báo giá</h3></div>
+            <div><h3>Xác nhận báo giá</h3></div>
             <button
               className="button button--secondary"
               type="button"
@@ -134,7 +134,7 @@ function CheckoutDialog({
 
         <section className="checkout-section">
           <div className="checkout-section__heading">
-            <div><p className="eyebrow">Chi tiết tính tiền</p><h3>Breakdown từ backend</h3></div>
+            <div><h3>Breakdown từ backend</h3></div>
           </div>
           <div className="checkout-lines">
             {quote.items.map((item) => (
@@ -153,7 +153,7 @@ function CheckoutDialog({
 
         <section className="checkout-section">
           <div className="checkout-section__heading">
-            <div><p className="eyebrow">Phương thức</p><h3>Ghi nhận thanh toán</h3></div>
+            <div><h3>Ghi nhận thanh toán</h3></div>
           </div>
           <div className="payment-methods" role="radiogroup" aria-label="Phương thức thanh toán">
             {PAYMENT_METHODS.map((value) => (

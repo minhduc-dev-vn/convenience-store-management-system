@@ -174,7 +174,6 @@ function CustomerHistoryModal({ customerId, onClose }) {
       <section className="customer-history-section">
         <div className="section-heading section-heading--compact">
           <div>
-            <p className="eyebrow">Lịch sử giao dịch</p>
             <h3>Hóa đơn đã hoàn tất</h3>
           </div>
         </div>
@@ -230,7 +229,6 @@ function CustomerHistoryModal({ customerId, onClose }) {
               <>
                 <div className="invoice-detail__heading">
                   <div>
-                    <p className="eyebrow">{invoiceState.data.status === 'REFUNDED' ? 'Đã hoàn tiền' : 'Đã thanh toán'}</p>
                     <h3>Hóa đơn {invoiceState.data.invoiceId}</h3>
                     <p>{displayDateTime(invoiceState.data.purchasedAt)}</p>
                   </div>
@@ -352,7 +350,6 @@ function CustomerMemberManagementPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-21 · F16/F32"
         title="Khách hàng thành viên"
         description="Theo dõi hồ sơ, điểm tích lũy, hạng thành viên, lịch sử hóa đơn và trạng thái tài khoản khách hàng."
       />

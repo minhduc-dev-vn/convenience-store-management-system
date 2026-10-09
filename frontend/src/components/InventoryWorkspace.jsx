@@ -197,7 +197,6 @@ function InventoryWorkspace({ audience }) {
   return (
     <section className="workspace-page inventory-workspace">
       <PageHeader
-        eyebrow="MH-13 · F22/F23/F24"
         title="Tồn kho, lô và cảnh báo"
         description={`Tra cứu tồn tổng, chi tiết lô và cảnh báo hạn dùng dành cho ${audience}. Ngưỡng sắp hết hạn là ${NEAR_EXPIRY_DAYS} ngày.`}
       />
@@ -284,7 +283,6 @@ function InventoryWorkspace({ audience }) {
       <section className="inventory-lot-section" aria-labelledby="inventory-lot-heading">
         <div className="receiving-card-heading inventory-lot-heading">
           <div>
-            <p className="eyebrow">Chi tiết lô</p>
             <h2 id="inventory-lot-heading">{selectedProduct ? selectedProduct.name : 'Chọn một sản phẩm'}</h2>
             <p>{selectedProduct ? `${selectedProduct.productId} · ${selectedProduct.unit} · tổng tồn ${number.format(selectedProduct.totalStock)}` : 'Dùng nút “Xem lô” trong bảng tồn kho để kiểm tra hạn sử dụng và số lượng từng lô.'}</p>
           </div>

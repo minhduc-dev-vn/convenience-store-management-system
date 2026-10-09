@@ -91,14 +91,14 @@ function WarehouseDashboardPage() {
             <div className="dashboard-task-grid">
               <article className="dashboard-task-panel">
                 <div className="dashboard-task-panel__heading">
-                  <div><p className="eyebrow">Ưu tiên xử lý</p><h2>Tồn kho thấp</h2></div>
+                  <div><h2>Tồn kho thấp</h2></div>
                   <Link to="/warehouse/inventory?mode=LOW_STOCK">Xem tất cả</Link>
                 </div>
                 <AlertList items={data.lowStock.items} emptyMessage="Không có sản phẩm dưới mức tồn tối thiểu." />
               </article>
               <article className="dashboard-task-panel">
                 <div className="dashboard-task-panel__heading">
-                  <div><p className="eyebrow">Trong 30 ngày</p><h2>Lô sắp hết hạn</h2></div>
+                  <div><h2>Lô sắp hết hạn</h2></div>
                   <Link to="/warehouse/inventory?mode=NEAR_EXPIRY">Xem tất cả</Link>
                 </div>
                 <AlertList items={data.nearExpiry.items} emptyMessage="Không có sản phẩm cận hạn trong ngưỡng hiện tại." />
@@ -109,30 +109,25 @@ function WarehouseDashboardPage() {
       </AsyncContent>
 
       <div className="dashboard-section-heading">
-        <p className="eyebrow">Thao tác nhanh</p>
         <h2>Nghiệp vụ kho</h2>
       </div>
       <div className="dashboard-grid dashboard-grid--compact">
         <article className="action-card">
-          <p className="eyebrow">MH-11 · F20</p>
           <h2>Lập phiếu nhập kho</h2>
           <p>Chọn nhà cung cấp, sản phẩm, lô, ngày sản xuất, hạn dùng, số lượng và giá nhập.</p>
           <Link className="button button--primary" to="/warehouse/receiving/new">Tạo phiếu nhập</Link>
         </article>
         <article className="action-card">
-          <p className="eyebrow">MH-12 · F21</p>
           <h2>Danh sách và xác nhận</h2>
           <p>Kiểm tra phiếu nháp và xác nhận nhập kho bằng giao dịch dữ liệu an toàn.</p>
           <Link className="button button--primary" to="/warehouse/receiving">Mở danh sách phiếu</Link>
         </article>
         <article className="action-card action-card--wide">
-          <p className="eyebrow">MH-13 · F22/F23/F24</p>
           <h2>Tồn kho, lô và cảnh báo</h2>
           <p>Tra cứu tồn tổng, xem từng lô và lọc tồn thấp, cận hạn hoặc đã hết hạn.</p>
           <Link className="button button--primary" to="/warehouse/inventory">Mở tra cứu tồn kho</Link>
         </article>
         <article className="action-card action-card--wide">
-          <p className="eyebrow">MH-14 · F25/F26/F27</p>
           <h2>Tạo đợt và ghi nhận kiểm kê</h2>
           <p>Chụp snapshot tồn theo lô, nhập số lượng thực tế và gửi chênh lệch có lý do để phê duyệt.</p>
           <Link className="button button--primary" to="/warehouse/stocktakes">Mở kiểm kê kho</Link>

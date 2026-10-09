@@ -4,7 +4,6 @@ function ManagerLayout() {
   return (
     <RolePortalLayout
       ariaLabel="Điều hướng quản lý"
-      eyebrow="Khu vực quản lý"
       portalClassName="manager-portal"
     />
   );

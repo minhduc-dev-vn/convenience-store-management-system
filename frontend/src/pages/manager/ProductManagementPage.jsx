@@ -88,7 +88,7 @@ function ProductForm({ categories, isSubmitting, onCancel, onSubmit, product }) 
           </>
         )}
       </div>
-      {editing && <p className="form-note">Giá bán được thay đổi tại MH-17 để bảo đảm có lý do và lịch sử audit riêng.</p>}
+      {editing && <p className="form-note">Giá bán được thay đổi tại chức năng cập nhật giá để bảo đảm có lý do và lịch sử audit riêng.</p>}
       <div className="modal__actions">
         <button className="button button--ghost" type="button" onClick={onCancel} disabled={isSubmitting}>Hủy</button>
         <button className="button button--primary" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Đang lưu…' : 'Lưu sản phẩm'}</button>
@@ -212,7 +212,6 @@ function ProductManagementPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-16 · F28"
         title="Quản lý sản phẩm"
         description="Tra cứu theo tên, mã sản phẩm hoặc barcode; duy trì loại hàng và trạng thái mà không xóa dữ liệu."
         actions={(

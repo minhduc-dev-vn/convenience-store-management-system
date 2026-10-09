@@ -209,7 +209,6 @@ function AccountManagementPage() {
   return (
     <section className="workspace-page">
       <PageHeader
-        eyebrow="MH-20 · F32"
         title="Tài khoản và phân quyền"
         description="Quản lý tài khoản nhân viên và khách hàng; mọi thao tác nhạy cảm được backend kiểm tra quyền và ghi audit."
         actions={<button className="button button--primary" type="button" onClick={() => openDialog({ type: 'create' })}>Tạo tài khoản</button>}

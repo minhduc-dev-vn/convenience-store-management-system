@@ -47,7 +47,6 @@ function PromotionPage() {
   return (
     <section className="workspace-page promotions-public-page">
       <PageHeader
-        eyebrow="MH-26 · F06 · PUBLIC"
         title="Khuyến mãi đang diễn ra"
         description="Xem điều kiện và danh sách sản phẩm áp dụng. Trang này được truy cập công khai, không yêu cầu đăng nhập."
       />

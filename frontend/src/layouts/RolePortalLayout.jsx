@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthContext';
 import { ROLE_LABELS } from '../auth/roles';
 import { getRoleNavigation } from './navigation';
 
-function RolePortalLayout({ ariaLabel, eyebrow, portalClassName = '', contentClassName = '' }) {
+function RolePortalLayout({ ariaLabel, portalClassName = '', contentClassName = '' }) {
   const { logout, user } = useAuth();
   const navigation = getRoleNavigation(user.role);
 
@@ -11,7 +11,6 @@ function RolePortalLayout({ ariaLabel, eyebrow, portalClassName = '', contentCla
     <div className={`portal-shell ${portalClassName}`.trim()}>
       <aside className="portal-sidebar">
         <div className="portal-user">
-          <p className="eyebrow">{eyebrow}</p>
           <strong>{user.displayName || user.username}</strong>
           <small>{ROLE_LABELS[user.role] || user.role} · {user.username}</small>
         </div>
