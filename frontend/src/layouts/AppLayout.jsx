@@ -1,14 +1,17 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { getPrimaryNavigation } from './navigation';
 
 function AppLayout() {
   const { isAuthenticated, logout, user } = useAuth();
+  const { pathname } = useLocation();
   const navigation = getPrimaryNavigation(isAuthenticated, user?.role);
+  const isPortalRoute = /^\/(customer|cashier|warehouse|manager)(?:\/|$)/.test(pathname);
+  const portalModifier = isPortalRoute ? ' app-shell--portal' : '';
 
   return (
-    <div className="app-shell">
-      <header className="site-header">
+    <div className={`app-shell${portalModifier}`}>
+      <header className={`site-header${isPortalRoute ? ' site-header--portal' : ''}`}>
         <NavLink className="brand" to="/" aria-label="Về trang tổng quan">
           <span className="brand-mark" aria-hidden="true">CS</span>
           <span>
@@ -34,11 +37,11 @@ function AppLayout() {
         </nav>
       </header>
 
-      <main className="page-content">
+      <main className={`page-content${isPortalRoute ? ' page-content--portal' : ''}`}>
         <Outlet />
       </main>
 
-      <footer className="site-footer">
+      <footer className={`site-footer${isPortalRoute ? ' site-footer--portal' : ''}`}>
         <span>Hệ thống quản lý cửa hàng tiện lợi</span>
         <span>ReactJS · Vite · REST API</span>
       </footer>

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { getDataTableColumnClassName } from '../src/components/dataTableColumns.js';
 import { screenMatrix } from '../scripts/screen-matrix.mjs';
 
 const read = (relativePath) => readFile(new URL(`../${relativePath}`, import.meta.url), 'utf8');
@@ -52,6 +53,53 @@ test('shared states, responsive tables and small-screen rules remain available',
   assert.match(styles, /\.table-scroll\s*\{[^}]*overflow-x:\s*auto/s);
   assert.match(styles, /@media\s*\(max-width:\s*900px\)/);
   assert.match(styles, /@media\s*\(max-width:\s*680px\)/);
+});
+
+test('portal layout uses the desktop viewport and tables scale by column count', async () => {
+  const [layout, table, styles] = await Promise.all([
+    read('src/layouts/AppLayout.jsx'),
+    read('src/components/DataTable.jsx'),
+    read('src/assets/app.css'),
+  ]);
+
+  assert.match(layout, /page-content--portal/);
+  assert.match(layout, /site-header--portal/);
+  assert.match(styles, /--portal-max-width:\s*1560px/);
+  assert.match(styles, /@media\s*\(max-width:\s*1120px\)/);
+  assert.match(styles, /\.portal-shell\s*\{[^}]*grid-template-columns:\s*224px\s+minmax\(0,\s*1fr\)/s);
+  assert.doesNotMatch(styles, /body\s*\{[^}]*overflow-x:\s*hidden/s);
+
+  assert.match(table, /data-table--xwide/);
+  assert.match(table, /--table-min-width/);
+  assert.match(styles, /\.data-table--xwide\s*\{[^}]*--table-min-width:\s*1220px/s);
+  assert.match(styles, /\.data-table__cell--actions\s*\{[^}]*min-width:\s*164px/s);
+  assert.match(styles, /\.data-table__cell--breakable\s*\{[^}]*white-space:\s*normal/s);
+  assert.match(styles, /\.modal__body\s*\{[^}]*overflow-y:\s*auto/s);
+
+  const footerRuleIndex = styles.indexOf('.site-footer {');
+  const portalWidthRuleIndex = styles.indexOf('.site-header--portal,');
+  const responsiveRuleIndex = styles.indexOf('@media (max-width: 1120px)');
+  assert.ok(footerRuleIndex >= 0);
+  assert.ok(portalWidthRuleIndex > footerRuleIndex, 'Portal width modifier must follow the base footer width');
+  assert.ok(portalWidthRuleIndex < responsiveRuleIndex, 'Responsive widths must remain able to override portal width');
+});
+
+test('table column semantics wrap text and prioritize breakable identifiers', () => {
+  for (const key of ['employeeId', 'productId', 'auditLogId', 'dateOfBirth', 'startDate', 'occurredAt', 'status', 'role', 'phone', 'barcode', 'price', 'quantity', 'unit']) {
+    const classes = getDataTableColumnClassName({ key });
+    assert.match(classes, /data-table__cell--nowrap/, `${key} must remain compact`);
+  }
+
+  for (const key of ['fullName', 'name', 'productName', 'category', 'description', 'address', 'owner']) {
+    const classes = getDataTableColumnClassName({ key }) || '';
+    assert.doesNotMatch(classes, /data-table__cell--nowrap/, `${key} must wrap normally`);
+  }
+
+  for (const key of ['email', 'username']) {
+    const classes = getDataTableColumnClassName({ key, nowrap: true });
+    assert.match(classes, /data-table__cell--breakable/, `${key} must be breakable`);
+    assert.doesNotMatch(classes, /data-table__cell--nowrap/, `${key} must not remain nowrap`);
+  }
 });
 
 test('critical submissions keep an in-flight guard against double submit', async () => {

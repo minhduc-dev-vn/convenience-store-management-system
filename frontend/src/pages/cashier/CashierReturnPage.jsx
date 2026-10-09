@@ -41,7 +41,7 @@ function ReturnResult({ result }) {
         <div><dt>Trạng thái hóa đơn</dt><dd>{result.invoiceStatus}</dd></div>
       </dl>
       <div className="table-scroll" tabIndex={0}>
-        <table className="data-table return-result__table">
+        <table className="data-table data-table--standard return-result__table">
           <caption>Chi tiết tiền hoàn do máy chủ xác nhận</caption>
           <thead><tr><th>Sản phẩm</th><th>Lô</th><th>SL trả</th><th>Tình trạng</th><th>Tiền hoàn</th></tr></thead>
           <tbody>
@@ -200,7 +200,7 @@ function CashierReturnPage() {
             ) : (
               <>
                 <div className="table-scroll" tabIndex={0}>
-                  <table className="data-table return-item-table">
+                  <table className="data-table data-table--wide return-item-table">
                     <caption>Sản phẩm và lô còn có thể trả</caption>
                     <thead>
                       <tr>

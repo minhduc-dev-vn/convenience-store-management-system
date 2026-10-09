@@ -61,7 +61,7 @@ function InvoiceDetail({ invoice, isCashier, onSelectReturn }) {
       </dl>
 
       <div className="table-scroll" tabIndex={0}>
-        <table className="data-table invoice-item-table">
+        <table className="data-table data-table--standard invoice-item-table">
           <caption>Hàng hóa trong hóa đơn</caption>
           <thead><tr><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Giảm</th><th>Thành tiền</th><th>Còn được trả</th></tr></thead>
           <tbody>
