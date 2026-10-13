@@ -1788,7 +1788,9 @@ article.workspace-card:hover {
 }
 
 .product-detail-image img {
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   object-position: center;
 }
 
@@ -1847,18 +1849,29 @@ article.workspace-card:hover {
 .product-detail-image {
   display: grid;
   width: 100%;
-  height: 240px;
-  margin-bottom: 18px;
+  height: auto;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
   border: 1px solid var(--line);
   border-radius: 18px;
   color: var(--forest);
-  background: var(--forest-light);
+  background: #fff;
 }
 
 .product-detail-image span {
   font-family: 'DM Sans', sans-serif;
   font-size: 1.5rem;
   font-weight: 800;
+}
+
+.product-detail-list {
+  margin: 14px 0 0;
+  gap: 6px;
+}
+
+.product-detail-list div {
+  padding-bottom: 6px;
+  gap: 12px;
 }
 
 .product-card__body {

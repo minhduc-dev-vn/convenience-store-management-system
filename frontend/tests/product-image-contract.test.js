@@ -38,7 +38,7 @@ test('public product image renders lazily and falls back after an image load err
   assert.match(managerSource, /className="product-form-preview__image"/);
 });
 
-test('public cards use square cover images while shared manager presentation stays unchanged', async () => {
+test('public catalog uses square cover images while shared manager presentation stays unchanged', async () => {
   const styles = await readFile(path.join(sourceRoot, 'assets/app.css'), 'utf8');
   const imageRule = getCssRule(styles, '.product-image img');
   const productCardRule = getCssRule(styles, '.product-card');
@@ -50,6 +50,8 @@ test('public cards use square cover images while shared manager presentation sta
   const thumbnailRule = getCssRule(styles, '.product-thumbnail');
   const previewRule = getCssRule(styles, '.product-form-preview__image');
   const detailRule = getCssRule(styles, '.product-detail-image');
+  const detailListRule = getCssRule(styles, '.product-detail-list');
+  const detailListRowRule = getCssRule(styles, '.product-detail-list div');
 
   assert.match(imageRule, /object-fit:\s*cover\s*;/);
   assert.doesNotMatch(imageRule, /object-fit:\s*contain\s*;/);
@@ -62,7 +64,9 @@ test('public cards use square cover images while shared manager presentation sta
   assert.match(cardImageRule, /height:\s*100%\s*;/);
   assert.match(cardImageRule, /object-fit:\s*cover\s*;/);
   assert.match(cardImageRule, /object-position:\s*center\s*;/);
-  assert.match(detailImageRule, /object-fit:\s*contain\s*;/);
+  assert.match(detailImageRule, /width:\s*100%\s*;/);
+  assert.match(detailImageRule, /height:\s*100%\s*;/);
+  assert.match(detailImageRule, /object-fit:\s*cover\s*;/);
   assert.match(detailImageRule, /object-position:\s*center\s*;/);
 
   assert.match(cardRule, /width:\s*100%\s*;/);
@@ -85,6 +89,18 @@ test('public cards use square cover images while shared manager presentation sta
   assert.doesNotMatch(previewRule, /padding\s*:/);
 
   assert.match(detailRule, /width:\s*100%\s*;/);
-  assert.match(detailRule, /height:\s*240px\s*;/);
+  assert.match(detailRule, /height:\s*auto\s*;/);
+  assert.match(detailRule, /aspect-ratio:\s*1\s*\/\s*1\s*;/);
+  assert.match(detailRule, /overflow:\s*hidden\s*;/);
+  assert.doesNotMatch(detailRule, /height:\s*240px\s*;/);
   assert.doesNotMatch(detailRule, /padding\s*:/);
+
+  assert.match(detailListRule, /margin:\s*14px\s+0\s+0\s*;/);
+  assert.match(detailListRule, /gap:\s*6px\s*;/);
+  assert.match(detailListRowRule, /padding-bottom:\s*6px\s*;/);
+  assert.match(detailListRowRule, /gap:\s*12px\s*;/);
+  assert.match(
+    styles,
+    /\.description-list,\s*\.invoice-totals\s*\{[^}]*margin:\s*24px\s+0\s*;[^}]*gap:\s*12px\s*;/s,
+  );
 });
