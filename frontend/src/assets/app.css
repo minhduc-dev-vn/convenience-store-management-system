@@ -1747,7 +1747,10 @@ article.workspace-card:hover {
 }
 
 .product-card {
+  display: flex;
+  height: 100%;
   overflow: hidden;
+  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: 22px;
   background: var(--surface);
@@ -1756,13 +1759,13 @@ article.workspace-card:hover {
 
 .product-card__visual {
   display: grid;
-  height: 180px;
-  min-height: 180px;
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
   place-items: center;
   color: var(--forest);
-  background:
-    radial-gradient(circle at 78% 22%, rgb(226 130 66 / 26%), transparent 28%),
-    linear-gradient(135deg, var(--forest-light), #f5efe2);
+  background: #fff;
 }
 
 .product-image {
@@ -1778,7 +1781,9 @@ article.workspace-card:hover {
 }
 
 .product-card__visual img {
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   object-position: center;
 }
 
@@ -1857,7 +1862,9 @@ article.workspace-card:hover {
 }
 
 .product-card__body {
-  display: grid;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   padding: 22px;
   gap: 14px;
 }
@@ -1904,6 +1911,7 @@ article.workspace-card:hover {
 
 .product-card__meta {
   display: flex;
+  margin-top: auto;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;

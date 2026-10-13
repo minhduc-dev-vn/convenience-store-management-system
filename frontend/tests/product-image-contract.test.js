@@ -38,12 +38,15 @@ test('public product image renders lazily and falls back after an image load err
   assert.match(managerSource, /className="product-form-preview__image"/);
 });
 
-test('only public catalog images use contain while shared manager presentation stays unchanged', async () => {
+test('public cards use square cover images while shared manager presentation stays unchanged', async () => {
   const styles = await readFile(path.join(sourceRoot, 'assets/app.css'), 'utf8');
   const imageRule = getCssRule(styles, '.product-image img');
+  const productCardRule = getCssRule(styles, '.product-card');
   const cardImageRule = getCssRule(styles, '.product-card__visual img');
   const detailImageRule = getCssRule(styles, '.product-detail-image img');
   const cardRule = getCssRule(styles, '.product-card__visual');
+  const bodyRule = getCssRule(styles, '.product-card__body');
+  const metaRule = getCssRule(styles, '.product-card__meta');
   const thumbnailRule = getCssRule(styles, '.product-thumbnail');
   const previewRule = getCssRule(styles, '.product-form-preview__image');
   const detailRule = getCssRule(styles, '.product-detail-image');
@@ -51,14 +54,27 @@ test('only public catalog images use contain while shared manager presentation s
   assert.match(imageRule, /object-fit:\s*cover\s*;/);
   assert.doesNotMatch(imageRule, /object-fit:\s*contain\s*;/);
 
-  assert.match(cardImageRule, /object-fit:\s*contain\s*;/);
+  assert.match(productCardRule, /display:\s*flex\s*;/);
+  assert.match(productCardRule, /height:\s*100%\s*;/);
+  assert.match(productCardRule, /flex-direction:\s*column\s*;/);
+
+  assert.match(cardImageRule, /width:\s*100%\s*;/);
+  assert.match(cardImageRule, /height:\s*100%\s*;/);
+  assert.match(cardImageRule, /object-fit:\s*cover\s*;/);
   assert.match(cardImageRule, /object-position:\s*center\s*;/);
   assert.match(detailImageRule, /object-fit:\s*contain\s*;/);
   assert.match(detailImageRule, /object-position:\s*center\s*;/);
 
-  assert.match(cardRule, /height:\s*180px\s*;/);
-  assert.match(cardRule, /min-height:\s*180px\s*;/);
+  assert.match(cardRule, /width:\s*100%\s*;/);
+  assert.match(cardRule, /aspect-ratio:\s*1\s*\/\s*1\s*;/);
+  assert.match(cardRule, /overflow:\s*hidden\s*;/);
+  assert.doesNotMatch(cardRule, /(?:min-)?height:\s*180px\s*;/);
   assert.doesNotMatch(cardRule, /padding\s*:/);
+
+  assert.match(bodyRule, /display:\s*flex\s*;/);
+  assert.match(bodyRule, /flex:\s*1\s*;/);
+  assert.match(bodyRule, /flex-direction:\s*column\s*;/);
+  assert.match(metaRule, /margin-top:\s*auto\s*;/);
 
   assert.match(thumbnailRule, /width:\s*52px\s*;/);
   assert.match(thumbnailRule, /height:\s*52px\s*;/);
