@@ -55,39 +55,39 @@ integrationTest('shift reconciliation is net of completed returns by original sh
     text: `
       INSERT INTO dbo.NHAN_VIEN (MaNV, HoTen, SDT, NgayVaoLam, LuongCoBan, TrangThai)
       VALUES
-        (@EmployeeId, N'Reconciliation Cashier', '0899900101', CONVERT(DATE, SYSDATETIME()), 0, 'ACTIVE'),
-        ('RBSRET', N'Return Processing Cashier', '0899900102', CONVERT(DATE, SYSDATETIME()), 0, 'ACTIVE');
+        (@EmployeeId, N'Reconciliation Cashier', '0899900101', CONVERT(DATE, (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'), 0, 'ACTIVE'),
+        ('RBSRET', N'Return Processing Cashier', '0899900102', CONVERT(DATE, (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'), 0, 'ACTIVE');
 
       INSERT INTO dbo.CA_LAM_VIEC
         (MaNV, GioBatDau, GioKetThuc, TienDauCa, TienCuoiCa, TrangThai)
-      VALUES (@EmployeeId, DATEADD(HOUR, -10, SYSDATETIME()), DATEADD(HOUR, -9, SYSDATETIME()), 0, 12000, 'CLOSED');
+      VALUES (@EmployeeId, DATEADD(HOUR, -10, SYSUTCDATETIME()), DATEADD(HOUR, -9, SYSUTCDATETIME()), 0, 12000, 'CLOSED');
       DECLARE @ShiftA BIGINT = SCOPE_IDENTITY();
       INSERT INTO dbo.CA_LAM_VIEC
         (MaNV, GioBatDau, GioKetThuc, TienDauCa, TienCuoiCa, TrangThai)
-      VALUES (@EmployeeId, DATEADD(HOUR, -8, SYSDATETIME()), DATEADD(HOUR, -7, SYSDATETIME()), 1000, 9000, 'CLOSED');
+      VALUES (@EmployeeId, DATEADD(HOUR, -8, SYSUTCDATETIME()), DATEADD(HOUR, -7, SYSUTCDATETIME()), 1000, 9000, 'CLOSED');
       DECLARE @ShiftB BIGINT = SCOPE_IDENTITY();
       INSERT INTO dbo.CA_LAM_VIEC
         (MaNV, GioBatDau, GioKetThuc, TienDauCa, TienCuoiCa, TrangThai)
-      VALUES (@EmployeeId, DATEADD(HOUR, -6, SYSDATETIME()), DATEADD(HOUR, -5, SYSDATETIME()), 0, 0, 'CLOSED');
+      VALUES (@EmployeeId, DATEADD(HOUR, -6, SYSUTCDATETIME()), DATEADD(HOUR, -5, SYSUTCDATETIME()), 0, 0, 'CLOSED');
       DECLARE @ShiftC BIGINT = SCOPE_IDENTITY();
       INSERT INTO dbo.CA_LAM_VIEC
         (MaNV, GioBatDau, GioKetThuc, TienDauCa, TienCuoiCa, TrangThai)
-      VALUES (@EmployeeId, DATEADD(HOUR, -4, SYSDATETIME()), DATEADD(HOUR, -3, SYSDATETIME()), 0, 0, 'CLOSED');
+      VALUES (@EmployeeId, DATEADD(HOUR, -4, SYSUTCDATETIME()), DATEADD(HOUR, -3, SYSUTCDATETIME()), 0, 0, 'CLOSED');
       DECLARE @ShiftD BIGINT = SCOPE_IDENTITY();
       INSERT INTO dbo.CA_LAM_VIEC (MaNV, GioBatDau, TienDauCa, TrangThai)
-      VALUES (@EmployeeId, DATEADD(HOUR, -2, SYSDATETIME()), 1000, 'OPEN');
+      VALUES (@EmployeeId, DATEADD(HOUR, -2, SYSUTCDATETIME()), 1000, 'OPEN');
       DECLARE @ShiftE BIGINT = SCOPE_IDENTITY();
 
       INSERT INTO dbo.HOA_DON
         (MaHD, NgayLap, MaCa, TongTienHang, TongGiamGia, TongThanhToan,
          DiemSuDung, DiemTichLuy, TrangThai)
       VALUES
-        ('RBSAINV', SYSDATETIME(), @ShiftA, 12000, 0, 12000, 0, 0, 'PAID'),
-        ('RBSBINV', SYSDATETIME(), @ShiftB, 12000, 0, 12000, 0, 0, 'PAID'),
-        ('RBSCINV', SYSDATETIME(), @ShiftC, 12000, 0, 12000, 0, 0, 'REFUNDED'),
-        ('RBSDINV', SYSDATETIME(), @ShiftD, 12000, 0, 12000, 0, 0, 'PAID'),
-        ('RBSECSH', SYSDATETIME(), @ShiftE, 12000, 0, 12000, 0, 0, 'PAID'),
-        ('RBSECARD', SYSDATETIME(), @ShiftE, 20000, 0, 20000, 0, 0, 'PAID');
+        ('RBSAINV', SYSUTCDATETIME(), @ShiftA, 12000, 0, 12000, 0, 0, 'PAID'),
+        ('RBSBINV', SYSUTCDATETIME(), @ShiftB, 12000, 0, 12000, 0, 0, 'PAID'),
+        ('RBSCINV', SYSUTCDATETIME(), @ShiftC, 12000, 0, 12000, 0, 0, 'REFUNDED'),
+        ('RBSDINV', SYSUTCDATETIME(), @ShiftD, 12000, 0, 12000, 0, 0, 'PAID'),
+        ('RBSECSH', SYSUTCDATETIME(), @ShiftE, 12000, 0, 12000, 0, 0, 'PAID'),
+        ('RBSECARD', SYSUTCDATETIME(), @ShiftE, 20000, 0, 20000, 0, 0, 'PAID');
 
       INSERT INTO dbo.THANH_TOAN (MaHD, PhuongThuc, SoTien, TrangThai)
       VALUES
@@ -101,11 +101,11 @@ integrationTest('shift reconciliation is net of completed returns by original sh
       INSERT INTO dbo.PHIEU_TRA
         (MaPT, MaHD, MaNV, NgayTra, LyDo, TongTienHoan, TrangThai)
       VALUES
-        ('RBSBPT', 'RBSBINV', @EmployeeId, SYSDATETIME(), N'Partial cash refund', 4000, 'COMPLETED'),
-        ('RBSCPT', 'RBSCINV', @EmployeeId, SYSDATETIME(), N'Full cash refund', 12000, 'COMPLETED'),
-        ('RBSDPT', 'RBSDINV', 'RBSRET', SYSDATETIME(), N'Partial card refund by another cashier', 4000, 'COMPLETED'),
-        ('RBSEPT1', 'RBSECSH', @EmployeeId, SYSDATETIME(), N'Cash return', 4000, 'COMPLETED'),
-        ('RBSEPT2', 'RBSECARD', @EmployeeId, SYSDATETIME(), N'Transfer return', 5000, 'COMPLETED');
+        ('RBSBPT', 'RBSBINV', @EmployeeId, SYSUTCDATETIME(), N'Partial cash refund', 4000, 'COMPLETED'),
+        ('RBSCPT', 'RBSCINV', @EmployeeId, SYSUTCDATETIME(), N'Full cash refund', 12000, 'COMPLETED'),
+        ('RBSDPT', 'RBSDINV', 'RBSRET', SYSUTCDATETIME(), N'Partial card refund by another cashier', 4000, 'COMPLETED'),
+        ('RBSEPT1', 'RBSECSH', @EmployeeId, SYSUTCDATETIME(), N'Cash return', 4000, 'COMPLETED'),
+        ('RBSEPT2', 'RBSECARD', @EmployeeId, SYSUTCDATETIME(), N'Transfer return', 5000, 'COMPLETED');
 
       SELECT @ShiftA AS ShiftA, @ShiftB AS ShiftB, @ShiftC AS ShiftC,
              @ShiftD AS ShiftD, @ShiftE AS ShiftE;

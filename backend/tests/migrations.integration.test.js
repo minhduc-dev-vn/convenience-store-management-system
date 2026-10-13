@@ -88,7 +88,7 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
     assert.equal(freshStatus.trackingTableExists, false);
     assert.deepEqual(
       freshStatus.migrations.map((migration) => migration.status),
-      ['PENDING', 'PENDING'],
+      ['PENDING', 'PENDING', 'PENDING'],
     );
 
     const absentCheck = await pool.request().query(`
@@ -97,17 +97,17 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
     assert.equal(absentCheck.recordset[0].IsAbsent, 1, 'status must not create migration metadata');
 
     const firstRun = await migrate(productionMigrationsDirectory);
-    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED']);
+    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED', 'APPLIED']);
 
     const secondRun = await migrate(productionMigrationsDirectory);
-    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED', 'SKIPPED']);
+    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED', 'SKIPPED', 'SKIPPED']);
 
     const baselineRows = await pool.request().query(`
       SELECT MigrationId FROM dbo.SCHEMA_MIGRATIONS ORDER BY MigrationId;
     `);
     assert.deepEqual(
       baselineRows.recordset.map((row) => row.MigrationId),
-      ['000_baseline', '001_add_product_image_url'],
+      ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
     );
 
     const imageSchema = await pool.request().query(`
@@ -126,6 +126,10 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
       '000_baseline.sql': `${await fs.readFile(path.join(productionMigrationsDirectory, '000_baseline.sql'), 'utf8')}\n-- changed after apply\n`,
       '001_add_product_image_url.sql': await fs.readFile(
         path.join(productionMigrationsDirectory, '001_add_product_image_url.sql'),
+        'utf8',
+      ),
+      '002_fix_business_timezone.sql': await fs.readFile(
+        path.join(productionMigrationsDirectory, '002_fix_business_timezone.sql'),
         'utf8',
       ),
     });

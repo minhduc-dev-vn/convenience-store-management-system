@@ -217,7 +217,7 @@ class AuthRepository extends BaseRepository {
     await this.query({
       text: `
         UPDATE dbo.TAI_KHOAN
-        SET LanDangNhapCuoi = SYSDATETIME()
+        SET LanDangNhapCuoi = SYSUTCDATETIME()
         WHERE MaTK = @AccountId
       `,
       parameters: {

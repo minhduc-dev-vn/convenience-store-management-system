@@ -273,7 +273,7 @@ BEGIN
             MaPT, MaHD, MaNV, NgayTra, LyDo, TongTienHoan, TrangThai
         )
         VALUES (
-            @MaPT, @MaHD, @MaNV, SYSDATETIME(), @LyDo, @TongTienHoan, 'CREATED'
+            @MaPT, @MaHD, @MaNV, SYSUTCDATETIME(), @LyDo, @TongTienHoan, 'CREATED'
         );
 
         INSERT INTO dbo.CHI_TIET_PHIEU_TRA (
@@ -308,7 +308,7 @@ BEGIN
             prepared.MaLo,
             'RETURN',
             prepared.SoLuongTra,
-            SYSDATETIME(),
+            SYSUTCDATETIME(),
             @MaPT,
             @MaNV,
             N'Hoàn kho từ phiếu trả ' + @MaPT

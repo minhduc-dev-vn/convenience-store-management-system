@@ -59,15 +59,29 @@ SELECT
     lot.TrangThai,
     CASE
         WHEN lot.HanSuDung IS NULL THEN NULL
-        ELSE DATEDIFF(DAY, CONVERT(DATE, SYSDATETIME()), lot.HanSuDung)
+        ELSE DATEDIFF(
+            DAY,
+            CONVERT(DATE, (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'),
+            lot.HanSuDung
+        )
     END AS SoNgayConLai,
     CONVERT(BIT, CASE
-        WHEN lot.HanSuDung < CONVERT(DATE, SYSDATETIME()) THEN 1
+        WHEN lot.HanSuDung < CONVERT(
+            DATE,
+            (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+        ) THEN 1
         ELSE 0
     END) AS DaHetHan,
     CONVERT(BIT, CASE
-        WHEN lot.HanSuDung >= CONVERT(DATE, SYSDATETIME())
-         AND lot.HanSuDung <= DATEADD(DAY, 30, CONVERT(DATE, SYSDATETIME())) THEN 1
+        WHEN lot.HanSuDung >= CONVERT(
+                DATE,
+                (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+             )
+         AND lot.HanSuDung <= DATEADD(
+                DAY,
+                30,
+                CONVERT(DATE, (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time')
+             ) THEN 1
         ELSE 0
     END) AS SapHetHan
 FROM dbo.LO_HANG AS lot

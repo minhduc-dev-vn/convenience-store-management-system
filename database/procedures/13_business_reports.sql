@@ -15,7 +15,15 @@ BEGIN
     IF @TuNgay IS NULL OR @DenNgay IS NULL OR @TuNgay > @DenNgay
         THROW 51910, 'A valid inclusive report date range is required.', 1;
 
-    DECLARE @DenNgayKeTiep DATETIME2(0) = DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay));
+    DECLARE
+        @TuNgayUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @TuNgay) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ),
+        @DenNgayKeTiepUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        );
 
     SELECT
         @TuNgay AS TuNgay,
@@ -25,8 +33,8 @@ BEGIN
         COALESCE(SUM(event.TienHoanTra), 0) AS TienHoanTra,
         COALESCE(SUM(event.DoanhThuThuan), 0) AS DoanhThuThuan
     FROM dbo.vw_BAO_CAO_DOANH_THU_SU_KIEN AS event
-    WHERE event.NgayGiaoDich >= @TuNgay
-      AND event.NgayGiaoDich < @DenNgayKeTiep;
+    WHERE event.NgayGiaoDich >= @TuNgayUtc
+      AND event.NgayGiaoDich < @DenNgayKeTiepUtc;
 END;
 GO
 
@@ -43,18 +51,32 @@ BEGIN
     IF @TuNgay IS NULL OR @DenNgay IS NULL OR @TuNgay > @DenNgay
         THROW 51910, 'A valid inclusive report date range is required.', 1;
 
-    DECLARE @DenNgayKeTiep DATETIME2(0) = DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay));
+    DECLARE
+        @TuNgayUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @TuNgay) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ),
+        @DenNgayKeTiepUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        );
 
     SELECT
-        CONVERT(DATE, event.NgayGiaoDich) AS Ngay,
+        business_date.Ngay AS Ngay,
         SUM(event.SoHoaDon) AS SoHoaDonHoanTat,
         SUM(event.DoanhThuGop) AS DoanhThuGop,
         SUM(event.TienHoanTra) AS TienHoanTra,
         SUM(event.DoanhThuThuan) AS DoanhThuThuan
     FROM dbo.vw_BAO_CAO_DOANH_THU_SU_KIEN AS event
-    WHERE event.NgayGiaoDich >= @TuNgay
-      AND event.NgayGiaoDich < @DenNgayKeTiep
-    GROUP BY CONVERT(DATE, event.NgayGiaoDich)
+    CROSS APPLY (VALUES (
+        CONVERT(
+            DATE,
+            (event.NgayGiaoDich AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+        )
+    )) AS business_date (Ngay)
+    WHERE event.NgayGiaoDich >= @TuNgayUtc
+      AND event.NgayGiaoDich < @DenNgayKeTiepUtc
+    GROUP BY business_date.Ngay
     ORDER BY Ngay;
 END;
 GO
@@ -72,7 +94,15 @@ BEGIN
     IF @TuNgay IS NULL OR @DenNgay IS NULL OR @TuNgay > @DenNgay
         THROW 51910, 'A valid inclusive report date range is required.', 1;
 
-    DECLARE @DenNgayKeTiep DATETIME2(0) = DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay));
+    DECLARE
+        @TuNgayUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @TuNgay) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ),
+        @DenNgayKeTiepUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        );
 
     ;WITH CategoryTotals AS (
         SELECT
@@ -84,8 +114,8 @@ BEGIN
             SUM(event.TienHoanTra) AS TienHoanTra,
             SUM(event.DoanhThuThuan) AS DoanhThuThuan
         FROM dbo.vw_BAO_CAO_HANG_HOA_SU_KIEN AS event
-        WHERE event.NgayGiaoDich >= @TuNgay
-          AND event.NgayGiaoDich < @DenNgayKeTiep
+        WHERE event.NgayGiaoDich >= @TuNgayUtc
+          AND event.NgayGiaoDich < @DenNgayKeTiepUtc
         GROUP BY event.MaLoai, event.TenLoai
     )
     SELECT
@@ -129,7 +159,15 @@ BEGIN
     IF @SoLuong IS NULL OR @SoLuong < 1 OR @SoLuong > 100
         THROW 51912, 'Product ranking size must be between 1 and 100.', 1;
 
-    DECLARE @DenNgayKeTiep DATETIME2(0) = DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay));
+    DECLARE
+        @TuNgayUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @TuNgay) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ),
+        @DenNgayKeTiepUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        );
 
     ;WITH ProductActivity AS (
         SELECT
@@ -140,8 +178,8 @@ BEGIN
             SUM(event.TienHoanTra) AS TienHoanTra,
             SUM(event.DoanhThuThuan) AS DoanhThuThuan
         FROM dbo.vw_BAO_CAO_HANG_HOA_SU_KIEN AS event
-        WHERE event.NgayGiaoDich >= @TuNgay
-          AND event.NgayGiaoDich < @DenNgayKeTiep
+        WHERE event.NgayGiaoDich >= @TuNgayUtc
+          AND event.NgayGiaoDich < @DenNgayKeTiepUtc
         GROUP BY event.MaSP
     ), RankedProducts AS (
         SELECT
@@ -215,7 +253,15 @@ BEGIN
     IF @TuNgay IS NULL OR @DenNgay IS NULL OR @TuNgay > @DenNgay
         THROW 51910, 'A valid inclusive report date range is required.', 1;
 
-    DECLARE @DenNgayKeTiep DATETIME2(0) = DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay));
+    DECLARE
+        @TuNgayUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @TuNgay) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ),
+        @DenNgayKeTiepUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        );
 
     SELECT
         @TuNgay AS TuNgay,
@@ -225,8 +271,8 @@ BEGIN
         COALESCE(SUM(CONVERT(BIGINT, receipt.SoLuong)), 0) AS TongSoLuongNhap,
         COALESCE(SUM(receipt.ThanhTien), 0) AS TongChiPhiNhap
     FROM dbo.vw_BAO_CAO_NHAP_HANG_HOP_LE AS receipt
-    WHERE receipt.NgayXacNhan >= @TuNgay
-      AND receipt.NgayXacNhan < @DenNgayKeTiep;
+    WHERE receipt.NgayXacNhan >= @TuNgayUtc
+      AND receipt.NgayXacNhan < @DenNgayKeTiepUtc;
 END;
 GO
 
@@ -243,7 +289,15 @@ BEGIN
     IF @TuNgay IS NULL OR @DenNgay IS NULL OR @TuNgay > @DenNgay
         THROW 51910, 'A valid inclusive report date range is required.', 1;
 
-    DECLARE @DenNgayKeTiep DATETIME2(0) = DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay));
+    DECLARE
+        @TuNgayUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @TuNgay) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ),
+        @DenNgayKeTiepUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        );
 
     SELECT
         receipt.MaNCC,
@@ -252,8 +306,8 @@ BEGIN
         SUM(CONVERT(BIGINT, receipt.SoLuong)) AS TongSoLuongNhap,
         SUM(receipt.ThanhTien) AS TongChiPhiNhap
     FROM dbo.vw_BAO_CAO_NHAP_HANG_HOP_LE AS receipt
-    WHERE receipt.NgayXacNhan >= @TuNgay
-      AND receipt.NgayXacNhan < @DenNgayKeTiep
+    WHERE receipt.NgayXacNhan >= @TuNgayUtc
+      AND receipt.NgayXacNhan < @DenNgayKeTiepUtc
     GROUP BY receipt.MaNCC, receipt.TenNCC
     ORDER BY TongChiPhiNhap DESC, receipt.MaNCC;
 END;
@@ -272,13 +326,21 @@ BEGIN
     IF @TuNgay IS NULL OR @DenNgay IS NULL OR @TuNgay > @DenNgay
         THROW 51910, 'A valid inclusive report date range is required.', 1;
 
-    DECLARE @DenNgayKeTiep DATETIME2(0) = DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay));
+    DECLARE
+        @TuNgayUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @TuNgay) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ),
+        @DenNgayKeTiepUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        );
 
     ;WITH ShiftTotals AS (
         SELECT work_shift.MaNV, COUNT_BIG(*) AS SoCaDaMo
         FROM dbo.CA_LAM_VIEC AS work_shift
-        WHERE work_shift.GioBatDau >= @TuNgay
-          AND work_shift.GioBatDau < @DenNgayKeTiep
+        WHERE work_shift.GioBatDau >= @TuNgayUtc
+          AND work_shift.GioBatDau < @DenNgayKeTiepUtc
         GROUP BY work_shift.MaNV
     ), RevenueTotals AS (
         SELECT
@@ -288,8 +350,8 @@ BEGIN
             SUM(event.TienHoanTra) AS TienHoanTra,
             SUM(event.DoanhThuThuan) AS DoanhThuThuan
         FROM dbo.vw_BAO_CAO_DOANH_THU_SU_KIEN AS event
-        WHERE event.NgayGiaoDich >= @TuNgay
-          AND event.NgayGiaoDich < @DenNgayKeTiep
+        WHERE event.NgayGiaoDich >= @TuNgayUtc
+          AND event.NgayGiaoDich < @DenNgayKeTiepUtc
         GROUP BY event.MaNV
     ), EmployeeKeys AS (
         SELECT MaNV FROM ShiftTotals
@@ -328,7 +390,15 @@ BEGIN
     IF @TuNgay IS NULL OR @DenNgay IS NULL OR @TuNgay > @DenNgay
         THROW 51910, 'A valid inclusive report date range is required.', 1;
 
-    DECLARE @DenNgayKeTiep DATETIME2(0) = DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay));
+    DECLARE
+        @TuNgayUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @TuNgay) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ),
+        @DenNgayKeTiepUtc DATETIME2(0) = CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        );
 
     SELECT
         work_shift.MaCa,
@@ -373,8 +443,8 @@ BEGIN
           AND payment.TrangThai = 'SUCCESS'
           AND payment.PhuongThuc = 'CASH'
     ) AS cash_payment
-    WHERE work_shift.GioBatDau >= @TuNgay
-      AND work_shift.GioBatDau < @DenNgayKeTiep
+    WHERE work_shift.GioBatDau >= @TuNgayUtc
+      AND work_shift.GioBatDau < @DenNgayKeTiepUtc
     ORDER BY work_shift.GioBatDau DESC, work_shift.MaCa DESC;
 END;
 GO

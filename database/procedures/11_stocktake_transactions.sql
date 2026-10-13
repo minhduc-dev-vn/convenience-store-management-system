@@ -60,7 +60,7 @@ BEGIN
             MaKK, NgayKiemKe, MaNV, TrangThai, GhiChu
         )
         VALUES (
-            @MaKK, COALESCE(@NgayKiemKe, SYSDATETIME()), @MaNV, 'DRAFT', @GhiChu
+            @MaKK, COALESCE(@NgayKiemKe, SYSUTCDATETIME()), @MaNV, 'DRAFT', @GhiChu
         );
 
         INSERT INTO dbo.CHI_TIET_KIEM_KE (
@@ -282,7 +282,7 @@ BEGIN
             detail.MaLo,
             'ADJUSTMENT',
             detail.ChenhLech,
-            SYSDATETIME(),
+            SYSUTCDATETIME(),
             @MaKK,
             @MaNV,
             LEFT(CONCAT(N'Điều chỉnh kiểm kê: ', detail.LyDo), 255)

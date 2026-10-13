@@ -135,7 +135,13 @@ AS
         SUM(CONVERT(BIGINT, COALESCE(lot.SoLuongTon, 0))) AS TongTon,
         SUM(CONVERT(BIGINT, CASE
             WHEN lot.TrangThai = 'ACTIVE'
-             AND (lot.HanSuDung IS NULL OR lot.HanSuDung >= CONVERT(DATE, SYSDATETIME()))
+             AND (
+                 lot.HanSuDung IS NULL
+                 OR lot.HanSuDung >= CONVERT(
+                     DATE,
+                     (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+                 )
+             )
                 THEN lot.SoLuongTon
             ELSE 0
         END)) AS TonCoTheBan,
@@ -144,7 +150,13 @@ AS
         END)) AS TonBiKhoa,
         SUM(CONVERT(BIGINT, CASE
             WHEN lot.TrangThai = 'EXPIRED'
-              OR (lot.HanSuDung IS NOT NULL AND lot.HanSuDung < CONVERT(DATE, SYSDATETIME()))
+              OR (
+                  lot.HanSuDung IS NOT NULL
+                  AND lot.HanSuDung < CONVERT(
+                      DATE,
+                      (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+                  )
+              )
                 THEN lot.SoLuongTon
             ELSE 0
         END)) AS TonHetHan,

@@ -21,5 +21,5 @@ GO
 :r .\tests\09_business_report_tests.sql
 :r .\tests\10_integrity_packaging_tests.sql
 
-PRINT 'Full database test suite passed: integrity, receiving, inventory, FEFO sale, return, stocktake, audit and reporting.';
+PRINT 'Full database test suite passed: integrity, receiving, inventory, FEFO sale, return, stocktake, audit, reporting and Vietnam business-time semantics.';
 GO

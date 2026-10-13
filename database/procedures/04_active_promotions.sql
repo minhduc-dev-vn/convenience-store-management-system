@@ -13,7 +13,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SET @ThoiDiem = COALESCE(@ThoiDiem, SYSDATETIME());
+    SET @ThoiDiem = COALESCE(@ThoiDiem, SYSUTCDATETIME());
     SET @MaSP = NULLIF(LTRIM(RTRIM(@MaSP)), '');
 
     IF @GiaTriDonHang IS NOT NULL AND @GiaTriDonHang < 0

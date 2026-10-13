@@ -277,10 +277,10 @@ async function runLocalBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED']);
+    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED', 'APPLIED']);
     assert.deepEqual(
       await readAppliedMigrationIds(pool),
-      ['000_baseline', '001_add_product_image_url'],
+      ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
     );
   } finally {
     await pool.close().catch(() => {});
@@ -303,10 +303,10 @@ async function runLocalBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(reapplied.results.map((migration) => migration.action), ['APPLIED', 'APPLIED']);
+    assert.deepEqual(reapplied.results.map((migration) => migration.action), ['APPLIED', 'APPLIED', 'APPLIED']);
     assert.deepEqual(
       await readAppliedMigrationIds(pool),
-      ['000_baseline', '001_add_product_image_url'],
+      ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
     );
   } finally {
     await pool.close().catch(() => {});
@@ -332,10 +332,10 @@ async function runProductionBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED']);
+    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED', 'APPLIED']);
     assert.deepEqual(
       await readAppliedMigrationIds(pool),
-      ['000_baseline', '001_add_product_image_url'],
+      ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
     );
 
     const secondRun = await runMigrations({
@@ -346,7 +346,7 @@ async function runProductionBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED', 'SKIPPED']);
+    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED', 'SKIPPED', 'SKIPPED']);
 
     const migratedState = await readBootstrapState(pool);
     assert.equal(migratedState.counts.CoreTableCount, 23);

@@ -32,7 +32,16 @@ BEGIN
     IF @KichThuocTrang < 1 OR @KichThuocTrang > 100
         THROW 51812, 'Audit page size must be between 1 and 100.', 1;
 
-    DECLARE @Offset BIGINT = CONVERT(BIGINT, @SoTrang - 1) * @KichThuocTrang;
+    DECLARE
+        @Offset BIGINT = CONVERT(BIGINT, @SoTrang - 1) * @KichThuocTrang,
+        @TuNgayUtc DATETIME2(0) = CASE WHEN @TuNgay IS NULL THEN NULL ELSE CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @TuNgay) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ) END,
+        @DenNgayKeTiepUtc DATETIME2(0) = CASE WHEN @DenNgay IS NULL THEN NULL ELSE CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        ) END;
 
     IF @Offset > 2147483647
         THROW 51813, 'Audit page offset is too large.', 1;
@@ -57,8 +66,8 @@ BEGIN
         audit_log.DiaChiIP,
         COUNT_BIG(*) OVER () AS TongSoBanGhi
     FROM dbo.vw_NHAT_KY_HE_THONG_CHI_TIET AS audit_log
-    WHERE (@TuNgay IS NULL OR audit_log.ThoiGian >= CONVERT(DATETIME2(0), @TuNgay))
-      AND (@DenNgay IS NULL OR audit_log.ThoiGian < DATEADD(DAY, 1, CONVERT(DATETIME2(0), @DenNgay)))
+    WHERE (@TuNgayUtc IS NULL OR audit_log.ThoiGian >= @TuNgayUtc)
+      AND (@DenNgayKeTiepUtc IS NULL OR audit_log.ThoiGian < @DenNgayKeTiepUtc)
       AND (@TenDangNhap IS NULL OR audit_log.TenDangNhap = @TenDangNhap)
       AND (@HanhDong IS NULL OR audit_log.HanhDong = @HanhDong)
       AND (@TenBang IS NULL OR audit_log.TenBang = @TenBang)

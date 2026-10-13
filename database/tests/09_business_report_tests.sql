@@ -408,6 +408,148 @@ IF NOT EXISTS (
 )
     THROW 52913, 'Shift revenue/history or cash reconciliation output is incorrect.', 1;
 
+-- Vietnam business-day boundary regression (UTC+07): 17:00 UTC starts the next local day.
+DECLARE @TimezoneShift BIGINT;
+DECLARE @NextBusinessShift BIGINT;
+DECLARE @TimezoneShifts TABLE (SequenceNumber INT IDENTITY(1,1), MaCa BIGINT);
+
+INSERT INTO dbo.CA_LAM_VIEC (
+    MaNV, GioBatDau, GioKetThuc, TienDauCa, TienCuoiCa, TrangThai, GhiChu
+)
+OUTPUT inserted.MaCa INTO @TimezoneShifts (MaCa)
+VALUES
+    ('C45CA001', '2026-10-09T17:00:00', '2026-10-10T16:59:59', 0, 900, 'CLOSED', N'UTC boundary maps to Vietnam 2026-10-10'),
+    ('C45CA002', '2026-10-10T17:00:00', '2026-10-11T01:00:00', 0, 0, 'CLOSED', N'UTC boundary maps to Vietnam 2026-10-11');
+
+SELECT @TimezoneShift = MaCa FROM @TimezoneShifts WHERE SequenceNumber = 1;
+SELECT @NextBusinessShift = MaCa FROM @TimezoneShifts WHERE SequenceNumber = 2;
+
+INSERT INTO dbo.HOA_DON (
+    MaHD, NgayLap, MaCa, MaKH, TongTienHang, TongGiamGia,
+    TongThanhToan, DiemSuDung, DiemTichLuy, TrangThai, GhiChu
+)
+VALUES
+    ('C45TZA', '2026-10-09T16:59:59', @TimezoneShift, NULL, 100, 0, 100, 0, 0, 'PAID', N'Vietnam business date 2026-10-09'),
+    ('C45TZB', '2026-10-09T17:00:00', @TimezoneShift, NULL, 200, 0, 200, 0, 0, 'PAID', N'Exact Vietnam day start'),
+    ('C45TZC', '2026-10-09T17:00:01', @TimezoneShift, NULL, 300, 0, 300, 0, 0, 'PAID', N'After Vietnam day start'),
+    ('C45TZ9', '2026-10-09T17:09:00', @TimezoneShift, NULL, 90, 0, 90, 0, 0, 'PAID', N'Original 00:09 Vietnam production pattern'),
+    ('C45TZD', '2026-10-10T16:59:59', @TimezoneShift, NULL, 400, 0, 400, 0, 0, 'PAID', N'Last second of Vietnam day'),
+    ('C45TZE', '2026-10-10T17:00:00', @NextBusinessShift, NULL, 500, 0, 500, 0, 0, 'PAID', N'First second of next Vietnam day');
+
+INSERT INTO dbo.PHIEU_TRA (MaPT, MaHD, MaNV, NgayTra, LyDo, TongTienHoan, TrangThai)
+VALUES (
+    'C45TZR', 'C45TZB', 'C45CA001', '2026-10-10T17:00:00',
+    N'Refund at exact next Vietnam day start', 50, 'COMPLETED'
+);
+
+INSERT INTO dbo.PHIEU_NHAP (
+    MaPN, NgayNhap, MaNV, MaNCC, TongTien, TrangThai, NgayXacNhan, GhiChu
+)
+VALUES
+    ('C45TZPNB', '2026-10-09T16:00:00', 'C45WH001', 'C45NCC01', 10, 'CONFIRMED', '2026-10-09T17:00:00', N'Exact Vietnam day start'),
+    ('C45TZPNE', '2026-10-10T16:00:00', 'C45WH001', 'C45NCC01', 20, 'CONFIRMED', '2026-10-10T17:00:00', N'Exact next Vietnam day start');
+
+INSERT INTO dbo.CHI_TIET_PHIEU_NHAP (MaPN, MaLo, SoLuong, DonGiaNhap)
+VALUES
+    ('C45TZPNB', 'C45L001', 1, 10),
+    ('C45TZPNE', 'C45L001', 1, 20);
+
+DECLARE @TimezoneRevenue TABLE (
+    TuNgay DATE,
+    DenNgay DATE,
+    SoHoaDonHoanTat BIGINT,
+    DoanhThuGop DECIMAL(38,2),
+    TienHoanTra DECIMAL(38,2),
+    DoanhThuThuan DECIMAL(38,2)
+);
+
+INSERT INTO @TimezoneRevenue
+EXEC dbo.usp_BAO_CAO_DoanhThuTongQuan @TuNgay = '2026-10-10', @DenNgay = '2026-10-10';
+
+IF NOT EXISTS (
+    SELECT 1 FROM @TimezoneRevenue
+    WHERE SoHoaDonHoanTat = 4 AND DoanhThuGop = 990
+      AND TienHoanTra = 0 AND DoanhThuThuan = 990
+)
+    THROW 52918, 'Vietnam report day did not include exactly the UTC 17:00:00 through next-day 16:59:59 events.', 1;
+
+DELETE FROM @TimezoneRevenue;
+INSERT INTO @TimezoneRevenue
+EXEC dbo.usp_BAO_CAO_DoanhThuTongQuan @TuNgay = '2026-10-11', @DenNgay = '2026-10-11';
+
+IF NOT EXISTS (
+    SELECT 1 FROM @TimezoneRevenue
+    WHERE SoHoaDonHoanTat = 1 AND DoanhThuGop = 500
+      AND TienHoanTra = 50 AND DoanhThuThuan = 450
+)
+    THROW 52919, 'Exact UTC 17:00 events were not assigned to the next Vietnam business day.', 1;
+
+DECLARE @TimezoneTrend TABLE (
+    Ngay DATE,
+    SoHoaDonHoanTat BIGINT,
+    DoanhThuGop DECIMAL(38,2),
+    TienHoanTra DECIMAL(38,2),
+    DoanhThuThuan DECIMAL(38,2)
+);
+
+INSERT INTO @TimezoneTrend
+EXEC dbo.usp_BAO_CAO_XuHuongDoanhThu @TuNgay = '2026-10-10', @DenNgay = '2026-10-10';
+
+IF (SELECT COUNT(*) FROM @TimezoneTrend) <> 1
+   OR NOT EXISTS (
+        SELECT 1 FROM @TimezoneTrend
+        WHERE Ngay = '2026-10-10' AND SoHoaDonHoanTat = 4
+          AND DoanhThuGop = 990 AND TienHoanTra = 0 AND DoanhThuThuan = 990
+   )
+    THROW 52920, 'Revenue trend did not expose the canonical Vietnam business date.', 1;
+
+DECLARE @TimezoneReceiving TABLE (
+    TuNgay DATE,
+    DenNgay DATE,
+    SoPhieuNhap BIGINT,
+    SoNhaCungCap BIGINT,
+    TongSoLuongNhap BIGINT,
+    TongChiPhiNhap DECIMAL(38,2)
+);
+
+INSERT INTO @TimezoneReceiving
+EXEC dbo.usp_BAO_CAO_NhapHangTongQuan @TuNgay = '2026-10-10', @DenNgay = '2026-10-10';
+
+IF NOT EXISTS (
+    SELECT 1 FROM @TimezoneReceiving
+    WHERE SoPhieuNhap = 1 AND SoNhaCungCap = 1
+      AND TongSoLuongNhap = 1 AND TongChiPhiNhap = 10
+)
+    THROW 52921, 'Receiving report did not use the Vietnam business-day UTC boundaries.', 1;
+
+DECLARE @TimezoneEmployee TABLE (
+    MaNV VARCHAR(10),
+    TenNhanVien NVARCHAR(100),
+    SoCaDaMo BIGINT,
+    SoHoaDonHoanTat BIGINT,
+    DoanhThuGop DECIMAL(38,2),
+    TienHoanTra DECIMAL(38,2),
+    DoanhThuThuan DECIMAL(38,2)
+);
+
+INSERT INTO @TimezoneEmployee
+EXEC dbo.usp_BAO_CAO_DoanhThuNhanVien @TuNgay = '2026-10-10', @DenNgay = '2026-10-10';
+
+IF NOT EXISTS (
+    SELECT 1 FROM @TimezoneEmployee
+    WHERE MaNV = 'C45CA001' AND SoCaDaMo = 1 AND SoHoaDonHoanTat = 4
+      AND DoanhThuGop = 990 AND TienHoanTra = 0 AND DoanhThuThuan = 990
+)
+    THROW 52922, 'Employee report did not use the Vietnam business-day UTC boundaries.', 1;
+
+DELETE FROM @ShiftRevenue;
+INSERT INTO @ShiftRevenue
+EXEC dbo.usp_BAO_CAO_CaLamViec @TuNgay = '2026-10-10', @DenNgay = '2026-10-10';
+
+IF (SELECT COUNT(*) FROM @ShiftRevenue WHERE MaCa IN (@TimezoneShift, @NextBusinessShift)) <> 1
+   OR NOT EXISTS (SELECT 1 FROM @ShiftRevenue WHERE MaCa = @TimezoneShift)
+    THROW 52923, 'Shift report did not assign exact UTC 17:00 starts to the correct Vietnam business date.', 1;
+
 DECLARE @PerformanceStart DATETIME2(7) = SYSDATETIME();
 DECLARE @PerformanceResult TABLE (
     TuNgay DATE,
@@ -435,5 +577,5 @@ IF EXISTS (SELECT 1 FROM dbo.HOA_DON WHERE MaHD LIKE 'C45%')
    OR EXISTS (SELECT 1 FROM dbo.NHAN_VIEN WHERE MaNV LIKE 'C45%')
     THROW 52917, 'C45 report fixtures were not rolled back completely.', 1;
 
-PRINT 'C45 business-report tests passed: revenue/refunds, inclusive dates, product/category ranking, inventory value, receiving, employee/shift totals, validation, indexes and performance smoke.';
+PRINT 'C45 business-report tests passed: revenue/refunds, Vietnam business-day boundaries, product/category ranking, inventory value, receiving, employee/shift totals, validation, indexes and performance smoke.';
 GO

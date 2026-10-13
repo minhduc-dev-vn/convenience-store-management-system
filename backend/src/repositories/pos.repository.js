@@ -24,7 +24,13 @@ const SELLABLE_PRODUCT_CTE = `
       ON lot.MaSP = product.MaSP
      AND lot.TrangThai = 'ACTIVE'
      AND lot.SoLuongTon > 0
-     AND (lot.HanSuDung IS NULL OR lot.HanSuDung > CONVERT(DATE, SYSDATETIME()))
+     AND (
+       lot.HanSuDung IS NULL
+       OR lot.HanSuDung > CONVERT(
+         DATE,
+         (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+       )
+     )
     WHERE product.TrangThai = 'ACTIVE'
     GROUP BY
       product.MaSP, product.TenSP, product.MaVach, product.DonViTinh,
@@ -249,7 +255,7 @@ class PosRepository extends BaseRepository {
       text: `
         UPDATE dbo.CA_LAM_VIEC
         SET
-          GioKetThuc = SYSDATETIME(),
+          GioKetThuc = SYSUTCDATETIME(),
           TienCuoiCa = @ClosingCash,
           TrangThai = 'CLOSED',
           GhiChu = COALESCE(@Note, GhiChu)
@@ -319,7 +325,13 @@ class PosRepository extends BaseRepository {
             CASE
               WHEN lot.TrangThai = 'ACTIVE'
                AND lot.SoLuongTon > 0
-               AND (lot.HanSuDung IS NULL OR lot.HanSuDung > CONVERT(DATE, SYSDATETIME()))
+               AND (
+                 lot.HanSuDung IS NULL
+                 OR lot.HanSuDung > CONVERT(
+                   DATE,
+                   (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+                 )
+               )
                 THEN CONVERT(BIGINT, lot.SoLuongTon)
               ELSE CONVERT(BIGINT, 0)
             END

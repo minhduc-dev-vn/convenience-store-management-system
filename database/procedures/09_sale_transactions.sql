@@ -172,7 +172,12 @@ BEGIN
 
         DECLARE
             @MaNV VARCHAR(10),
-            @ThoiGian DATETIME2(0) = SYSDATETIME();
+            @ThoiGian DATETIME2(0) = SYSUTCDATETIME();
+
+        DECLARE @NgayNghiepVu DATE = CONVERT(
+            DATE,
+            (@ThoiGian AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+        );
 
         SELECT @MaNV = work_shift.MaNV
         FROM dbo.CA_LAM_VIEC AS work_shift WITH (UPDLOCK, HOLDLOCK)
@@ -386,7 +391,7 @@ BEGIN
             WHERE lot.MaSP = @MaSP
               AND lot.TrangThai = 'ACTIVE'
               AND lot.SoLuongTon > 0
-              AND (lot.HanSuDung IS NULL OR lot.HanSuDung > CONVERT(DATE, @ThoiGian));
+              AND (lot.HanSuDung IS NULL OR lot.HanSuDung > @NgayNghiepVu);
 
             IF @TongTonKhaDung < @SoLuongYeuCau
             BEGIN
@@ -403,7 +408,7 @@ BEGIN
                 WHERE lot.MaSP = @MaSP
                   AND lot.TrangThai = 'ACTIVE'
                   AND lot.SoLuongTon > 0
-                  AND (lot.HanSuDung IS NULL OR lot.HanSuDung > CONVERT(DATE, @ThoiGian))
+                  AND (lot.HanSuDung IS NULL OR lot.HanSuDung > @NgayNghiepVu)
                 ORDER BY
                     CASE WHEN lot.HanSuDung IS NULL THEN 1 ELSE 0 END,
                     lot.HanSuDung,

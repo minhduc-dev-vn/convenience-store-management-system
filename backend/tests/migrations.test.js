@@ -80,11 +80,11 @@ test('migration discovery ignores the template and orders strict filenames', asy
   });
 });
 
-test('repository migrations keep baseline first and add product image URL incrementally', async () => {
+test('repository migrations keep baseline first and add incremental product image and timezone fixes', async () => {
   const migrations = await discoverMigrations(path.join(repositoryRoot, 'database/migrations'));
   assert.deepEqual(
     migrations.map((migration) => migration.id),
-    ['000_baseline', '001_add_product_image_url'],
+    ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
   );
 
   const productImageMigration = migrations[1].sqlText;
@@ -92,6 +92,18 @@ test('repository migrations keep baseline first and add product image URL increm
   assert.match(productImageMigration, /CREATE OR ALTER VIEW dbo\.vw_SAN_PHAM_DANH_MUC/i);
   assert.match(productImageMigration, /product\.ImageUrl/i);
   assert.doesNotMatch(productImageMigration, /^\s*GO\s*$/im);
+
+  const timezoneMigration = migrations[2].sqlText;
+  assert.match(timezoneMigration, /SYSUTCDATETIME\(\)/i);
+  assert.match(timezoneMigration, /SE Asia Standard Time/i);
+  assert.match(timezoneMigration, /CREATE OR ALTER PROCEDURE dbo\.usp_BAO_CAO_XuHuongDoanhThu/i);
+  assert.match(timezoneMigration, /CREATE OR ALTER PROCEDURE dbo\.usp_PHIEU_NHAP_XacNhan/i);
+  assert.doesNotMatch(timezoneMigration, /^\s*GO\s*$/im);
+  const timezoneMigrationPreamble = timezoneMigration.split('-- Module definitions')[0];
+  assert.doesNotMatch(
+    timezoneMigrationPreamble,
+    /UPDATE\s+dbo\.(HOA_DON|THANH_TOAN|PHIEU_TRA|CA_LAM_VIEC)/i,
+  );
 });
 
 test('migration checksum canonicalizes line endings and UTF-8 BOM without hiding SQL changes', () => {

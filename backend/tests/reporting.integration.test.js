@@ -163,6 +163,53 @@ integrationTest('manager reporting APIs return the C45 fixture and enforce valid
       );
       INSERT INTO dbo.CHI_TIET_PHIEU_NHAP (MaPN, MaLo, SoLuong, DonGiaNhap)
       VALUES ('C46PN001', 'C46L002', 10, 20);
+
+      DECLARE @TimezoneShiftId BIGINT;
+      INSERT INTO dbo.CA_LAM_VIEC (
+        MaNV, GioBatDau, GioKetThuc, TienDauCa, TienCuoiCa, TrangThai, GhiChu
+      ) VALUES (
+        'C46CASH', '2026-10-09T17:00:00', '2026-10-10T16:59:59',
+        0, 900, 'CLOSED', N'C46 Vietnam business-day boundary shift'
+      );
+      SET @TimezoneShiftId = SCOPE_IDENTITY();
+
+      DECLARE @NextBusinessShiftId BIGINT;
+      INSERT INTO dbo.CA_LAM_VIEC (
+        MaNV, GioBatDau, GioKetThuc, TienDauCa, TienCuoiCa, TrangThai, GhiChu
+      ) VALUES (
+        'C46CASH', '2026-10-10T17:00:00', '2026-10-11T01:00:00',
+        0, 0, 'CLOSED', N'C46 next Vietnam business-day boundary shift'
+      );
+      SET @NextBusinessShiftId = SCOPE_IDENTITY();
+
+      INSERT INTO dbo.HOA_DON (
+        MaHD, NgayLap, MaCa, MaKH, TongTienHang, TongGiamGia,
+        TongThanhToan, DiemSuDung, DiemTichLuy, TrangThai, GhiChu
+      ) VALUES
+        ('C46TZA', '2026-10-09T16:59:59', @TimezoneShiftId, NULL, 100, 0, 100, 0, 0, 'PAID', N'Vietnam date 2026-10-09'),
+        ('C46TZB', '2026-10-09T17:00:00', @TimezoneShiftId, NULL, 200, 0, 200, 0, 0, 'PAID', N'Exact Vietnam day start'),
+        ('C46TZC', '2026-10-09T17:00:01', @TimezoneShiftId, NULL, 300, 0, 300, 0, 0, 'PAID', N'After Vietnam day start'),
+        ('C46TZ9', '2026-10-09T17:09:00', @TimezoneShiftId, NULL, 90, 0, 90, 0, 0, 'PAID', N'Original 00:09 Vietnam production pattern'),
+        ('C46TZD', '2026-10-10T16:59:59', @TimezoneShiftId, NULL, 400, 0, 400, 0, 0, 'PAID', N'Last second of Vietnam day'),
+        ('C46TZE', '2026-10-10T17:00:00', @NextBusinessShiftId, NULL, 500, 0, 500, 0, 0, 'PAID', N'Next Vietnam day start');
+
+      INSERT INTO dbo.PHIEU_TRA (
+        MaPT, MaHD, MaNV, NgayTra, LyDo, TongTienHoan, TrangThai
+      ) VALUES (
+        'C46TZR', 'C46TZB', 'C46CASH', '2026-10-10T17:00:00',
+        N'C46 refund at next Vietnam day start', 50, 'COMPLETED'
+      );
+
+      INSERT INTO dbo.PHIEU_NHAP (
+        MaPN, NgayNhap, MaNV, MaNCC, TongTien, TrangThai, NgayXacNhan, GhiChu
+      ) VALUES
+        ('C46TZPNB', '2026-10-09T16:00:00', 'C46WARE', 'C46NCC01', 10, 'CONFIRMED', '2026-10-09T17:00:00', N'Exact Vietnam day start'),
+        ('C46TZPNE', '2026-10-10T16:00:00', 'C46WARE', 'C46NCC01', 20, 'CONFIRMED', '2026-10-10T17:00:00', N'Next Vietnam day start');
+
+      INSERT INTO dbo.CHI_TIET_PHIEU_NHAP (MaPN, MaLo, SoLuong, DonGiaNhap)
+      VALUES
+        ('C46TZPNB', 'C46L001', 1, 10),
+        ('C46TZPNE', 'C46L001', 1, 20);
     `,
     parameters: {
       PasswordHash: { type: sql.VarChar(255), value: passwordHash },
@@ -257,4 +304,88 @@ integrationTest('manager reporting APIs return the C45 fixture and enforce valid
   );
   assert.equal(result.response.status, 400);
   assert.equal(result.payload.error.code, 'VALIDATION_ERROR');
+
+  result = await requestJson(
+    baseUrl,
+    '/api/invoices?from=2026-10-10&to=2026-10-10&page=1&pageSize=100',
+    managerToken,
+  );
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(
+    result.payload.data.items.map((invoice) => invoice.invoiceId).sort(),
+    ['C46TZ9', 'C46TZB', 'C46TZC', 'C46TZD'],
+  );
+  assert.equal(
+    result.payload.data.items.find((invoice) => invoice.invoiceId === 'C46TZB').issuedAt,
+    '2026-10-09T17:00:00.000Z',
+  );
+  assert.equal(
+    result.payload.data.items.find((invoice) => invoice.invoiceId === 'C46TZ9').issuedAt,
+    '2026-10-09T17:09:00.000Z',
+  );
+
+  result = await requestJson(
+    baseUrl,
+    '/api/invoices?from=2026-10-09&to=2026-10-09&page=1&pageSize=100',
+    managerToken,
+  );
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.payload.data.items.map((invoice) => invoice.invoiceId), ['C46TZA']);
+
+  result = await requestJson(
+    baseUrl,
+    '/api/admin/reports/revenue?from=2026-10-10&to=2026-10-10',
+    managerToken,
+  );
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.payload.data.summary, {
+    from: '2026-10-10', to: '2026-10-10', completedInvoiceCount: 4,
+    grossRevenue: 990, refundAmount: 0, netRevenue: 990,
+  });
+  assert.deepEqual(result.payload.data.trend, [{
+    date: '2026-10-10', completedInvoiceCount: 4,
+    grossRevenue: 990, refundAmount: 0, netRevenue: 990,
+  }]);
+
+  result = await requestJson(
+    baseUrl,
+    '/api/admin/reports/revenue?from=2026-10-11&to=2026-10-11',
+    managerToken,
+  );
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.payload.data.summary, {
+    from: '2026-10-11', to: '2026-10-11', completedInvoiceCount: 1,
+    grossRevenue: 500, refundAmount: 50, netRevenue: 450,
+  });
+
+  result = await requestJson(
+    baseUrl,
+    '/api/admin/reports/receiving?from=2026-10-10&to=2026-10-10&page=1&pageSize=5',
+    managerToken,
+  );
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.summary.confirmedReceiptCount, 1);
+  assert.equal(result.payload.data.summary.receivingCost, 10);
+
+  result = await requestJson(
+    baseUrl,
+    '/api/admin/reports/employees?from=2026-10-10&to=2026-10-10&page=1&pageSize=5',
+    managerToken,
+  );
+  assert.equal(result.response.status, 200);
+  const timezoneEmployee = result.payload.data.items.find(
+    (employee) => employee.employeeId === 'C46CASH',
+  );
+  assert.equal(timezoneEmployee.openedShiftCount, 1);
+  assert.equal(timezoneEmployee.completedInvoiceCount, 4);
+  assert.equal(timezoneEmployee.netRevenue, 990);
+
+  result = await requestJson(
+    baseUrl,
+    '/api/admin/reports/shifts?from=2026-10-10&to=2026-10-10&page=1&pageSize=5',
+    managerToken,
+  );
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.pagination.totalItems, 1);
+  assert.equal(result.payload.data.items[0].openedAt, '2026-10-09T17:00:00.000Z');
 });

@@ -20,6 +20,15 @@ Thư mục này chứa các thay đổi schema gia tăng dùng sau khi database 
 
 - `000_baseline.sql`: xác minh và ghi nhận baseline production ban đầu; không được chỉnh sửa sau khi đã apply.
 - `001_add_product_image_url.sql`: thêm nullable `SAN_PHAM.ImageUrl VARCHAR(500)` và cập nhật `vw_SAN_PHAM_DANH_MUC` để trả URL ảnh sản phẩm. Migration không seed URL và không lưu dữ liệu ảnh nhị phân.
+- `002_fix_business_timezone.sql`: chuẩn hóa timestamp nghiệp vụ mới về UTC, chuyển khoảng ngày nghiệp vụ Việt Nam (`SE Asia Standard Time`) sang biên UTC trước khi lọc, và nhóm báo cáo theo ngày Việt Nam. Migration chỉ cập nhật default/module; không sửa timestamp lịch sử.
+
+## Quy ước thời gian nghiệp vụ
+
+- Các cột `DATETIME2` biểu diễn thời điểm được lưu theo UTC và API tuần tự hóa thành UTC ISO timestamp.
+- Các cột `DATE` vẫn là giá trị ngày thuần túy, không tự gắn múi giờ.
+- Khoảng ngày do người dùng nhập là ngày nghiệp vụ Việt Nam. Ví dụ `2026-10-10` tương ứng nửa khoảng UTC `[2026-10-09 17:00:00, 2026-10-10 17:00:00)`.
+- SQL dùng timezone có tên `SE Asia Standard Time`; điều kiện `WHERE` so sánh trực tiếp cột UTC với biên UTC để giữ khả năng dùng index.
+- Dữ liệu lịch sử không được viết lại. Dữ liệu Azure SQL hiện hữu được diễn giải theo UTC như cách API đã tuần tự hóa và frontend đang hiển thị.
 
 Quy trình database development/test mới:
 

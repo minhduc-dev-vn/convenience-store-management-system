@@ -81,21 +81,28 @@ integrationTest('invoice search/detail and close-shift reconciliation enforce C3
   const passwordHash = await bcrypt.hash(password, 4);
   const fixture = await repository.query({
     text: `
-      DECLARE @FixtureDate DATE = CONVERT(DATE, SYSDATETIME());
+      DECLARE @FixtureDate DATE = CONVERT(
+        DATE,
+        (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+      );
       DECLARE @FixtureTime DATETIME2(0) =
-        DATEADD(HOUR, 12, CONVERT(DATETIME2(0), @FixtureDate));
+        CONVERT(
+          DATETIME2(0),
+          (DATEADD(HOUR, 12, CONVERT(DATETIME2(0), @FixtureDate))
+            AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+        );
 
       INSERT INTO dbo.NHAN_VIEN (
         MaNV, HoTen, SDT, NgayVaoLam, LuongCoBan, TrangThai
       ) VALUES
-        ('C34CASH1', N'C34 Cashier One', '0833400101', CONVERT(DATE, SYSDATETIME()), 0, 'ACTIVE'),
-        ('C34CASH2', N'C34 Cashier Two', '0833400102', CONVERT(DATE, SYSDATETIME()), 0, 'ACTIVE'),
-        ('C34MGR', N'C34 Manager', '0833400103', CONVERT(DATE, SYSDATETIME()), 0, 'ACTIVE'),
-        ('C34WARE', N'C34 Warehouse', '0833400104', CONVERT(DATE, SYSDATETIME()), 0, 'ACTIVE');
+        ('C34CASH1', N'C34 Cashier One', '0833400101', @FixtureDate, 0, 'ACTIVE'),
+        ('C34CASH2', N'C34 Cashier Two', '0833400102', @FixtureDate, 0, 'ACTIVE'),
+        ('C34MGR', N'C34 Manager', '0833400103', @FixtureDate, 0, 'ACTIVE'),
+        ('C34WARE', N'C34 Warehouse', '0833400104', @FixtureDate, 0, 'ACTIVE');
 
       INSERT INTO dbo.KHACH_HANG (
         MaKH, HoTen, SDT, DiemTichLuy, NgayDangKy, TrangThai
-      ) VALUES ('C34CUST', N'C34 Customer', '0833400105', 0, SYSDATETIME(), 'ACTIVE');
+      ) VALUES ('C34CUST', N'C34 Customer', '0833400105', 0, SYSUTCDATETIME(), 'ACTIVE');
 
       INSERT INTO dbo.TAI_KHOAN (
         TenDangNhap, MatKhauHash, MaVaiTro, MaNV, MaKH, TrangThai
@@ -114,15 +121,15 @@ integrationTest('invoice search/detail and close-shift reconciliation enforce C3
       INSERT INTO dbo.LO_HANG (
         MaLo, MaSP, SoLo, NgaySanXuat, HanSuDung, GiaNhap, SoLuongTon, TrangThai
       ) VALUES (
-        'C34LOT001', 'C34P001', 'C34-BATCH-1', DATEADD(DAY, -10, CONVERT(DATE, SYSDATETIME())),
-        DATEADD(DAY, 30, CONVERT(DATE, SYSDATETIME())), 5000, 10, 'ACTIVE'
+        'C34LOT001', 'C34P001', 'C34-BATCH-1', DATEADD(DAY, -10, @FixtureDate),
+        DATEADD(DAY, 30, @FixtureDate), 5000, 10, 'ACTIVE'
       );
 
       INSERT INTO dbo.CA_LAM_VIEC (MaNV, GioBatDau, TienDauCa, TrangThai, GhiChu)
-      VALUES ('C34CASH1', DATEADD(HOUR, -2, SYSDATETIME()), 100000, 'OPEN', N'Ca C34');
+      VALUES ('C34CASH1', DATEADD(HOUR, -2, SYSUTCDATETIME()), 100000, 'OPEN', N'Ca C34');
       DECLARE @ShiftOne BIGINT = SCOPE_IDENTITY();
       INSERT INTO dbo.CA_LAM_VIEC (MaNV, GioBatDau, TienDauCa, TrangThai)
-      VALUES ('C34CASH2', DATEADD(HOUR, -1, SYSDATETIME()), 50000, 'OPEN');
+      VALUES ('C34CASH2', DATEADD(HOUR, -1, SYSUTCDATETIME()), 50000, 'OPEN');
       DECLARE @ShiftTwo BIGINT = SCOPE_IDENTITY();
 
       INSERT INTO dbo.HOA_DON (

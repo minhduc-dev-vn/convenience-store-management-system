@@ -60,6 +60,7 @@ function getDatabaseSettings() {
     encrypt: readBoolean('DB_ENCRYPT', true),
     trustServerCertificate: readBoolean('DB_TRUST_SERVER_CERTIFICATE', false),
     enableArithAbort: true,
+    useUTC: true,
   };
 
   let server = host;

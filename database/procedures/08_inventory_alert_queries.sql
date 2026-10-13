@@ -20,7 +20,10 @@ BEGIN
     SET @TuKhoa = NULLIF(LTRIM(RTRIM(@TuKhoa)), N'');
     SET @MaLoai = NULLIF(LTRIM(RTRIM(@MaLoai)), '');
     SET @CheDo = UPPER(COALESCE(NULLIF(LTRIM(RTRIM(@CheDo)), ''), 'ALL'));
-    SET @NgayThamChieu = COALESCE(@NgayThamChieu, CONVERT(DATE, SYSDATETIME()));
+    SET @NgayThamChieu = COALESCE(
+        @NgayThamChieu,
+        CONVERT(DATE, (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time')
+    );
 
     IF @CheDo NOT IN ('ALL', 'LOW_STOCK', 'NEAR_EXPIRY', 'EXPIRED')
         THROW 51410, 'Inventory mode must be ALL, LOW_STOCK, NEAR_EXPIRY or EXPIRED.', 1;
@@ -185,7 +188,10 @@ BEGIN
     SET @MaLoai = NULLIF(LTRIM(RTRIM(@MaLoai)), '');
     SET @TinhTrangHanDung = UPPER(COALESCE(NULLIF(LTRIM(RTRIM(@TinhTrangHanDung)), ''), 'ALL'));
     SET @TrangThaiLo = UPPER(NULLIF(LTRIM(RTRIM(@TrangThaiLo)), ''));
-    SET @NgayThamChieu = COALESCE(@NgayThamChieu, CONVERT(DATE, SYSDATETIME()));
+    SET @NgayThamChieu = COALESCE(
+        @NgayThamChieu,
+        CONVERT(DATE, (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time')
+    );
 
     IF @TinhTrangHanDung NOT IN ('ALL', 'VALID', 'NEAR_EXPIRY', 'EXPIRED')
         THROW 51420, 'Lot expiry status must be ALL, VALID, NEAR_EXPIRY or EXPIRED.', 1;

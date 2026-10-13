@@ -63,12 +63,22 @@ class CustomerRepository extends BaseRepository {
   async listInvoices({ customerId, from, page, pageSize, to }, transaction = null) {
     const result = await this.query({
       text: `
+        DECLARE
+          @UtcFrom DATETIME2(0) = CASE WHEN @FromDate IS NULL THEN NULL ELSE CONVERT(
+            DATETIME2(0),
+            (CONVERT(DATETIME2(0), @FromDate) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+          ) END,
+          @UtcToExclusive DATETIME2(0) = CASE WHEN @ToDate IS NULL THEN NULL ELSE CONVERT(
+            DATETIME2(0),
+            (DATEADD(DAY, 1, CONVERT(DATETIME2(0), @ToDate)) AT TIME ZONE 'SE Asia Standard Time') AT TIME ZONE 'UTC'
+          ) END;
+
         SELECT COUNT(*) AS TotalItems
         FROM dbo.HOA_DON AS invoice
         WHERE invoice.MaKH = @CustomerId
           AND invoice.TrangThai IN ('PAID', 'REFUNDED')
-          AND (@FromDate IS NULL OR invoice.NgayLap >= @FromDate)
-          AND (@ToDate IS NULL OR invoice.NgayLap < DATEADD(DAY, 1, @ToDate));
+          AND (@UtcFrom IS NULL OR invoice.NgayLap >= @UtcFrom)
+          AND (@UtcToExclusive IS NULL OR invoice.NgayLap < @UtcToExclusive);
 
         SELECT
           invoice.MaHD,
@@ -78,8 +88,8 @@ class CustomerRepository extends BaseRepository {
         FROM dbo.HOA_DON AS invoice
         WHERE invoice.MaKH = @CustomerId
           AND invoice.TrangThai IN ('PAID', 'REFUNDED')
-          AND (@FromDate IS NULL OR invoice.NgayLap >= @FromDate)
-          AND (@ToDate IS NULL OR invoice.NgayLap < DATEADD(DAY, 1, @ToDate))
+          AND (@UtcFrom IS NULL OR invoice.NgayLap >= @UtcFrom)
+          AND (@UtcToExclusive IS NULL OR invoice.NgayLap < @UtcToExclusive)
         ORDER BY invoice.NgayLap DESC, invoice.MaHD DESC
         OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
       `,

@@ -50,7 +50,7 @@ BEGIN
                 MaPN, NgayNhap, MaNV, MaNCC, TongTien, TrangThai, NgayXacNhan, GhiChu
             )
             VALUES (
-                @MaPN, COALESCE(@NgayNhap, SYSDATETIME()), @MaNV, @MaNCC, 0, 'DRAFT', NULL, @GhiChu
+                @MaPN, COALESCE(@NgayNhap, SYSUTCDATETIME()), @MaNV, @MaNCC, 0, 'DRAFT', NULL, @GhiChu
             );
         END
         ELSE
@@ -398,7 +398,7 @@ BEGIN
         DECLARE
             @ReceiptStatus VARCHAR(20),
             @EmployeeCode VARCHAR(10),
-            @ConfirmationTime DATETIME2(0) = SYSDATETIME(),
+            @ConfirmationTime DATETIME2(0) = SYSUTCDATETIME(),
             @ReceiptTotal DECIMAL(18,2);
 
         SELECT

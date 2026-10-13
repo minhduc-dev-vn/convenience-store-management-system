@@ -53,6 +53,29 @@ test('revenue export uses the authoritative summary and trend values', () => {
   assert.match(csv, /2026-10-04,2,300000,50000,250000/);
 });
 
+test('revenue export preserves the canonical Vietnam report date around UTC midnight boundaries', () => {
+  const csv = createRevenueCsv({
+    summary: {
+      from: '2026-10-10',
+      to: '2026-10-10',
+      completedInvoiceCount: 4,
+      grossRevenue: 990,
+      refundAmount: 0,
+      netRevenue: 990,
+    },
+    trend: [{
+      date: '2026-10-10',
+      completedInvoiceCount: 4,
+      grossRevenue: 990,
+      refundAmount: 0,
+      netRevenue: 990,
+    }],
+  });
+
+  assert.match(csv, /2026-10-10,4,990,0,990/);
+  assert.doesNotMatch(csv, /2026-10-09,4,990,0,990/);
+});
+
 test('MH-23, MH-24 and MH-25 are manager-only routes with navigation and required views', () => {
   const routes = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.url), 'utf8');
   const navigation = readFileSync(new URL('../src/layouts/navigation.js', import.meta.url), 'utf8');
