@@ -38,31 +38,37 @@ test('public product image renders lazily and falls back after an image load err
   assert.match(managerSource, /className="product-form-preview__image"/);
 });
 
-test('product images use deterministic contain frames without cropping', async () => {
+test('only public catalog images use contain while shared manager presentation stays unchanged', async () => {
   const styles = await readFile(path.join(sourceRoot, 'assets/app.css'), 'utf8');
   const imageRule = getCssRule(styles, '.product-image img');
+  const cardImageRule = getCssRule(styles, '.product-card__visual img');
+  const detailImageRule = getCssRule(styles, '.product-detail-image img');
   const cardRule = getCssRule(styles, '.product-card__visual');
   const thumbnailRule = getCssRule(styles, '.product-thumbnail');
   const previewRule = getCssRule(styles, '.product-form-preview__image');
   const detailRule = getCssRule(styles, '.product-detail-image');
 
-  assert.match(imageRule, /object-fit:\s*contain\s*;/);
-  assert.match(imageRule, /object-position:\s*center\s*;/);
-  assert.doesNotMatch(imageRule, /object-fit:\s*cover\s*;/);
+  assert.match(imageRule, /object-fit:\s*cover\s*;/);
+  assert.doesNotMatch(imageRule, /object-fit:\s*contain\s*;/);
+
+  assert.match(cardImageRule, /object-fit:\s*contain\s*;/);
+  assert.match(cardImageRule, /object-position:\s*center\s*;/);
+  assert.match(detailImageRule, /object-fit:\s*contain\s*;/);
+  assert.match(detailImageRule, /object-position:\s*center\s*;/);
 
   assert.match(cardRule, /height:\s*180px\s*;/);
   assert.match(cardRule, /min-height:\s*180px\s*;/);
-  assert.match(cardRule, /padding:\s*16px\s*;/);
+  assert.doesNotMatch(cardRule, /padding\s*:/);
 
   assert.match(thumbnailRule, /width:\s*52px\s*;/);
   assert.match(thumbnailRule, /height:\s*52px\s*;/);
-  assert.match(thumbnailRule, /padding:\s*4px\s*;/);
+  assert.doesNotMatch(thumbnailRule, /padding\s*:/);
 
   assert.match(previewRule, /width:\s*96px\s*;/);
   assert.match(previewRule, /height:\s*96px\s*;/);
-  assert.match(previewRule, /padding:\s*8px\s*;/);
+  assert.doesNotMatch(previewRule, /padding\s*:/);
 
   assert.match(detailRule, /width:\s*100%\s*;/);
   assert.match(detailRule, /height:\s*240px\s*;/);
-  assert.match(detailRule, /padding:\s*16px\s*;/);
+  assert.doesNotMatch(detailRule, /padding\s*:/);
 });

@@ -1758,7 +1758,6 @@ article.workspace-card:hover {
   display: grid;
   height: 180px;
   min-height: 180px;
-  padding: 16px;
   place-items: center;
   color: var(--forest);
   background:
@@ -1775,6 +1774,15 @@ article.workspace-card:hover {
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+}
+
+.product-card__visual img {
+  object-fit: contain;
+  object-position: center;
+}
+
+.product-detail-image img {
   object-fit: contain;
   object-position: center;
 }
@@ -1797,7 +1805,6 @@ article.workspace-card:hover {
   display: grid;
   width: 52px;
   height: 52px;
-  padding: 4px;
   border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--forest);
@@ -1822,7 +1829,6 @@ article.workspace-card:hover {
   display: grid;
   width: 96px;
   height: 96px;
-  padding: 8px;
   border: 1px solid var(--line);
   border-radius: 16px;
   color: var(--forest);
@@ -1838,7 +1844,6 @@ article.workspace-card:hover {
   width: 100%;
   height: 240px;
   margin-bottom: 18px;
-  padding: 16px;
   border: 1px solid var(--line);
   border-radius: 18px;
   color: var(--forest);
