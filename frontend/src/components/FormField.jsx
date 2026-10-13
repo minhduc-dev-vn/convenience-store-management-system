@@ -7,7 +7,7 @@ function FormField({ children, error, hint, htmlFor, label, required = false }) 
       </label>
       {children}
       {hint && !error && <small>{hint}</small>}
-      {error && <small role="alert">{error}</small>}
+      {error && <small id={`${htmlFor}-error`} role="alert">{error}</small>}
     </div>
   );
 }

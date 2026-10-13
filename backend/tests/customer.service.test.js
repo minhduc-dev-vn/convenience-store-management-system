@@ -78,6 +78,100 @@ test('profile update changes only allowed fields and preserves protected values'
   assert.equal(profile.phone, '0900000001');
 });
 
+test('profile update rejects invalid and overlong fields before repository access', async () => {
+  const invalidInputs = [
+    { fullName: '   ' },
+    { fullName: 'a'.repeat(101) },
+    { email: 'abc' },
+    { email: `${'a'.repeat(89)}@example.com` },
+    { address: 'a'.repeat(256) },
+  ];
+
+  for (const input of invalidInputs) {
+    let transactionCalls = 0;
+    let updateCalls = 0;
+    const service = new CustomerService({
+      customerRepository: {
+        async updateProfile() {
+          updateCalls += 1;
+        },
+      },
+      transactionRunner: async (work) => {
+        transactionCalls += 1;
+        return work({ id: 'tx' });
+      },
+    });
+
+    await assert.rejects(
+      service.updateOwnProfile({ customerId: 'KHC08OWN' }, input),
+      (error) => error.statusCode === 400 && error.code === 'VALIDATION_ERROR',
+    );
+    assert.equal(transactionCalls, 0);
+    assert.equal(updateCalls, 0);
+  }
+});
+
+test('profile update rejects duplicate email without updating the repository', async () => {
+  let updateCalls = 0;
+  const service = new CustomerService({
+    customerRepository: {
+      async emailExistsForAnotherOwner(email, customerId) {
+        assert.equal(email, 'duplicate@example.com');
+        assert.equal(customerId, 'KHC08OWN');
+        return true;
+      },
+      async updateProfile() {
+        updateCalls += 1;
+      },
+    },
+    transactionRunner: async (work) => work({ id: 'tx' }),
+  });
+
+  await assert.rejects(
+    service.updateOwnProfile(
+      { customerId: 'KHC08OWN' },
+      { email: 'duplicate@example.com' },
+    ),
+    (error) => error.statusCode === 409 && error.code === 'PROFILE_CONFLICT',
+  );
+  assert.equal(updateCalls, 0);
+});
+
+test('profile update normalizes email casing and optional empty email', async () => {
+  const receivedEmails = [];
+  const service = new CustomerService({
+    customerRepository: {
+      async emailExistsForAnotherOwner(email) {
+        receivedEmails.push({ phase: 'check', value: email });
+        return false;
+      },
+      async updateProfile(customerId, changes) {
+        receivedEmails.push({ phase: 'update', value: changes.email });
+        return customerRow({ MaKH: customerId, Email: changes.email });
+      },
+    },
+    transactionRunner: async (work) => work({ id: 'tx' }),
+  });
+
+  const normalized = await service.updateOwnProfile(
+    { customerId: 'KHC08OWN' },
+    { email: '  Customer@Example.COM  ' },
+  );
+  const cleared = await service.updateOwnProfile(
+    { customerId: 'KHC08OWN' },
+    { email: '' },
+  );
+
+  assert.equal(normalized.email, 'customer@example.com');
+  assert.equal(cleared.email, null);
+  assert.deepEqual(receivedEmails, [
+    { phase: 'check', value: 'customer@example.com' },
+    { phase: 'update', value: 'customer@example.com' },
+    { phase: 'check', value: null },
+    { phase: 'update', value: null },
+  ]);
+});
+
 test('purchase history uses authenticated ownership with pagination and date filters', async () => {
   let receivedQuery;
   const service = new CustomerService({
