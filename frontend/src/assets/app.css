@@ -3781,19 +3781,15 @@ article.workspace-card:hover {
     scrollbar-width: thin;
   }
 
-  .manager-table-scroll {
-    overflow-x: hidden;
-  }
-
   .data-table--xwide.manager-table {
     width: 100%;
     min-width: 0;
-    table-layout: fixed;
+    table-layout: auto;
   }
 
   .manager-table th,
   .manager-table td {
-    padding: 10px 7px;
+    padding: 8px 6px;
   }
 
   .manager-table th {
@@ -3808,68 +3804,59 @@ article.workspace-card:hover {
 
   .manager-table .table-actions {
     min-width: 0;
-    align-items: stretch;
-    flex-direction: column;
-    gap: 5px;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
   }
 
   .manager-table .table-action {
-    width: 100%;
-    padding: 6px 5px;
+    width: auto;
+    padding: 5px 7px;
     justify-content: center;
-    line-height: 1.25;
+    line-height: 1.2;
     text-align: center;
     white-space: normal;
   }
 
-  .manager-table .status-badge {
-    max-width: 100%;
-    text-align: center;
-    white-space: normal;
+  .employee-table__id,
+  .employee-table__gender,
+  .employee-table__date,
+  .employee-table__phone,
+  .employee-table__start,
+  .employee-table__salary,
+  .employee-table__status,
+  .customer-table__id,
+  .customer-table__phone,
+  .customer-table__points,
+  .customer-table__tier,
+  .customer-table__registered,
+  .customer-table__status,
+  .product-table__image,
+  .product-table__id,
+  .product-table__barcode,
+  .product-table__unit,
+  .product-table__price,
+  .product-table__minimum-stock,
+  .product-table__status,
+  .promotion-table__id,
+  .promotion-table__type,
+  .promotion-table__value,
+  .promotion-table__minimum,
+  .promotion-table__maximum,
+  .promotion-table__products,
+  .promotion-table__status {
+    width: 1%;
+    white-space: nowrap;
   }
 
-  .employee-table__id { width: 7%; }
-  .employee-table__name { width: 13%; }
-  .employee-table__gender { width: 6%; }
-  .employee-table__date { width: 9%; }
-  .employee-table__phone { width: 10%; }
-  .employee-table__email { width: 15%; }
-  .employee-table__start { width: 9%; }
-  .employee-table__salary { width: 10%; }
-  .employee-table__status { width: 9%; }
-  .employee-table__actions { width: 12%; }
-
-  .customer-table__id { width: 8%; }
-  .customer-table__name { width: 15%; }
-  .customer-table__phone { width: 11%; }
-  .customer-table__email { width: 16%; }
-  .customer-table__points { width: 7%; }
-  .customer-table__tier { width: 8%; }
-  .customer-table__registered { width: 11%; }
-  .customer-table__status { width: 10%; }
-  .customer-table__actions { width: 14%; }
-
-  .product-table__image { width: 7%; }
-  .product-table__id { width: 8%; }
-  .product-table__barcode { width: 10%; }
-  .product-table__name { width: 14%; }
-  .product-table__category { width: 11%; }
-  .product-table__unit { width: 5%; }
-  .product-table__price { width: 10%; }
-  .product-table__minimum-stock { width: 8%; }
-  .product-table__status { width: 10%; }
-  .product-table__actions { width: 17%; }
-
-  .promotion-table__id { width: 7%; }
-  .promotion-table__name { width: 14%; }
-  .promotion-table__type { width: 9%; }
-  .promotion-table__value { width: 9%; }
-  .promotion-table__minimum { width: 11%; }
-  .promotion-table__maximum { width: 10%; }
-  .promotion-table__period { width: 15%; }
-  .promotion-table__products { width: 6%; }
-  .promotion-table__status { width: 9%; }
-  .promotion-table__actions { width: 10%; }
+  .employee-table__actions,
+  .customer-table__actions,
+  .product-table__actions,
+  .promotion-table__actions {
+    width: auto;
+    white-space: normal;
+  }
 
   .employee-table__name,
   .employee-table__email,
@@ -3879,7 +3866,10 @@ article.workspace-card:hover {
   .product-table__category,
   .promotion-table__name,
   .promotion-table__period {
+    width: auto;
+    min-width: 0;
     overflow-wrap: anywhere;
+    word-break: normal;
     white-space: normal;
   }
 
