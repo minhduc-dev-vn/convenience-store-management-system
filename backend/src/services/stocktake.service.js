@@ -88,9 +88,12 @@ function normalizeCountInput(input = {}) {
       || input.actualQuantity > 2_147_483_647) {
     throw validationError('actualQuantity must be an integer between 0 and 2147483647');
   }
+  const reason = typeof input.reason === 'string' && input.reason.trim() === ''
+    ? null
+    : normalizeOptionalText(input.reason, 'reason', 255) ?? null;
   return {
     actualQuantity: input.actualQuantity,
-    reason: normalizeOptionalText(input.reason, 'reason', 255) ?? null,
+    reason,
   };
 }
 
@@ -339,6 +342,21 @@ class StocktakeService {
           throw stocktakeError('STOCKTAKE_NOT_FOUND', 'Stocktake was not found', 404);
         }
         requireEditable(current.header);
+        const snapshotLine = current.details.find((line) => line.MaLo === lotId);
+        if (!snapshotLine) {
+          throw stocktakeError(
+            'STOCKTAKE_LOT_NOT_FOUND',
+            'The lot is not part of this stocktake snapshot',
+            404,
+          );
+        }
+        if (count.actualQuantity !== Number(snapshotLine.SoLuongHeThong) && !count.reason) {
+          throw stocktakeError(
+            'STOCKTAKE_REASON_REQUIRED',
+            'A reason is required when actual quantity differs from the stocktake snapshot',
+            400,
+          );
+        }
         const row = await this.stocktakeRepository.recordCount({
           ...count,
           lotId,

@@ -42,13 +42,18 @@ test('stocktake paths use only the exact C40 routes and supported filters', () =
 });
 
 test('count payload contains only server contract fields and validates integers', () => {
-  assert.deepEqual(validateCountForm({ actualQuantity: '12', reason: '  Vỡ hộp  ' }), {});
+  assert.deepEqual(validateCountForm({ actualQuantity: '12', reason: '  Vỡ hộp  ' }, 10), {});
   assert.deepEqual(buildCountPayload({ actualQuantity: '12', reason: '  Vỡ hộp  ' }), {
     actualQuantity: 12,
     reason: 'Vỡ hộp',
   });
-  assert.ok(validateCountForm({ actualQuantity: '-1', reason: '' }).actualQuantity);
-  assert.ok(validateCountForm({ actualQuantity: '1.5', reason: '' }).actualQuantity);
+  assert.ok(validateCountForm({ actualQuantity: '-1', reason: '' }, 10).actualQuantity);
+  assert.ok(validateCountForm({ actualQuantity: '1.5', reason: '' }, 10).actualQuantity);
+  assert.deepEqual(validateCountForm({ actualQuantity: '10', reason: '' }, 10), {});
+  assert.equal(
+    validateCountForm({ actualQuantity: '9', reason: '   ' }, 10).reason,
+    'Bắt buộc nhập lý do khi số thực tế khác số hệ thống.',
+  );
 });
 
 test('workflow guards follow C40 workflow state instead of inventing COMPLETED', () => {

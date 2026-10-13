@@ -159,6 +159,26 @@ integrationTest('stocktake API enforces roles, proposal workflow, atomic approva
   result = await requestJson(baseUrl, `/api/warehouse/stocktakes/${stocktakeId}/lots/C40LOT001`, {
     method: 'PATCH',
     token: tokens.warehouse,
+    body: { actualQuantity: 7, reason: '   ' },
+  });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.payload.error.code, 'STOCKTAKE_REASON_REQUIRED');
+  assert.notEqual(result.payload.error.code, 'TRANSACTION_ROLLBACK_FAILED');
+  let unchangedCount = await repository.query({
+    text: `
+      SELECT SoLuongHeThong, SoLuongThucTe, LyDo
+      FROM dbo.CHI_TIET_KIEM_KE
+      WHERE MaKK = @StocktakeId AND MaLo = 'C40LOT001';
+    `,
+    parameters: { StocktakeId: { type: sql.VarChar(15), value: stocktakeId } },
+  });
+  assert.equal(unchangedCount.recordset[0].SoLuongHeThong, 10);
+  assert.equal(unchangedCount.recordset[0].SoLuongThucTe, 10);
+  assert.equal(unchangedCount.recordset[0].LyDo, null);
+
+  result = await requestJson(baseUrl, `/api/warehouse/stocktakes/${stocktakeId}/lots/C40LOT001`, {
+    method: 'PATCH',
+    token: tokens.warehouse,
     body: { actualQuantity: 7, reason: 'Thieu khi kiem dem' },
   });
   assert.equal(result.response.status, 200);

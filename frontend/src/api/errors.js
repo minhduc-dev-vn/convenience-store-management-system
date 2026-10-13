@@ -42,6 +42,7 @@ const ERROR_MESSAGES = Object.freeze({
   SHIFT_ALREADY_CLOSED: 'Ca làm việc đã được đóng trước đó.',
   SHIFT_HAS_UNFINISHED_INVOICES: 'Ca vẫn còn hóa đơn chưa hoàn tất.',
   SHIFT_CLOSE_CONFLICT: 'Trạng thái ca vừa thay đổi. Vui lòng tải lại số liệu.',
+  STOCKTAKE_REASON_REQUIRED: 'Bắt buộc nhập lý do khi số thực tế khác số hệ thống.',
   CASHIER_UNAVAILABLE: 'Tài khoản hoặc hồ sơ thu ngân hiện không hoạt động.',
   QUOTE_CHANGED_RETRY: 'Giá, khuyến mãi hoặc tồn kho vừa thay đổi. Vui lòng kiểm tra lại đơn hàng.',
   QUOTE_DATA_INVALID: 'Máy chủ không thể xác nhận dữ liệu báo giá.',

@@ -67,6 +67,12 @@ test('MH-04 dashboards use live services and remain protected by role routes', (
   assert.match(routes, /ProtectedRoute allowedRoles=\{\['WAREHOUSE'\]\}/);
   assert.match(routes, /ProtectedRoute allowedRoles=\{\['MANAGER'\]\}/);
   assert.match(cashier, /getCurrentPosShift/);
+  assert.match(cashier, /Doanh thu gộp/);
+  assert.match(cashier, /Tiền hoàn/);
+  assert.match(cashier, /Doanh thu thuần/);
+  assert.match(cashier, /Tiền mặt thuần/);
+  assert.match(cashier, /Không tiền mặt thuần/);
+  assert.doesNotMatch(cashier, /<dt>Tổng doanh thu<\/dt>/);
   assert.match(warehouse, /mode: 'LOW_STOCK'/);
   assert.match(warehouse, /mode: 'NEAR_EXPIRY'/);
   assert.match(manager, /getRevenueReport/);

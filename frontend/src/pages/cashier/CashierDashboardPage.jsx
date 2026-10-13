@@ -162,9 +162,9 @@ function CashierDashboardPage() {
       tone: shift ? 'success' : 'warning',
     },
     {
-      label: 'Doanh thu ca',
-      value: reconciliation ? formatMoney(reconciliation.grossRevenue) : '—',
-      note: reconciliation ? 'Dữ liệu đã ghi nhận' : 'Có sau khi mở ca',
+      label: 'Doanh thu thuần',
+      value: reconciliation ? formatMoney(reconciliation.netRevenue) : '—',
+      note: reconciliation ? 'Sau khi trừ tiền hoàn' : 'Có sau khi mở ca',
     },
     {
       label: 'Hóa đơn hoàn tất',
@@ -191,8 +191,12 @@ function CashierDashboardPage() {
             <div><dt>Thu ngân</dt><dd>{closedSummary.employee?.name || closedSummary.employee?.employeeId}</dd></div>
             <div><dt>Thời gian đóng</dt><dd>{formatDateTime(closedSummary.closedAt)}</dd></div>
             <div><dt>Tiền đầu ca</dt><dd>{formatMoney(closedSummary.openingCash)}</dd></div>
-            <div><dt>Doanh thu tiền mặt</dt><dd>{formatMoney(closedSummary.cashRevenue)}</dd></div>
-            <div><dt>Tiền hệ thống</dt><dd>{formatMoney(closedSummary.expectedCash)}</dd></div>
+            <div><dt>Doanh thu gộp</dt><dd>{formatMoney(closedSummary.grossRevenue)}</dd></div>
+            <div><dt>Tiền hoàn</dt><dd>{formatMoney(closedSummary.refundTotal)}</dd></div>
+            <div><dt>Doanh thu thuần</dt><dd>{formatMoney(closedSummary.netRevenue)}</dd></div>
+            <div><dt>Tiền mặt thuần</dt><dd>{formatMoney(closedSummary.cashRevenue)}</dd></div>
+            <div><dt>Không tiền mặt thuần</dt><dd>{formatMoney(closedSummary.nonCashRevenue)}</dd></div>
+            <div><dt>Tiền dự kiến trong quầy</dt><dd>{formatMoney(closedSummary.expectedCash)}</dd></div>
             <div><dt>Tiền kiểm đếm</dt><dd>{formatMoney(closedSummary.closingCash)}</dd></div>
             <div><dt>Chênh lệch</dt><dd>{formatMoney(closedSummary.difference)}</dd></div>
             <div><dt>Hóa đơn hoàn tất</dt><dd>{closedSummary.completedInvoiceCount}</dd></div>
@@ -234,9 +238,11 @@ function CashierDashboardPage() {
             ) : reconciliation && (
               <>
                 <dl className="shift-reconciliation-grid">
-                  <div><dt>Tổng doanh thu</dt><dd>{formatMoney(reconciliation.grossRevenue)}</dd></div>
-                  <div><dt>Doanh thu tiền mặt</dt><dd>{formatMoney(reconciliation.cashRevenue)}</dd></div>
-                  <div><dt>Doanh thu không tiền mặt</dt><dd>{formatMoney(reconciliation.nonCashRevenue)}</dd></div>
+                  <div><dt>Doanh thu gộp</dt><dd>{formatMoney(reconciliation.grossRevenue)}</dd></div>
+                  <div><dt>Tiền hoàn</dt><dd>{formatMoney(reconciliation.refundTotal)}</dd></div>
+                  <div><dt>Doanh thu thuần</dt><dd>{formatMoney(reconciliation.netRevenue)}</dd></div>
+                  <div><dt>Tiền mặt thuần</dt><dd>{formatMoney(reconciliation.cashRevenue)}</dd></div>
+                  <div><dt>Không tiền mặt thuần</dt><dd>{formatMoney(reconciliation.nonCashRevenue)}</dd></div>
                   <div><dt>Tiền dự kiến trong quầy</dt><dd>{formatMoney(reconciliation.expectedCash)}</dd></div>
                   <div><dt>Hóa đơn hoàn tất</dt><dd>{reconciliation.completedInvoiceCount}</dd></div>
                   <div><dt>Hóa đơn chưa hoàn tất</dt><dd>{reconciliation.unfinishedInvoiceCount}</dd></div>

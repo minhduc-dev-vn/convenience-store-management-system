@@ -114,7 +114,9 @@ class PosRepository extends BaseRepository {
           COALESCE(invoice_totals.SoHoaDonHoanTat, 0) AS SoHoaDonHoanTat,
           COALESCE(invoice_totals.SoHoaDonHuy, 0) AS SoHoaDonHuy,
           COALESCE(invoice_totals.SoHoaDonChuaHoanTat, 0) AS SoHoaDonChuaHoanTat,
-          COALESCE(invoice_totals.DoanhThu, 0) AS DoanhThu,
+          COALESCE(invoice_totals.DoanhThuGop, 0) AS DoanhThuGop,
+          COALESCE(invoice_totals.TongTienHoan, 0) AS TongTienHoan,
+          COALESCE(invoice_totals.DoanhThuThuan, 0) AS DoanhThuThuan,
           COALESCE(payment_totals.DoanhThuTienMat, 0) AS DoanhThuTienMat,
           COALESCE(payment_totals.DoanhThuKhongTienMat, 0) AS DoanhThuKhongTienMat
         FROM dbo.CA_LAM_VIEC AS work_shift
@@ -122,32 +124,113 @@ class PosRepository extends BaseRepository {
         OUTER APPLY (
           SELECT
             COUNT_BIG(*) AS SoHoaDon,
-            COALESCE(SUM(CASE WHEN invoice.TrangThai IN ('PAID', 'REFUNDED') THEN 1 ELSE 0 END), 0)
+            COALESCE(SUM(CASE WHEN invoice_summary.TrangThai IN ('PAID', 'REFUNDED') THEN 1 ELSE 0 END), 0)
               AS SoHoaDonHoanTat,
-            COALESCE(SUM(CASE WHEN invoice.TrangThai = 'CANCELLED' THEN 1 ELSE 0 END), 0)
+            COALESCE(SUM(CASE WHEN invoice_summary.TrangThai = 'CANCELLED' THEN 1 ELSE 0 END), 0)
               AS SoHoaDonHuy,
-            COALESCE(SUM(CASE WHEN invoice.TrangThai = 'DRAFT' THEN 1 ELSE 0 END), 0)
+            COALESCE(SUM(CASE WHEN invoice_summary.TrangThai = 'DRAFT' THEN 1 ELSE 0 END), 0)
               AS SoHoaDonChuaHoanTat,
-            COALESCE(SUM(CASE
-              WHEN invoice.TrangThai IN ('PAID', 'REFUNDED') THEN invoice.TongThanhToan
-              ELSE CONVERT(DECIMAL(18,2), 0)
-            END), 0) AS DoanhThu
-          FROM dbo.HOA_DON AS invoice
-          WHERE invoice.MaCa = work_shift.MaCa
+            COALESCE(SUM(invoice_summary.DoanhThuGop), 0) AS DoanhThuGop,
+            COALESCE(SUM(invoice_summary.TienHoan), 0) AS TongTienHoan,
+            COALESCE(SUM(invoice_summary.DoanhThuThuan), 0) AS DoanhThuThuan
+          FROM (
+            SELECT
+              invoice.TrangThai,
+              CASE
+                WHEN invoice.TrangThai IN ('PAID', 'REFUNDED')
+                  THEN invoice.TongThanhToan
+                ELSE CONVERT(DECIMAL(18,2), 0)
+              END AS DoanhThuGop,
+              CASE
+                WHEN invoice.TrangThai IN ('PAID', 'REFUNDED')
+                  THEN CASE
+                    WHEN COALESCE(return_totals.TienHoan, 0) > invoice.TongThanhToan
+                      THEN invoice.TongThanhToan
+                    ELSE COALESCE(return_totals.TienHoan, 0)
+                  END
+                ELSE CONVERT(DECIMAL(18,2), 0)
+              END AS TienHoan,
+              CASE
+                WHEN invoice.TrangThai IN ('PAID', 'REFUNDED')
+                  THEN CASE
+                    WHEN COALESCE(return_totals.TienHoan, 0) >= invoice.TongThanhToan
+                      THEN CONVERT(DECIMAL(18,2), 0)
+                    ELSE invoice.TongThanhToan - COALESCE(return_totals.TienHoan, 0)
+                  END
+                ELSE CONVERT(DECIMAL(18,2), 0)
+              END AS DoanhThuThuan
+            FROM dbo.HOA_DON AS invoice
+            OUTER APPLY (
+              SELECT SUM(return_header.TongTienHoan) AS TienHoan
+              FROM dbo.PHIEU_TRA AS return_header
+              WHERE return_header.MaHD = invoice.MaHD
+                AND return_header.TrangThai = 'COMPLETED'
+            ) AS return_totals
+            WHERE invoice.MaCa = work_shift.MaCa
+          ) AS invoice_summary
         ) AS invoice_totals
         OUTER APPLY (
           SELECT
             COALESCE(SUM(CASE
-              WHEN payment.TrangThai = 'SUCCESS' AND payment.PhuongThuc = 'CASH'
-                THEN payment.SoTien ELSE CONVERT(DECIMAL(18,2), 0)
+              WHEN allocated_payment.PhuongThuc = 'CASH'
+                THEN allocated_payment.SoTienThuan ELSE CONVERT(DECIMAL(18,2), 0)
             END), 0) AS DoanhThuTienMat,
             COALESCE(SUM(CASE
-              WHEN payment.TrangThai = 'SUCCESS' AND payment.PhuongThuc <> 'CASH'
-                THEN payment.SoTien ELSE CONVERT(DECIMAL(18,2), 0)
+              WHEN allocated_payment.PhuongThuc <> 'CASH'
+                THEN allocated_payment.SoTienThuan ELSE CONVERT(DECIMAL(18,2), 0)
             END), 0) AS DoanhThuKhongTienMat
-          FROM dbo.HOA_DON AS invoice
-          JOIN dbo.THANH_TOAN AS payment ON payment.MaHD = invoice.MaHD
-          WHERE invoice.MaCa = work_shift.MaCa
+          FROM (
+            SELECT
+              ranked_payment.PhuongThuc,
+              CONVERT(DECIMAL(18,2), CASE
+                WHEN ranked_payment.TienHoan <= ranked_payment.SoTienTruocDo
+                  THEN ranked_payment.SoTienGop
+                WHEN ranked_payment.TienHoan >= ranked_payment.SoTienTruocDo + ranked_payment.SoTienGop
+                  THEN 0
+                ELSE ranked_payment.SoTienTruocDo + ranked_payment.SoTienGop - ranked_payment.TienHoan
+              END) AS SoTienThuan
+            FROM (
+              SELECT
+                payment_by_method.MaHD,
+                payment_by_method.PhuongThuc,
+                payment_by_method.SoTienGop,
+                payment_by_method.TienHoan,
+                COALESCE(SUM(payment_by_method.SoTienGop) OVER (
+                  PARTITION BY payment_by_method.MaHD
+                  ORDER BY payment_by_method.ThuTuThanhToan, payment_by_method.PhuongThuc
+                  ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+                ), 0) AS SoTienTruocDo
+              FROM (
+                SELECT
+                  invoice.MaHD,
+                  payment.PhuongThuc,
+                  MIN(payment.MaThanhToan) AS ThuTuThanhToan,
+                  SUM(payment.SoTien) AS SoTienGop,
+                  CASE
+                    WHEN COALESCE(return_totals.TienHoan, 0) > invoice.TongThanhToan
+                      THEN invoice.TongThanhToan
+                    ELSE COALESCE(return_totals.TienHoan, 0)
+                  END AS TienHoan
+                FROM dbo.HOA_DON AS invoice
+                JOIN dbo.THANH_TOAN AS payment
+                  ON payment.MaHD = invoice.MaHD
+                 AND payment.TrangThai IN ('SUCCESS', 'REFUNDED')
+                OUTER APPLY (
+                  SELECT SUM(return_header.TongTienHoan) AS TienHoan
+                  FROM dbo.PHIEU_TRA AS return_header
+                  WHERE return_header.MaHD = invoice.MaHD
+                    AND return_header.TrangThai = 'COMPLETED'
+                ) AS return_totals
+                WHERE invoice.MaCa = work_shift.MaCa
+                  AND invoice.TrangThai IN ('PAID', 'REFUNDED')
+                GROUP BY
+                  invoice.MaHD,
+                  invoice.TongThanhToan,
+                  payment.PhuongThuc,
+                  return_totals.TienHoan
+              ) AS payment_by_method
+            ) AS ranked_payment
+          ) AS allocated_payment
         ) AS payment_totals
         WHERE work_shift.MaCa = @ShiftId
           AND work_shift.MaNV = @EmployeeId

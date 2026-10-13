@@ -127,6 +127,38 @@ test('warehouse cannot edit a proposal pending manager approval', async () => {
   assert.equal(recorded, false);
 });
 
+test('record count rejects a missing snapshot lot before persistence', async () => {
+  let recorded = false;
+  const service = serviceWith({
+    async getStocktake() {
+      return { header: header(), details: [detail()] };
+    },
+    async recordCount() { recorded = true; },
+  });
+
+  await assert.rejects(
+    service.recordCount(warehouse, 'KK001', 'LO999', { actualQuantity: 5, reason: null }),
+    (error) => error.code === 'STOCKTAKE_LOT_NOT_FOUND' && error.statusCode === 404,
+  );
+  assert.equal(recorded, false);
+});
+
+test('record count requires a reason for an authoritative snapshot discrepancy', async () => {
+  let recorded = false;
+  const service = serviceWith({
+    async getStocktake() {
+      return { header: header(), details: [detail({ LyDo: null, SoLuongThucTe: 5 })] };
+    },
+    async recordCount() { recorded = true; },
+  });
+
+  await assert.rejects(
+    service.recordCount(warehouse, 'KK001', 'LO001', { actualQuantity: 4, reason: '   ' }),
+    (error) => error.code === 'STOCKTAKE_REASON_REQUIRED' && error.statusCode === 400,
+  );
+  assert.equal(recorded, false);
+});
+
 test('proposal requires a discrepancy and reason, then writes an append-only workflow audit', async () => {
   const audits = [];
   const repository = {

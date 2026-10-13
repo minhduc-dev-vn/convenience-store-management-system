@@ -219,6 +219,8 @@ integrationTest('invoice search/detail and close-shift reconciliation enforce C3
   });
   assert.equal(result.response.status, 200);
   assert.equal(result.payload.data.reconciliation.grossRevenue, 50000);
+  assert.equal(result.payload.data.reconciliation.refundTotal, 0);
+  assert.equal(result.payload.data.reconciliation.netRevenue, 50000);
   assert.equal(result.payload.data.reconciliation.cashRevenue, 30000);
   assert.equal(result.payload.data.reconciliation.nonCashRevenue, 20000);
   assert.equal(result.payload.data.reconciliation.expectedCash, 130000);

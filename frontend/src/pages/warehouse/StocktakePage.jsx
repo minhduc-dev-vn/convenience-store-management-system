@@ -67,7 +67,7 @@ function WarehouseStocktakeDetail({ data, onChanged, onPropose }) {
   const saveLine = async (line) => {
     const lotId = line.lot.lotId;
     const draft = drafts[lotId];
-    const validation = validateCountForm(draft);
+    const validation = validateCountForm(draft, line.systemQuantity);
     if (Object.keys(validation).length > 0) {
       setErrors((current) => ({ ...current, [lotId]: validation }));
       return;

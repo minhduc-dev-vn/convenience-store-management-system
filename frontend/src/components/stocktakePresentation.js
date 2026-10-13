@@ -41,13 +41,16 @@ export function buildCountPayload(form) {
   };
 }
 
-export function validateCountForm(form) {
+export function validateCountForm(form, systemQuantity) {
   const errors = {};
   const value = String(form.actualQuantity ?? '').trim();
   if (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value))) {
     errors.actualQuantity = 'Số lượng thực tế phải là số nguyên không âm.';
   }
-  if ((form.reason ?? '').trim().length > 255) {
+  const reason = (form.reason ?? '').trim();
+  if (!errors.actualQuantity && Number(value) !== Number(systemQuantity) && !reason) {
+    errors.reason = 'Bắt buộc nhập lý do khi số thực tế khác số hệ thống.';
+  } else if (reason.length > 255) {
     errors.reason = 'Lý do không được vượt quá 255 ký tự.';
   }
   return errors;

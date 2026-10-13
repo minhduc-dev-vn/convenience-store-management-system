@@ -292,9 +292,11 @@ test('shift reconciliation is derived from DB totals and only the owner may clos
     SoHoaDonHoanTat: 2,
     SoHoaDonHuy: 1,
     SoHoaDonChuaHoanTat: 0,
-    DoanhThu: 150000,
-    DoanhThuTienMat: 90000,
-    DoanhThuKhongTienMat: 60000,
+    DoanhThuGop: 150000,
+    TongTienHoan: 30000,
+    DoanhThuThuan: 120000,
+    DoanhThuTienMat: 70000,
+    DoanhThuKhongTienMat: 50000,
   };
   const service = new PosService({
     posRepository: {
@@ -319,15 +321,20 @@ test('shift reconciliation is derived from DB totals and only the owner may clos
   });
 
   const preview = await service.getShiftReconciliation(cashierIdentity, '29');
-  assert.equal(preview.reconciliation.expectedCash, 590000);
+  assert.equal(preview.reconciliation.grossRevenue, 150000);
+  assert.equal(preview.reconciliation.refundTotal, 30000);
+  assert.equal(preview.reconciliation.netRevenue, 120000);
+  assert.equal(preview.reconciliation.cashRevenue, 70000);
+  assert.equal(preview.reconciliation.nonCashRevenue, 50000);
+  assert.equal(preview.reconciliation.expectedCash, 570000);
   assert.equal(preview.reconciliation.difference, null);
 
   const closed = await service.closeShift(cashierIdentity, '29', {
-    closingCash: 589000,
+    closingCash: 569000,
     note: 'Thiếu 1.000',
   });
   assert.deepEqual(closeInput, {
-    closingCash: 589000,
+    closingCash: 569000,
     employeeId: 'C29CASH',
     note: 'Thiếu 1.000',
     shiftId: 29,
@@ -351,7 +358,9 @@ test('close shift rejects unfinished and already-closed shifts', async () => {
           SoHoaDonHoanTat: 0,
           SoHoaDonHuy: 0,
           SoHoaDonChuaHoanTat: unfinished,
-          DoanhThu: 0,
+          DoanhThuGop: 0,
+          TongTienHoan: 0,
+          DoanhThuThuan: 0,
           DoanhThuTienMat: 0,
           DoanhThuKhongTienMat: 0,
         };
