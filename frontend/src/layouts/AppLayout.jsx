@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import uteLogo from '../assets/ute_logo.png';
 import { getPrimaryNavigation } from './navigation';
 
 function AppLayout() {
@@ -13,7 +14,7 @@ function AppLayout() {
     <div className={`app-shell${portalModifier}`}>
       <header className={`site-header${isPortalRoute ? ' site-header--portal' : ''}`}>
         <NavLink className="brand" to="/" aria-label="Về trang tổng quan">
-          <span className="brand-mark" aria-hidden="true">CS</span>
+          <img className="brand-logo" src={uteLogo} alt="" aria-hidden="true" />
           <span>
             <strong>Cửa hàng tiện lợi</strong>
             <small>Nền tảng quản lý</small>
