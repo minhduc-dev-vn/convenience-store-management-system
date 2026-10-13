@@ -309,6 +309,12 @@ function CashierPosPage() {
         <span>Bắt đầu {formatDateTime(shift.startedAt)}</span>
       </div>
 
+      {shift.isCarryOver && (
+        <Notice tone="warning">
+          Bạn đang bán hàng trên ca được mở từ ngày trước. <Link to="/cashier">Về tổng quan ca</Link>
+        </Notice>
+      )}
+
       <Notice tone="error">{error}</Notice>
       <Notice tone="success">{notice}</Notice>
 

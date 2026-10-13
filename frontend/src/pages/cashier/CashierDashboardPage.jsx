@@ -218,9 +218,15 @@ function CashierDashboardPage() {
             <span className="status-badge status-badge--active">{shift.status}</span>
             <p>Ca #{shift.shiftId}</p>
           </div>
+          {(shift.isCarryOver || reconciliation?.isCarryOver) && (
+            <Notice tone="warning">
+              Ca này được mở từ ngày nghiệp vụ trước. Hãy đối chiếu và đóng ca nếu ca làm việc đã kết thúc, sau đó mở ca mới để tránh nhầm lẫn khi bàn giao.
+            </Notice>
+          )}
           <dl className="shift-details">
             <div><dt>Thu ngân</dt><dd>{shift.employee?.name || shift.employee?.employeeId}</dd></div>
             <div><dt>Bắt đầu</dt><dd>{formatDateTime(shift.startedAt)}</dd></div>
+            <div><dt>Ngày nghiệp vụ</dt><dd>{shift.businessDate || '—'}</dd></div>
             <div><dt>Tiền đầu ca</dt><dd>{formatMoney(shift.openingCash)}</dd></div>
             <div><dt>Ghi chú</dt><dd>{shift.note || 'Không có'}</dd></div>
           </dl>

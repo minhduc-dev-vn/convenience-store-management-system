@@ -72,6 +72,11 @@ test('MH-04 dashboards use live services and remain protected by role routes', (
   assert.match(cashier, /Doanh thu thuần/);
   assert.match(cashier, /Tiền mặt thuần/);
   assert.match(cashier, /Không tiền mặt thuần/);
+  assert.match(cashier, /shift\.isCarryOver \|\| reconciliation\?\.isCarryOver/);
+  assert.match(cashier, /Ca này được mở từ ngày nghiệp vụ trước\./);
+  assert.match(cashier, /Hãy đối chiếu và đóng ca nếu ca làm việc đã kết thúc/);
+  assert.match(cashier, /<Notice tone="warning">/);
+  assert.match(cashier, /<dt>Ngày nghiệp vụ<\/dt>/);
   assert.doesNotMatch(cashier, /<dt>Tổng doanh thu<\/dt>/);
   assert.match(warehouse, /mode: 'LOW_STOCK'/);
   assert.match(warehouse, /mode: 'NEAR_EXPIRY'/);

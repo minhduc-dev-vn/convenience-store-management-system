@@ -13,6 +13,7 @@ const { getDatabaseSettings } = require('../src/config/database.config');
 const { getSqlDriver } = require('../src/config/database.driver');
 const { closePool } = require('../src/config/database.pool');
 const { BaseRepository } = require('../src/repositories/base.repository');
+const { PosRepository } = require('../src/repositories/pos.repository');
 
 const integrationTest = process.env.RUN_DB_INTEGRATION_TESTS === 'true' ? test : test.skip;
 
@@ -173,12 +174,16 @@ integrationTest('shift opening, current shift, sellable lookup and RBAC enforce 
   assert.equal(openedShift.openingCash, 500000.5);
   assert.equal(openedShift.status, 'OPEN');
   assert.equal(openedShift.note, 'Ca C29');
+  assert.equal(openedShift.isCarryOver, false);
+  assert.match(openedShift.businessDate, /^\d{4}-\d{2}-\d{2}$/);
   assert.match(openedShift.startedAt, /^\d{4}-\d{2}-\d{2}T/);
 
   result = await requestJson(baseUrl, '/api/pos/shifts/current', { token: tokens.cashier });
   assert.equal(result.response.status, 200);
   assert.equal(result.payload.data.shift.shiftId, openedShift.shiftId);
   assert.equal(result.payload.data.shift.status, 'OPEN');
+  assert.equal(result.payload.data.shift.isCarryOver, false);
+  assert.equal(result.payload.data.shift.businessDate, openedShift.businessDate);
 
   result = await requestJson(baseUrl, '/api/pos/shifts/open', {
     method: 'POST', token: tokens.cashier, body: { openingCash: 0 },
@@ -240,4 +245,111 @@ integrationTest('shift opening, current shift, sellable lookup and RBAC enforce 
   assert.equal(persisted.recordset[0].MaNV, 'C29CASH');
   assert.equal(Number(persisted.recordset[0].TienDauCa), 500000.5);
   assert.equal(persisted.recordset[0].GhiChu, 'Ca C29');
+
+  await repository.query({
+    text: `
+      UPDATE dbo.CA_LAM_VIEC
+      SET GioBatDau = @StartedAt
+      WHERE MaCa = @ShiftId
+    `,
+    parameters: {
+      ShiftId: { type: sql.BigInt, value: Number(openedShift.shiftId) },
+      StartedAt: { type: sql.DateTime2(0), value: new Date('2026-10-13T16:59:59.000Z') },
+    },
+  });
+
+  const caseARepository = new PosRepository({
+    currentTimeProvider: () => new Date('2026-10-13T16:59:59.000Z'),
+  });
+  let boundaryShift = await caseARepository.findCurrentOpenShift('C29CASH');
+  assert.equal(boundaryShift.BusinessDate, '2026-10-13');
+  assert.equal(Boolean(boundaryShift.IsCarryOver), false);
+
+  const caseBRepository = new PosRepository({
+    currentTimeProvider: () => new Date('2026-10-13T17:00:01.000Z'),
+  });
+  boundaryShift = await caseBRepository.findCurrentOpenShift('C29CASH');
+  assert.equal(boundaryShift.BusinessDate, '2026-10-13');
+  assert.equal(Boolean(boundaryShift.IsCarryOver), true);
+
+  await repository.query({
+    text: `
+      UPDATE dbo.CA_LAM_VIEC
+      SET GioBatDau = @StartedAt
+      WHERE MaCa = @ShiftId
+    `,
+    parameters: {
+      ShiftId: { type: sql.BigInt, value: Number(openedShift.shiftId) },
+      StartedAt: { type: sql.DateTime2(0), value: new Date('2026-10-13T17:00:00.000Z') },
+    },
+  });
+  boundaryShift = await caseBRepository.findCurrentOpenShift('C29CASH');
+  assert.equal(boundaryShift.BusinessDate, '2026-10-14');
+  assert.equal(Boolean(boundaryShift.IsCarryOver), false);
+
+  await repository.query({
+    text: `
+      DECLARE @CurrentBusinessDate DATE = CONVERT(
+        DATE,
+        (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+      );
+      DECLARE @CurrentBusinessStartUtc DATETIME2(0) = CONVERT(
+        DATETIME2(0),
+        (CONVERT(DATETIME2(0), @CurrentBusinessDate) AT TIME ZONE 'SE Asia Standard Time')
+          AT TIME ZONE 'UTC'
+      );
+
+      UPDATE dbo.CA_LAM_VIEC
+      SET GioBatDau = DATEADD(DAY, -3, @CurrentBusinessStartUtc)
+      WHERE MaCa = @ShiftId;
+    `,
+    parameters: {
+      ShiftId: { type: sql.BigInt, value: Number(openedShift.shiftId) },
+    },
+  });
+
+  result = await requestJson(baseUrl, '/api/pos/shifts/current', { token: tokens.cashier });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.shift.shiftId, openedShift.shiftId);
+  assert.equal(result.payload.data.shift.status, 'OPEN');
+  assert.equal(result.payload.data.shift.isCarryOver, true);
+  assert.match(result.payload.data.shift.startedAt, /Z$/);
+  const carryOverBusinessDate = result.payload.data.shift.businessDate;
+
+  result = await requestJson(
+    baseUrl,
+    `/api/pos/shifts/${openedShift.shiftId}/reconciliation`,
+    { token: tokens.cashier },
+  );
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.reconciliation.isCarryOver, true);
+  assert.equal(result.payload.data.reconciliation.businessDate, carryOverBusinessDate);
+  assert.equal(result.payload.data.reconciliation.grossRevenue, 0);
+  assert.equal(result.payload.data.reconciliation.refundTotal, 0);
+  assert.equal(result.payload.data.reconciliation.expectedCash, 500000.5);
+
+  result = await requestJson(baseUrl, '/api/pos/products/barcode/C2900001', {
+    token: tokens.cashier,
+  });
+  assert.equal(result.response.status, 200);
+
+  result = await requestJson(baseUrl, '/api/pos/shifts/open', {
+    method: 'POST', token: tokens.cashier, body: { openingCash: 0 },
+  });
+  assert.equal(result.response.status, 409);
+  assert.equal(result.payload.error.code, 'SHIFT_ALREADY_OPEN');
+
+  result = await requestJson(baseUrl, `/api/pos/shifts/${openedShift.shiftId}/close`, {
+    method: 'POST', token: tokens.cashier, body: { closingCash: 500000.5 },
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.reconciliation.status, 'CLOSED');
+  assert.equal(result.payload.data.reconciliation.isCarryOver, true);
+
+  result = await requestJson(baseUrl, '/api/pos/shifts/open', {
+    method: 'POST', token: tokens.cashier, body: { openingCash: 0, note: 'Ca mới C29' },
+  });
+  assert.equal(result.response.status, 201);
+  assert.equal(result.payload.data.shift.status, 'OPEN');
+  assert.equal(result.payload.data.shift.isCarryOver, false);
 });

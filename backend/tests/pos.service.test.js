@@ -26,6 +26,8 @@ function shiftRow(overrides = {}) {
     MaNV: 'C29CASH',
     TenNhanVien: 'C29 Cashier',
     GioBatDau: new Date('2026-09-29T08:00:00.000Z'),
+    BusinessDate: '2026-09-29',
+    IsCarryOver: false,
     TienDauCa: 500000,
     TrangThai: 'OPEN',
     GhiChu: 'Ca sang',
@@ -127,7 +129,9 @@ test('current shift is derived from the authenticated cashier and may be null', 
 
   assert.deepEqual(employeeIds, ['C29CASH', 'C29CASH']);
   assert.deepEqual(result.shift, {
+    businessDate: '2026-09-29',
     employee: { employeeId: 'C29CASH', name: 'C29 Cashier' },
+    isCarryOver: false,
     note: 'Ca sang',
     openingCash: 500000,
     shiftId: '29',
@@ -138,11 +142,17 @@ test('current shift is derived from the authenticated cashier and may be null', 
 
 test('opening a shift binds the JWT employee and normalizes client input', async () => {
   let received;
+  const openedRow = shiftRow({ TenNhanVien: undefined });
+  const currentRow = shiftRow();
   const service = new PosService({
     posRepository: {
       async openShift(input) {
         received = input;
-        return shiftRow({ TenNhanVien: undefined });
+        return openedRow;
+      },
+      async findCurrentOpenShift(employeeId) {
+        assert.equal(employeeId, 'C29CASH');
+        return currentRow;
       },
     },
   });
@@ -160,6 +170,28 @@ test('opening a shift binds the JWT employee and normalizes client input', async
   });
   assert.equal(result.shift.employee.employeeId, 'C29CASH');
   assert.equal(result.shift.employee.name, 'C29 Cashier');
+  assert.equal(result.shift.businessDate, '2026-09-29');
+  assert.equal(result.shift.isCarryOver, false);
+});
+
+test('carry-over metadata remains neutral and preserves the UTC start instant', async () => {
+  const service = new PosService({
+    posRepository: {
+      async findCurrentOpenShift() {
+        return shiftRow({
+          BusinessDate: '2026-10-13',
+          GioBatDau: new Date('2026-10-13T16:59:59.000Z'),
+          IsCarryOver: true,
+        });
+      },
+    },
+  });
+
+  const result = await service.getCurrentShift(cashierIdentity);
+  assert.equal(result.shift.businessDate, '2026-10-13');
+  assert.equal(result.shift.isCarryOver, true);
+  assert.equal(result.shift.startedAt, '2026-10-13T16:59:59.000Z');
+  assert.equal(result.shift.status, 'OPEN');
 });
 
 test('product search requires an OPEN shift and returns sellable stock snapshots', async () => {
@@ -328,6 +360,8 @@ test('shift reconciliation is derived from DB totals and only the owner may clos
   assert.equal(preview.reconciliation.nonCashRevenue, 50000);
   assert.equal(preview.reconciliation.expectedCash, 570000);
   assert.equal(preview.reconciliation.difference, null);
+  assert.equal(preview.reconciliation.businessDate, '2026-09-29');
+  assert.equal(preview.reconciliation.isCarryOver, false);
 
   const closed = await service.closeShift(cashierIdentity, '29', {
     closingCash: 569000,
@@ -341,6 +375,7 @@ test('shift reconciliation is derived from DB totals and only the owner may clos
   });
   assert.equal(closed.reconciliation.status, 'CLOSED');
   assert.equal(closed.reconciliation.difference, -1000);
+  assert.equal(closed.reconciliation.businessDate, '2026-09-29');
 });
 
 test('close shift rejects unfinished and already-closed shifts', async () => {
@@ -400,13 +435,13 @@ test('close-shift validation rejects spoofed fields and invalid cash', () => {
   }
 });
 
-test('POS quote uses server prices, validates membership and allocates promotion cents like C28', async () => {
+test('POS quote stays usable on a carry-over OPEN shift and uses authoritative pricing', async () => {
   let evaluationInput;
   const service = new PosService({
     posRepository: {
       async findCurrentOpenShift(employeeId) {
         assert.equal(employeeId, 'C29CASH');
-        return shiftRow();
+        return shiftRow({ IsCarryOver: true });
       },
       async findQuoteProducts(productIds) {
         assert.deepEqual(productIds, ['C30P001', 'C30P002']);

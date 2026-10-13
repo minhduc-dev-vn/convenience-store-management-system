@@ -42,6 +42,7 @@ class PosRepository extends BaseRepository {
   constructor(options = {}) {
     super(options);
     this.sqlDriver = options.sqlDriver || null;
+    this.currentTimeProvider = options.currentTimeProvider || (() => null);
   }
 
   get sql() {
@@ -61,14 +62,31 @@ class PosRepository extends BaseRepository {
           work_shift.GioBatDau,
           work_shift.TienDauCa,
           work_shift.TrangThai,
-          work_shift.GhiChu
+          work_shift.GhiChu,
+          CONVERT(CHAR(10), business_calendar.ShiftBusinessDate, 23) AS BusinessDate,
+          CONVERT(BIT, CASE
+            WHEN business_calendar.ShiftBusinessDate < business_calendar.CurrentBusinessDate THEN 1
+            ELSE 0
+          END) AS IsCarryOver
         FROM dbo.CA_LAM_VIEC AS work_shift
         JOIN dbo.NHAN_VIEN AS employee ON employee.MaNV = work_shift.MaNV
+        CROSS APPLY (VALUES (
+          CONVERT(
+            DATE,
+            (work_shift.GioBatDau AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+          ),
+          CONVERT(
+            DATE,
+            (COALESCE(@CurrentUtc, SYSUTCDATETIME()) AT TIME ZONE 'UTC')
+              AT TIME ZONE 'SE Asia Standard Time'
+          )
+        )) AS business_calendar (ShiftBusinessDate, CurrentBusinessDate)
         WHERE work_shift.MaNV = @EmployeeId
           AND work_shift.TrangThai = 'OPEN'
         ORDER BY work_shift.GioBatDau DESC, work_shift.MaCa DESC
       `,
       parameters: {
+        CurrentUtc: { type: this.sql.DateTime2(0), value: this.currentTimeProvider() },
         EmployeeId: { type: this.sql.VarChar(10), value: employeeId },
       },
       transaction,
@@ -116,6 +134,11 @@ class PosRepository extends BaseRepository {
           work_shift.TienCuoiCa,
           work_shift.TrangThai,
           work_shift.GhiChu,
+          CONVERT(CHAR(10), business_calendar.ShiftBusinessDate, 23) AS BusinessDate,
+          CONVERT(BIT, CASE
+            WHEN business_calendar.ShiftBusinessDate < business_calendar.CurrentBusinessDate THEN 1
+            ELSE 0
+          END) AS IsCarryOver,
           COALESCE(invoice_totals.SoHoaDon, 0) AS SoHoaDon,
           COALESCE(invoice_totals.SoHoaDonHoanTat, 0) AS SoHoaDonHoanTat,
           COALESCE(invoice_totals.SoHoaDonHuy, 0) AS SoHoaDonHuy,
@@ -127,6 +150,17 @@ class PosRepository extends BaseRepository {
           COALESCE(payment_totals.DoanhThuKhongTienMat, 0) AS DoanhThuKhongTienMat
         FROM dbo.CA_LAM_VIEC AS work_shift
         JOIN dbo.NHAN_VIEN AS employee ON employee.MaNV = work_shift.MaNV
+        CROSS APPLY (VALUES (
+          CONVERT(
+            DATE,
+            (work_shift.GioBatDau AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+          ),
+          CONVERT(
+            DATE,
+            (COALESCE(@CurrentUtc, SYSUTCDATETIME()) AT TIME ZONE 'UTC')
+              AT TIME ZONE 'SE Asia Standard Time'
+          )
+        )) AS business_calendar (ShiftBusinessDate, CurrentBusinessDate)
         OUTER APPLY (
           SELECT
             COUNT_BIG(*) AS SoHoaDon,
@@ -242,6 +276,7 @@ class PosRepository extends BaseRepository {
           AND work_shift.MaNV = @EmployeeId
       `,
       parameters: {
+        CurrentUtc: { type: this.sql.DateTime2(0), value: this.currentTimeProvider() },
         EmployeeId: { type: this.sql.VarChar(10), value: employeeId },
         ShiftId: { type: this.sql.BigInt, value: shiftId },
       },

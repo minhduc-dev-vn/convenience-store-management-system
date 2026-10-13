@@ -83,12 +83,14 @@ function dateTime(value) {
 function serializeShift(row) {
   if (!row) return null;
   return {
+    businessDate: row.BusinessDate,
     employee: {
       employeeId: row.MaNV,
       name: row.TenNhanVien ?? null,
     },
     note: row.GhiChu,
     openingCash: Number(row.TienDauCa),
+    isCarryOver: Boolean(row.IsCarryOver),
     shiftId: String(row.MaCa),
     startedAt: dateTime(row.GioBatDau),
     status: row.TrangThai,
@@ -129,6 +131,7 @@ function serializeShiftReconciliation(row) {
   const closingCash = row.TienCuoiCa === null ? null : Number(row.TienCuoiCa);
   const expectedCash = Math.round((openingCash + cashRevenue) * 100) / 100;
   return {
+    businessDate: row.BusinessDate,
     cancelledInvoiceCount: Number(row.SoHoaDonHuy),
     cashRevenue,
     closedAt: dateTime(row.GioKetThuc),
@@ -144,6 +147,7 @@ function serializeShiftReconciliation(row) {
     expectedCash,
     grossRevenue: Number(row.DoanhThuGop),
     invoiceCount: Number(row.SoHoaDon),
+    isCarryOver: Boolean(row.IsCarryOver),
     netRevenue: Number(row.DoanhThuThuan),
     nonCashRevenue: Number(row.DoanhThuKhongTienMat),
     note: row.GhiChu,
@@ -610,8 +614,15 @@ class PosService {
       openingCash: normalizeMoney(input.openingCash, 'openingCash'),
     };
     try {
-      const row = await this.posRepository.openShift(shift);
-      return { shift: serializeShift({ ...row, TenNhanVien: identity.displayName ?? null }) };
+      await this.posRepository.openShift(shift);
+      const row = await this.posRepository.findCurrentOpenShift(identity.employeeId);
+      if (!row) {
+        throw new AppError('The opened cashier shift could not be loaded', {
+          code: 'SHIFT_OPEN_RESULT_UNAVAILABLE',
+          statusCode: 500,
+        });
+      }
+      return { shift: serializeShift(row) };
     } catch (error) {
       throw mapPosError(error);
     }

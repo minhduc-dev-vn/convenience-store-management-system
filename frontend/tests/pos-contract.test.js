@@ -139,3 +139,15 @@ test('receipt stylesheet provides a dedicated print-only layout', () => {
   assert.match(css, /\.no-print/);
   assert.match(css, /visibility:\s*visible/);
 });
+
+test('POS shows a non-blocking carry-over warning with a dashboard action', () => {
+  const source = readFileSync(
+    new URL('../src/pages/cashier/CashierPosPage.jsx', import.meta.url),
+    'utf8',
+  );
+  assert.match(source, /shift\.isCarryOver/);
+  assert.match(source, /Bạn đang bán hàng trên ca được mở từ ngày trước\./);
+  assert.match(source, /<Link to="\/cashier">Về tổng quan ca<\/Link>/);
+  assert.match(source, /<Notice tone="warning">/);
+  assert.doesNotMatch(source, /isCarryOver[^\n]*(disabled|setShift\(null\)|SHIFT_REQUIRED)/);
+});
