@@ -288,17 +288,18 @@ function CustomerMemberManagementPage() {
   }, [appliedFilters, page, reloadKey]);
 
   const columns = useMemo(() => [
-    { key: 'customerId', header: 'Mã KH' },
-    { key: 'fullName', header: 'Họ tên' },
-    { key: 'phone', header: 'SĐT' },
-    { key: 'email', header: 'Email', render: (row) => row.email || '—' },
-    { key: 'loyaltyPoints', header: 'Điểm', render: (row) => integer.format(row.loyaltyPoints) },
-    { key: 'membershipTier', header: 'Hạng', render: (row) => MEMBERSHIP_TIER_LABELS[row.membershipTier] ?? row.membershipTier },
-    { key: 'registeredAt', header: 'Ngày đăng ký', render: (row) => displayDate(row.registeredAt) },
-    { key: 'status', header: 'Trạng thái', render: (row) => <StatusBadge status={row.status} labels={CUSTOMER_STATUS_LABELS} /> },
+    { key: 'customerId', header: 'Mã KH', className: 'customer-table__id' },
+    { key: 'fullName', header: 'Họ tên', className: 'customer-table__name' },
+    { key: 'phone', header: 'SĐT', className: 'customer-table__phone' },
+    { key: 'email', header: 'Email', className: 'customer-table__email', render: (row) => row.email || '—' },
+    { key: 'loyaltyPoints', header: 'Điểm', className: 'customer-table__points', render: (row) => integer.format(row.loyaltyPoints) },
+    { key: 'membershipTier', header: 'Hạng', className: 'customer-table__tier', render: (row) => MEMBERSHIP_TIER_LABELS[row.membershipTier] ?? row.membershipTier },
+    { key: 'registeredAt', header: 'Ngày đăng ký', className: 'customer-table__registered', render: (row) => displayDate(row.registeredAt) },
+    { key: 'status', header: 'Trạng thái', className: 'customer-table__status', render: (row) => <StatusBadge status={row.status} labels={CUSTOMER_STATUS_LABELS} /> },
     {
       key: 'actions',
       header: 'Thao tác',
+      className: 'customer-table__actions',
       render: (row) => {
         const transition = getCustomerAccountTransition(row);
         return (
@@ -396,7 +397,9 @@ function CustomerMemberManagementPage() {
           <>
             <DataTable
               caption="Danh sách khách hàng thành viên"
+              className="manager-table manager-table--customers"
               columns={columns}
+              containerClassName="manager-table-scroll manager-table-scroll--customers"
               getRowKey={(row) => row.customerId}
               rows={state.data.items}
             />

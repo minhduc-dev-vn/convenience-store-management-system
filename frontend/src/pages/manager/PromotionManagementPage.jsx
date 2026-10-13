@@ -280,18 +280,19 @@ function PromotionManagementPage() {
   };
 
   const columns = useMemo(() => [
-    { key: 'promotionId', header: 'Mã KM' },
-    { key: 'name', header: 'Tên chương trình' },
-    { key: 'type', header: 'Hình thức', render: (row) => (row.type === 'PERCENT' ? 'Phần trăm' : 'Số tiền') },
-    { key: 'value', header: 'Mức ưu đãi', render: formatValue },
-    { key: 'minimumOrderValue', header: 'Đơn tối thiểu', render: (row) => money.format(row.minimumOrderValue) },
-    { key: 'maximumDiscount', header: 'Giảm tối đa', render: (row) => (row.maximumDiscount == null ? '—' : money.format(row.maximumDiscount)) },
-    { key: 'period', header: 'Thời gian', render: (row) => <span className="table-date-range">{dateTime.format(new Date(row.startAt))}<small>đến {dateTime.format(new Date(row.endAt))}</small></span> },
-    { key: 'productCount', header: 'Sản phẩm' },
-    { key: 'status', header: 'Trạng thái', render: (row) => <span className={`status-badge status-badge--${row.status.toLowerCase()}`}>{row.status === 'ACTIVE' ? 'Kích hoạt' : 'Tạm ngưng'}</span> },
+    { key: 'promotionId', header: 'Mã KM', className: 'promotion-table__id' },
+    { key: 'name', header: 'Tên chương trình', className: 'promotion-table__name' },
+    { key: 'type', header: 'Hình thức', className: 'promotion-table__type', render: (row) => (row.type === 'PERCENT' ? 'Phần trăm' : 'Số tiền') },
+    { key: 'value', header: 'Mức ưu đãi', className: 'promotion-table__value', render: formatValue },
+    { key: 'minimumOrderValue', header: 'Đơn tối thiểu', className: 'promotion-table__minimum', render: (row) => money.format(row.minimumOrderValue) },
+    { key: 'maximumDiscount', header: 'Giảm tối đa', className: 'promotion-table__maximum', render: (row) => (row.maximumDiscount == null ? '—' : money.format(row.maximumDiscount)) },
+    { key: 'period', header: 'Thời gian', className: 'promotion-table__period', render: (row) => <span className="table-date-range">{dateTime.format(new Date(row.startAt))}<small>đến {dateTime.format(new Date(row.endAt))}</small></span> },
+    { key: 'productCount', header: 'Sản phẩm', className: 'promotion-table__products' },
+    { key: 'status', header: 'Trạng thái', className: 'promotion-table__status', render: (row) => <span className={`status-badge status-badge--${row.status.toLowerCase()}`}>{row.status === 'ACTIVE' ? 'Kích hoạt' : 'Tạm ngưng'}</span> },
     {
       key: 'actions',
       header: 'Thao tác',
+      className: 'promotion-table__actions',
       render: (row) => (
         <div className="table-actions">
           <button className="table-action" type="button" onClick={() => openEditor(row)}>Cập nhật</button>
@@ -347,7 +348,14 @@ function PromotionManagementPage() {
       >
         {state.data?.items.length > 0 && (
           <>
-            <DataTable caption="Danh sách chương trình khuyến mãi" columns={columns} getRowKey={(row) => row.promotionId} rows={state.data.items} />
+            <DataTable
+              caption="Danh sách chương trình khuyến mãi"
+              className="manager-table manager-table--promotions"
+              columns={columns}
+              containerClassName="manager-table-scroll manager-table-scroll--promotions"
+              getRowKey={(row) => row.promotionId}
+              rows={state.data.items}
+            />
             <Pagination disabled={state.isLoading} page={pagination.page} totalPages={pagination.totalPages} onPageChange={setPage} />
           </>
         )}

@@ -156,18 +156,19 @@ function EmployeeManagementPage() {
   };
 
   const columns = useMemo(() => [
-    { key: 'employeeId', header: 'Mã NV' },
-    { key: 'fullName', header: 'Họ tên' },
-    { key: 'gender', header: 'Giới tính', render: (row) => ({ MALE: 'Nam', FEMALE: 'Nữ', OTHER: 'Khác' }[row.gender] ?? '—') },
-    { key: 'dateOfBirth', header: 'Ngày sinh', render: (row) => displayDate(row.dateOfBirth) },
-    { key: 'phone', header: 'Điện thoại' },
-    { key: 'email', header: 'Email', render: (row) => row.email || '—' },
-    { key: 'startDate', header: 'Bắt đầu', render: (row) => displayDate(row.startDate) },
-    { key: 'baseSalary', header: 'Lương cơ bản', render: (row) => row.baseSalary == null ? '—' : money.format(row.baseSalary) },
-    { key: 'status', header: 'Trạng thái', render: (row) => <span className={`status-badge status-badge--${row.status.toLowerCase()}`}>{row.status === 'ACTIVE' ? 'Đang làm' : 'Ngừng'}</span> },
+    { key: 'employeeId', header: 'Mã NV', className: 'employee-table__id' },
+    { key: 'fullName', header: 'Họ tên', className: 'employee-table__name' },
+    { key: 'gender', header: 'Giới tính', className: 'employee-table__gender', render: (row) => ({ MALE: 'Nam', FEMALE: 'Nữ', OTHER: 'Khác' }[row.gender] ?? '—') },
+    { key: 'dateOfBirth', header: 'Ngày sinh', className: 'employee-table__date', render: (row) => displayDate(row.dateOfBirth) },
+    { key: 'phone', header: 'Điện thoại', className: 'employee-table__phone' },
+    { key: 'email', header: 'Email', className: 'employee-table__email', render: (row) => row.email || '—' },
+    { key: 'startDate', header: 'Bắt đầu', className: 'employee-table__start', render: (row) => displayDate(row.startDate) },
+    { key: 'baseSalary', header: 'Lương cơ bản', className: 'employee-table__salary', render: (row) => row.baseSalary == null ? '—' : money.format(row.baseSalary) },
+    { key: 'status', header: 'Trạng thái', className: 'employee-table__status', render: (row) => <span className={`status-badge status-badge--${row.status.toLowerCase()}`}>{row.status === 'ACTIVE' ? 'Đang làm' : 'Ngừng'}</span> },
     {
       key: 'actions',
       header: 'Thao tác',
+      className: 'employee-table__actions',
       render: (row) => (
         <div className="table-actions">
           <button className="table-action" type="button" onClick={() => { setActionError(null); setEditor({ employee: row }); }}>Cập nhật</button>
@@ -208,7 +209,14 @@ function EmployeeManagementPage() {
       <AsyncContent error={state.error} isLoading={state.isLoading} loadingMessage="Đang tải danh sách nhân viên…" onRetry={() => refresh()} isEmpty={state.data?.items.length === 0} emptyTitle="Không tìm thấy nhân viên" emptyMessage="Hãy thay đổi từ khóa hoặc bộ lọc trạng thái.">
         {state.data?.items.length > 0 && (
           <>
-            <DataTable caption="Danh sách nhân viên" columns={columns} getRowKey={(row) => row.employeeId} rows={state.data.items} />
+            <DataTable
+              caption="Danh sách nhân viên"
+              className="manager-table manager-table--employees"
+              columns={columns}
+              containerClassName="manager-table-scroll manager-table-scroll--employees"
+              getRowKey={(row) => row.employeeId}
+              rows={state.data.items}
+            />
             <Pagination disabled={state.isLoading} page={pagination.page} totalPages={pagination.totalPages} onPageChange={setPage} />
           </>
         )}

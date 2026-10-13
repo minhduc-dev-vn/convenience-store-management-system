@@ -209,6 +209,7 @@ function ProductManagementPage() {
     {
       key: 'imageUrl',
       header: 'Hình ảnh',
+      className: 'product-table__image',
       render: (row) => (
         <ProductImage
           className="product-thumbnail"
@@ -217,17 +218,18 @@ function ProductManagementPage() {
         />
       ),
     },
-    { key: 'productId', header: 'Mã SP / SKU' },
-    { key: 'barcode', header: 'Barcode', render: (row) => row.barcode || '—' },
-    { key: 'name', header: 'Tên sản phẩm' },
-    { key: 'category', header: 'Loại', render: (row) => row.category.name },
-    { key: 'unit', header: 'ĐVT' },
-    { key: 'price', header: 'Giá bán', render: (row) => money.format(row.price) },
-    { key: 'minimumStock', header: 'Tồn tối thiểu' },
-    { key: 'status', header: 'Trạng thái', render: (row) => <span className={`status-badge status-badge--${row.status.toLowerCase()}`}>{row.status === 'ACTIVE' ? 'Đang bán' : 'Ngừng'}</span> },
+    { key: 'productId', header: 'Mã SP / SKU', className: 'product-table__id' },
+    { key: 'barcode', header: 'Barcode', className: 'product-table__barcode', render: (row) => row.barcode || '—' },
+    { key: 'name', header: 'Tên sản phẩm', className: 'product-table__name' },
+    { key: 'category', header: 'Loại', className: 'product-table__category', render: (row) => row.category.name },
+    { key: 'unit', header: 'ĐVT', className: 'product-table__unit' },
+    { key: 'price', header: 'Giá bán', className: 'product-table__price', render: (row) => money.format(row.price) },
+    { key: 'minimumStock', header: 'Tồn tối thiểu', className: 'product-table__minimum-stock' },
+    { key: 'status', header: 'Trạng thái', className: 'product-table__status', render: (row) => <span className={`status-badge status-badge--${row.status.toLowerCase()}`}>{row.status === 'ACTIVE' ? 'Đang bán' : 'Ngừng'}</span> },
     {
       key: 'actions',
       header: 'Thao tác',
+      className: 'product-table__actions',
       render: (row) => (
         <div className="table-actions product-table-actions">
           <button className="table-action" type="button" onClick={() => { setActionError(null); setEditor({ product: row }); }}>Cập nhật</button>
@@ -281,7 +283,14 @@ function ProductManagementPage() {
       <AsyncContent error={state.error} isLoading={state.isLoading} loadingMessage="Đang tải sản phẩm…" onRetry={refresh} isEmpty={state.data?.items.length === 0} emptyTitle="Không tìm thấy sản phẩm" emptyMessage="Hãy thay đổi từ khóa hoặc bộ lọc.">
         {state.data?.items.length > 0 && (
           <>
-            <DataTable caption="Danh sách sản phẩm" columns={columns} getRowKey={(row) => row.productId} rows={state.data.items} />
+            <DataTable
+              caption="Danh sách sản phẩm"
+              className="manager-table manager-table--products"
+              columns={columns}
+              containerClassName="manager-table-scroll manager-table-scroll--products"
+              getRowKey={(row) => row.productId}
+              rows={state.data.items}
+            />
             <Pagination disabled={state.isLoading} page={pagination.page} totalPages={pagination.totalPages} onPageChange={setPage} />
           </>
         )}

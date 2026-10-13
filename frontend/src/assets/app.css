@@ -514,8 +514,7 @@ a {
   min-height: 150px;
   padding: 26px;
   align-items: start;
-  grid-template-columns: auto 1fr auto;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
   border: 1px solid var(--line);
   border-radius: 20px;
   background: rgb(255 253 247 / 68%);
@@ -535,13 +534,6 @@ article.workspace-card:hover {
   transform: none;
 }
 
-.workspace-code {
-  color: var(--orange);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-
 .workspace-card h3 {
   margin: 0 0 8px;
   font-family: 'DM Sans', sans-serif;
@@ -552,11 +544,6 @@ article.workspace-card:hover {
   margin: 0;
   color: var(--muted);
   font-size: 0.8rem;
-}
-
-.workspace-arrow {
-  color: var(--forest);
-  font-size: 1.2rem;
 }
 
 .page-heading h1 {
@@ -1942,7 +1929,7 @@ article.workspace-card:hover {
 }
 
 .product-table-actions {
-  min-width: 220px;
+  min-width: 0;
 }
 
 .table-action[href] {
@@ -2021,8 +2008,61 @@ article.workspace-card:hover {
   gap: 20px;
 }
 
-.promotion-grid--highlights {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.promotion-carousel__heading-actions,
+.promotion-carousel__controls {
+  display: flex;
+  align-items: center;
+}
+
+.promotion-carousel__heading-actions {
+  gap: 12px;
+}
+
+.promotion-carousel__controls {
+  gap: 7px;
+}
+
+.promotion-carousel__button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--forest);
+  background: var(--surface);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.promotion-carousel__button:hover:not(:disabled) {
+  border-color: var(--forest);
+  background: var(--forest-light);
+}
+
+.promotion-carousel__button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.promotion-carousel {
+  display: grid;
+  padding-bottom: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  grid-auto-columns: calc((100% - 20px) / 2);
+  grid-auto-flow: column;
+  gap: 20px;
+  overscroll-behavior-inline: contain;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.promotion-carousel .promotion-card {
+  scroll-snap-align: start;
 }
 
 .promotion-card {
@@ -3732,6 +3772,123 @@ article.workspace-card:hover {
   color: #765500;
 }
 
+@media (min-width: 1121px) {
+  .manager-portal .portal-sidebar {
+    min-height: 0;
+    max-height: calc(100dvh - 124px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+  }
+
+  .manager-table-scroll {
+    overflow-x: hidden;
+  }
+
+  .data-table--xwide.manager-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .manager-table th,
+  .manager-table td {
+    padding: 10px 7px;
+  }
+
+  .manager-table th {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .manager-table .data-table__cell--breakable,
+  .manager-table .data-table__cell--actions {
+    min-width: 0;
+  }
+
+  .manager-table .table-actions {
+    min-width: 0;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .manager-table .table-action {
+    width: 100%;
+    padding: 6px 5px;
+    justify-content: center;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .manager-table .status-badge {
+    max-width: 100%;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .employee-table__id { width: 7%; }
+  .employee-table__name { width: 13%; }
+  .employee-table__gender { width: 6%; }
+  .employee-table__date { width: 9%; }
+  .employee-table__phone { width: 10%; }
+  .employee-table__email { width: 15%; }
+  .employee-table__start { width: 9%; }
+  .employee-table__salary { width: 10%; }
+  .employee-table__status { width: 9%; }
+  .employee-table__actions { width: 12%; }
+
+  .customer-table__id { width: 8%; }
+  .customer-table__name { width: 15%; }
+  .customer-table__phone { width: 11%; }
+  .customer-table__email { width: 16%; }
+  .customer-table__points { width: 7%; }
+  .customer-table__tier { width: 8%; }
+  .customer-table__registered { width: 11%; }
+  .customer-table__status { width: 10%; }
+  .customer-table__actions { width: 14%; }
+
+  .product-table__image { width: 7%; }
+  .product-table__id { width: 8%; }
+  .product-table__barcode { width: 10%; }
+  .product-table__name { width: 14%; }
+  .product-table__category { width: 11%; }
+  .product-table__unit { width: 5%; }
+  .product-table__price { width: 10%; }
+  .product-table__minimum-stock { width: 8%; }
+  .product-table__status { width: 10%; }
+  .product-table__actions { width: 17%; }
+
+  .promotion-table__id { width: 7%; }
+  .promotion-table__name { width: 14%; }
+  .promotion-table__type { width: 9%; }
+  .promotion-table__value { width: 9%; }
+  .promotion-table__minimum { width: 11%; }
+  .promotion-table__maximum { width: 10%; }
+  .promotion-table__period { width: 15%; }
+  .promotion-table__products { width: 6%; }
+  .promotion-table__status { width: 9%; }
+  .promotion-table__actions { width: 10%; }
+
+  .employee-table__name,
+  .employee-table__email,
+  .customer-table__name,
+  .customer-table__email,
+  .product-table__name,
+  .product-table__category,
+  .promotion-table__name,
+  .promotion-table__period {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .manager-table--promotions .table-date-range {
+    min-width: 0;
+    white-space: normal;
+  }
+}
+
 @media (max-width: 1120px) {
   .portal-shell {
     padding-top: 26px;
@@ -3743,6 +3900,12 @@ article.workspace-card:hover {
     position: static;
     min-height: auto;
     padding: 20px;
+  }
+
+  .manager-portal .portal-sidebar {
+    max-height: none;
+    overflow-y: visible;
+    overscroll-behavior-y: auto;
   }
 
   .portal-sidebar nav {
@@ -3827,6 +3990,11 @@ article.workspace-card:hover {
 
   .promotion-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .promotion-carousel {
+    grid-auto-columns: calc((100% - 16px) / 1.5);
+    gap: 16px;
   }
 
   .pricing-workspace {
@@ -4110,7 +4278,6 @@ article.workspace-card:hover {
   }
 
   .promotion-grid,
-  .promotion-grid--highlights,
   .promotion-product-picker,
   .promotion-product-list,
   .promotion-detail-list {
@@ -4119,6 +4286,20 @@ article.workspace-card:hover {
 
   .promotion-highlights {
     padding: 18px;
+  }
+
+  .promotion-highlights .section-heading,
+  .promotion-carousel__heading-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .promotion-carousel__controls {
+    align-self: flex-start;
+  }
+
+  .promotion-carousel {
+    grid-auto-columns: 100%;
   }
 
   .modal-backdrop {

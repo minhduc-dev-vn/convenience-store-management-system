@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom';
 import { HealthCheckPanel } from '../components';
 
 const workspaces = [
-  { code: '01', title: 'Khách hàng', caption: 'Hồ sơ, hóa đơn và điểm tích lũy cá nhân' },
-  { code: '02', title: 'Thu ngân', caption: 'Truy cập theo quyền của tài khoản thu ngân' },
-  { code: '03', title: 'Nhân viên kho', caption: 'Truy cập theo quyền của tài khoản kho' },
-  { code: '04', title: 'Quản lý', caption: 'Truy cập theo quyền của tài khoản quản lý' },
+  { title: 'Khách hàng', caption: 'Hồ sơ, hóa đơn và điểm tích lũy cá nhân' },
+  { title: 'Thu ngân', caption: 'Truy cập theo quyền của tài khoản thu ngân' },
+  { title: 'Nhân viên kho', caption: 'Truy cập theo quyền của tài khoản kho' },
+  { title: 'Quản lý', caption: 'Truy cập theo quyền của tài khoản quản lý' },
 ];
 
 function HomePage() {
@@ -44,13 +44,11 @@ function HomePage() {
 
         <div className="workspace-grid">
           {workspaces.map((workspace) => (
-            <article className="workspace-card" key={workspace.code}>
-              <span className="workspace-code">{workspace.code}</span>
+            <article className="workspace-card" key={workspace.title}>
               <div>
                 <h3>{workspace.title}</h3>
                 <p>{workspace.caption}</p>
               </div>
-              <span className="workspace-arrow" aria-hidden="true">✓</span>
             </article>
           ))}
         </div>

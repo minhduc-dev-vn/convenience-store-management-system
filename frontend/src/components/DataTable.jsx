@@ -4,6 +4,7 @@ function DataTable({
   caption,
   className = '',
   columns,
+  containerClassName = '',
   emptyMessage = 'Không có dữ liệu phù hợp.',
   getRowClassName,
   getRowKey,
@@ -22,9 +23,10 @@ function DataTable({
         ? 'data-table--standard'
         : 'data-table--compact';
   const tableClassName = ['data-table', sizeClass, className].filter(Boolean).join(' ');
+  const scrollClassName = ['table-scroll', containerClassName].filter(Boolean).join(' ');
 
   return (
-    <div className="table-scroll" tabIndex={0}>
+    <div className={scrollClassName} tabIndex={0}>
       <table className={tableClassName}>
         {caption && <caption>{caption}</caption>}
         <thead>

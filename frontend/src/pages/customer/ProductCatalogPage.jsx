@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AsyncContent,
@@ -33,7 +33,13 @@ function ProductCatalogPage() {
   const [categories, setCategories] = useState({ data: [], error: null });
   const [promotionReloadKey, setPromotionReloadKey] = useState(0);
   const [promotions, setPromotions] = useState({ data: [], error: null, isLoading: true });
+  const [promotionScrollState, setPromotionScrollState] = useState({
+    canScrollNext: false,
+    canScrollPrevious: false,
+    hasOverflow: false,
+  });
   const [detail, setDetail] = useState({ data: null, error: null, isLoading: false });
+  const promotionCarouselRef = useRef(null);
 
   const loadProducts = useCallback(async (signal) => {
     setState((current) => ({ ...current, error: null, isLoading: true }));
@@ -74,6 +80,67 @@ function ProductCatalogPage() {
       });
     return () => controller.abort();
   }, [promotionReloadKey]);
+
+  const updatePromotionScrollState = useCallback(() => {
+    const container = promotionCarouselRef.current;
+    if (!container) {
+      setPromotionScrollState({
+        canScrollNext: false,
+        canScrollPrevious: false,
+        hasOverflow: false,
+      });
+      return;
+    }
+
+    const tolerance = 2;
+    const maximumScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+    const nextState = {
+      canScrollNext: container.scrollLeft < maximumScrollLeft - tolerance,
+      canScrollPrevious: container.scrollLeft > tolerance,
+      hasOverflow: maximumScrollLeft > tolerance,
+    };
+
+    setPromotionScrollState((current) => (
+      current.canScrollNext === nextState.canScrollNext
+      && current.canScrollPrevious === nextState.canScrollPrevious
+      && current.hasOverflow === nextState.hasOverflow
+        ? current
+        : nextState
+    ));
+  }, []);
+
+  useEffect(() => {
+    const container = promotionCarouselRef.current;
+    updatePromotionScrollState();
+    if (!container) return undefined;
+
+    container.addEventListener('scroll', updatePromotionScrollState, { passive: true });
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(updatePromotionScrollState);
+
+    if (resizeObserver) {
+      resizeObserver.observe(container);
+    } else {
+      window.addEventListener('resize', updatePromotionScrollState);
+    }
+
+    return () => {
+      container.removeEventListener('scroll', updatePromotionScrollState);
+      resizeObserver?.disconnect();
+      if (!resizeObserver) window.removeEventListener('resize', updatePromotionScrollState);
+    };
+  }, [promotions.data, promotions.isLoading, updatePromotionScrollState]);
+
+  const scrollPromotions = (direction) => {
+    const container = promotionCarouselRef.current;
+    if (!container) return;
+
+    container.scrollBy({
+      behavior: 'smooth',
+      left: direction * Math.max(280, Math.round(container.clientWidth * 0.8)),
+    });
+  };
 
   const promotionsByProduct = useMemo(() => {
     const mapping = new Map();
@@ -123,7 +190,31 @@ function ProductCatalogPage() {
           <div>
             <h2 id="promotion-highlights-title">Khuyến mãi hiện hành</h2>
           </div>
-          <Link className="button button--ghost" to="/promotions">Xem tất cả ưu đãi</Link>
+          <div className="promotion-carousel__heading-actions">
+            {promotionScrollState.hasOverflow && !promotions.isLoading && promotions.data.length > 0 && (
+              <div className="promotion-carousel__controls" aria-label="Điều khiển danh sách khuyến mãi">
+                <button
+                  className="promotion-carousel__button"
+                  type="button"
+                  aria-label="Xem khuyến mãi trước"
+                  disabled={!promotionScrollState.canScrollPrevious}
+                  onClick={() => scrollPromotions(-1)}
+                >
+                  <span aria-hidden="true">‹</span>
+                </button>
+                <button
+                  className="promotion-carousel__button"
+                  type="button"
+                  aria-label="Xem khuyến mãi tiếp theo"
+                  disabled={!promotionScrollState.canScrollNext}
+                  onClick={() => scrollPromotions(1)}
+                >
+                  <span aria-hidden="true">›</span>
+                </button>
+              </div>
+            )}
+            <Link className="button button--ghost" to="/promotions">Xem tất cả ưu đãi</Link>
+          </div>
         </div>
         <AsyncContent
           error={promotions.error}
@@ -134,8 +225,14 @@ function ProductCatalogPage() {
           emptyTitle="Chưa có ưu đãi đang diễn ra"
           emptyMessage="Danh mục sản phẩm vẫn sẵn sàng để tra cứu."
         >
-          <div className="promotion-grid promotion-grid--highlights">
-            {promotions.data.slice(0, 4).map((promotion) => (
+          <div
+            className="promotion-carousel"
+            ref={promotionCarouselRef}
+            role="region"
+            aria-label="Khuyến mãi hiện hành"
+            tabIndex={0}
+          >
+            {promotions.data.map((promotion) => (
               <PromotionCard key={promotion.promotionId} compact promotion={promotion} />
             ))}
           </div>
