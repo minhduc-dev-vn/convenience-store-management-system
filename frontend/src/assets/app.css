@@ -3595,10 +3595,28 @@ article.workspace-card:hover {
   width: min(100%, 190px);
   aspect-ratio: 1;
   margin: auto;
-  border: 18px solid var(--surface);
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px var(--line), 0 0 0 1px var(--line);
 }
+
+.report-donut__base,
+.report-donut__segment {
+  fill: none;
+  stroke-width: 9;
+}
+
+.report-donut__base {
+  stroke: var(--surface);
+}
+
+.report-chart-color--0 { stroke: #174f3c; background: #174f3c; }
+.report-chart-color--1 { stroke: #e97043; background: #e97043; }
+.report-chart-color--2 { stroke: #90ad3b; background: #90ad3b; }
+.report-chart-color--3 { stroke: #5a7d70; background: #5a7d70; }
+.report-chart-color--4 { stroke: #d2a63c; background: #d2a63c; }
+.report-chart-color--5 { stroke: #8e6b9f; background: #8e6b9f; }
+.report-chart-color--6 { stroke: #ba5c4d; background: #ba5c4d; }
+.report-chart-color--7 { stroke: #4f7ca8; background: #4f7ca8; }
 
 .report-legend {
   display: grid;
@@ -3645,19 +3663,20 @@ article.workspace-card:hover {
   white-space: nowrap;
 }
 
-.report-bar > div {
+.report-bar__track {
+  display: block;
+  width: 100%;
   height: 12px;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--forest-light);
 }
 
-.report-bar i {
-  display: block;
-  min-width: 3px;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--forest);
+.report-bar__background {
+  fill: var(--forest-light);
+}
+
+.report-bar__value {
+  fill: var(--forest);
 }
 
 .report-bar strong {

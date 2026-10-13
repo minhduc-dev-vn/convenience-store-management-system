@@ -1,6 +1,10 @@
 import { formatMoney, formatPercent, formatReportDate } from '../../pages/manager/reports/reportingPresentation';
 
-const DONUT_COLORS = ['#174f3c', '#e97043', '#90ad3b', '#5a7d70', '#d2a63c', '#8e6b9f', '#ba5c4d', '#4f7ca8'];
+const CHART_COLOR_COUNT = 8;
+
+function getChartColorClassName(index) {
+  return `report-chart-color--${index % CHART_COLOR_COUNT}`;
+}
 
 export function RevenueTrendChart({ data = [] }) {
   if (data.length === 0) return null;
@@ -60,10 +64,11 @@ export function CategoryDonutChart({ data = [] }) {
   if (data.length === 0) return null;
   let offset = 0;
   const segments = data.map((item, index) => {
-    const size = Math.max(Number(item.netRevenueSharePercent ?? 0), 0);
+    const available = Math.max(100 - offset, 0);
+    const size = Math.min(Math.max(Number(item.netRevenueSharePercent ?? 0), 0), available);
     const start = offset;
     offset += size;
-    return `${DONUT_COLORS[index % DONUT_COLORS.length]} ${start}% ${offset}%`;
+    return { categoryId: item.categoryId, index, size, start };
   });
 
   return (
@@ -73,16 +78,31 @@ export function CategoryDonutChart({ data = [] }) {
         <span>Tỷ lệ đóng góp doanh thu thuần</span>
       </figcaption>
       <div className="report-donut-layout">
-        <div
+        <svg
           aria-label="Biểu đồ tròn tỷ trọng doanh thu theo ngành hàng"
           className="report-donut"
           role="img"
-          style={{ background: `conic-gradient(${segments.join(', ')})` }}
-        />
+          viewBox="0 0 42 42"
+        >
+          <circle className="report-donut__base" cx="21" cy="21" pathLength="100" r="15.9155" />
+          {segments.map((segment) => (
+            <circle
+              className={`report-donut__segment ${getChartColorClassName(segment.index)}`}
+              cx="21"
+              cy="21"
+              key={`${segment.categoryId}-${segment.index}`}
+              pathLength="100"
+              r="15.9155"
+              strokeDasharray={`${segment.size} ${100 - segment.size}`}
+              strokeDashoffset={-segment.start}
+              transform="rotate(-90 21 21)"
+            />
+          ))}
+        </svg>
         <ul className="report-legend">
           {data.map((item, index) => (
             <li key={item.categoryId}>
-              <i style={{ background: DONUT_COLORS[index % DONUT_COLORS.length] }} />
+              <i className={getChartColorClassName(index)} />
               <span>{item.name}</span>
               <strong>{formatPercent(item.netRevenueSharePercent)}</strong>
             </li>
@@ -105,10 +125,20 @@ export function HorizontalBarChart({ data = [], labelKey, title, valueKey }) {
       <div className="report-bars">
         {data.map((item) => {
           const value = Number(item[valueKey] ?? 0);
+          const width = Math.min(Math.max((value / maxValue) * 100, 0), 100);
           return (
             <div className="report-bar" key={item.employeeId ?? item.categoryId ?? item[labelKey]}>
               <span>{item[labelKey]}</span>
-              <div><i style={{ width: `${(value / maxValue) * 100}%` }} /></div>
+              <svg
+                aria-label={`${item[labelKey]}: ${formatMoney(value)}`}
+                className="report-bar__track"
+                preserveAspectRatio="none"
+                role="img"
+                viewBox="0 0 100 12"
+              >
+                <rect className="report-bar__background" height="12" rx="6" width="100" />
+                <rect className="report-bar__value" height="12" rx="6" width={width} />
+              </svg>
               <strong>{formatMoney(value)}</strong>
             </div>
           );

@@ -69,8 +69,11 @@ test('portal layout uses the desktop viewport and tables scale by column count',
   assert.match(styles, /\.portal-shell\s*\{[^}]*grid-template-columns:\s*224px\s+minmax\(0,\s*1fr\)/s);
   assert.doesNotMatch(styles, /body\s*\{[^}]*overflow-x:\s*hidden/s);
 
+  assert.match(table, /data-table--compact/);
+  assert.match(table, /data-table--standard/);
+  assert.match(table, /data-table--wide/);
   assert.match(table, /data-table--xwide/);
-  assert.match(table, /--table-min-width/);
+  assert.match(styles, /\.data-table\s*\{[^}]*--table-min-width/s);
   assert.match(styles, /\.data-table--xwide\s*\{[^}]*--table-min-width:\s*1220px/s);
   assert.match(styles, /\.data-table__cell--actions\s*\{[^}]*min-width:\s*164px/s);
   assert.match(styles, /\.data-table__cell--breakable\s*\{[^}]*white-space:\s*normal/s);

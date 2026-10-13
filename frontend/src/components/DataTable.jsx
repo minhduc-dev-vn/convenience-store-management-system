@@ -7,7 +7,6 @@ function DataTable({
   emptyMessage = 'Không có dữ liệu phù hợp.',
   getRowClassName,
   getRowKey,
-  minWidth,
   rows,
 }) {
   if (!Array.isArray(columns) || columns.length === 0) {
@@ -23,13 +22,10 @@ function DataTable({
         ? 'data-table--standard'
         : 'data-table--compact';
   const tableClassName = ['data-table', sizeClass, className].filter(Boolean).join(' ');
-  const tableStyle = minWidth == null
-    ? undefined
-    : { '--table-min-width': typeof minWidth === 'number' ? `${minWidth}px` : minWidth };
 
   return (
     <div className="table-scroll" tabIndex={0}>
-      <table className={tableClassName} style={tableStyle}>
+      <table className={tableClassName}>
         {caption && <caption>{caption}</caption>}
         <thead>
           <tr>
