@@ -3789,12 +3789,33 @@ article.workspace-card:hover {
 
   .manager-table th,
   .manager-table td {
-    padding: 8px 6px;
+    padding: 7px 8px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .manager-table th:last-child,
+  .manager-table td:last-child {
+    border-right: 0;
   }
 
   .manager-table th {
-    overflow-wrap: anywhere;
-    white-space: normal;
+    background: #f2f6f1;
+    font-size: 0.66rem;
+    line-height: 1.25;
+    letter-spacing: 0.045em;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    word-break: normal;
+  }
+
+  .manager-table td {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .manager-table tbody tr:hover {
+    background: #fbfaf5;
   }
 
   .manager-table .data-table__cell--breakable,
@@ -3803,6 +3824,7 @@ article.workspace-card:hover {
   }
 
   .manager-table .table-actions {
+    display: flex;
     min-width: 0;
     align-items: center;
     flex-direction: row;
@@ -3816,59 +3838,56 @@ article.workspace-card:hover {
     justify-content: center;
     line-height: 1.2;
     text-align: center;
-    white-space: normal;
-  }
-
-  .employee-table__id,
-  .employee-table__gender,
-  .employee-table__date,
-  .employee-table__phone,
-  .employee-table__start,
-  .employee-table__salary,
-  .employee-table__status,
-  .customer-table__id,
-  .customer-table__phone,
-  .customer-table__points,
-  .customer-table__tier,
-  .customer-table__registered,
-  .customer-table__status,
-  .product-table__image,
-  .product-table__id,
-  .product-table__barcode,
-  .product-table__unit,
-  .product-table__price,
-  .product-table__minimum-stock,
-  .product-table__status,
-  .promotion-table__id,
-  .promotion-table__type,
-  .promotion-table__value,
-  .promotion-table__minimum,
-  .promotion-table__maximum,
-  .promotion-table__products,
-  .promotion-table__status {
-    width: 1%;
     white-space: nowrap;
   }
 
-  .employee-table__actions,
-  .customer-table__actions,
-  .product-table__actions,
-  .promotion-table__actions {
-    width: auto;
+  .manager-table td.employee-table__id,
+  .manager-table td.employee-table__gender,
+  .manager-table td.employee-table__date,
+  .manager-table td.employee-table__phone,
+  .manager-table td.employee-table__start,
+  .manager-table td.employee-table__salary,
+  .manager-table td.employee-table__status,
+  .manager-table td.customer-table__id,
+  .manager-table td.customer-table__phone,
+  .manager-table td.customer-table__points,
+  .manager-table td.customer-table__tier,
+  .manager-table td.customer-table__registered,
+  .manager-table td.customer-table__status,
+  .manager-table td.product-table__image,
+  .manager-table td.product-table__id,
+  .manager-table td.product-table__barcode,
+  .manager-table td.product-table__unit,
+  .manager-table td.product-table__price,
+  .manager-table td.product-table__minimum-stock,
+  .manager-table td.product-table__status,
+  .manager-table td.promotion-table__id,
+  .manager-table td.promotion-table__type,
+  .manager-table td.promotion-table__value,
+  .manager-table td.promotion-table__minimum,
+  .manager-table td.promotion-table__maximum,
+  .manager-table td.promotion-table__products,
+  .manager-table td.promotion-table__status {
+    white-space: nowrap;
+  }
+
+  .manager-table td.employee-table__actions,
+  .manager-table td.customer-table__actions,
+  .manager-table td.product-table__actions,
+  .manager-table td.promotion-table__actions {
     white-space: normal;
   }
 
-  .employee-table__name,
-  .employee-table__email,
-  .customer-table__name,
-  .customer-table__email,
-  .product-table__name,
-  .product-table__category,
-  .promotion-table__name,
-  .promotion-table__period {
-    width: auto;
+  .manager-table td.employee-table__name,
+  .manager-table td.employee-table__email,
+  .manager-table td.customer-table__name,
+  .manager-table td.customer-table__email,
+  .manager-table td.product-table__name,
+  .manager-table td.product-table__category,
+  .manager-table td.promotion-table__name,
+  .manager-table td.promotion-table__period {
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     word-break: normal;
     white-space: normal;
   }

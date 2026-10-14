@@ -74,8 +74,19 @@ test('four manager data tables use scoped compact desktop variants', async () =>
   ]);
   const compactTableRule = getCssRule(styles, '.data-table--xwide.manager-table');
   const compactCellRule = getCssRule(styles, '.manager-table th,\n  .manager-table td');
+  const compactLastCellRule = getCssRule(styles, '.manager-table th:last-child,\n  .manager-table td:last-child');
+  const compactHeaderRule = getCssRule(styles, '.manager-table th');
   const compactActionsRule = getCssRule(styles, '.manager-table .table-actions');
   const compactActionRule = getCssRule(styles, '.manager-table .table-action');
+  const globalCellRule = getCssRule(styles, '.data-table th,\n.data-table td');
+  const globalBreakableRule = getCssRule(styles, '.data-table__cell--breakable');
+  const desktopManagerStyles = styles.slice(
+    styles.indexOf('@media (min-width: 1121px)'),
+    styles.indexOf('@media (max-width: 1120px)'),
+  );
+  const semanticColumnDeclarations = [...desktopManagerStyles.matchAll(
+    /\.(?:employee|customer|product|promotion)-table__[\w-]+(?:\s*,[\s\S]*?)?\s*\{([^}]*)\}/g,
+  )].map((match) => match[1]);
 
   assert.match(dataTable, /containerClassName = ''/);
   assert.match(dataTable, /\['table-scroll', containerClassName\]/);
@@ -96,23 +107,31 @@ test('four manager data tables use scoped compact desktop variants', async () =>
   assert.match(compactTableRule, /table-layout:\s*auto\s*;/);
   assert.doesNotMatch(compactTableRule, /table-layout:\s*fixed\s*;/);
   assert.doesNotMatch(styles, /\.manager-table-scroll\s*\{[^}]*overflow-x:\s*hidden\s*;/s);
-  assert.match(compactCellRule, /padding:\s*8px 6px\s*;/);
+  assert.match(compactCellRule, /padding:\s*7px 8px\s*;/);
+  assert.match(compactCellRule, /border-right:\s*1px solid var\(--line\)\s*;/);
+  assert.match(compactCellRule, /border-bottom:\s*1px solid var\(--line\)\s*;/);
+  assert.match(compactLastCellRule, /border-right:\s*0\s*;/);
+  assert.match(compactHeaderRule, /white-space:\s*nowrap\s*;/);
+  assert.match(compactHeaderRule, /overflow-wrap:\s*normal\s*;/);
+  assert.match(compactHeaderRule, /word-break:\s*normal\s*;/);
+  assert.doesNotMatch(compactHeaderRule, /overflow-wrap:\s*anywhere|word-break:\s*break-all/);
   assert.match(compactActionsRule, /flex-direction:\s*row\s*;/);
   assert.match(compactActionsRule, /flex-wrap:\s*wrap\s*;/);
   assert.doesNotMatch(compactActionsRule, /flex-direction:\s*column\s*;/);
   assert.match(compactActionRule, /width:\s*auto\s*;/);
+  assert.match(compactActionRule, /white-space:\s*nowrap\s*;/);
   assert.doesNotMatch(compactActionRule, /width:\s*100%\s*;/);
-  assert.match(styles, /\.employee-table__id,[\s\S]*?\.promotion-table__status\s*\{[^}]*width:\s*1%\s*;[^}]*white-space:\s*nowrap\s*;/);
-  assert.match(styles, /\.employee-table__actions,[\s\S]*?\.promotion-table__actions\s*\{[^}]*width:\s*auto\s*;[^}]*white-space:\s*normal\s*;/);
-  assert.match(styles, /\.employee-table__email,[\s\S]*?overflow-wrap:\s*anywhere\s*;[\s\S]*?white-space:\s*normal\s*;/);
-  const semanticPercentageWidths = [...styles.matchAll(
-    /\.(?:employee|customer|product|promotion)-table__[\w-]+\s*\{\s*width:\s*(\d+)%\s*;/g,
-  )].map((match) => Number(match[1]));
-  assert.ok(
-    semanticPercentageWidths.every((width) => width === 1),
-    'Manager semantic columns may only use the natural compact 1% width hint',
-  );
+  assert.match(styles, /\.manager-table td\.employee-table__id,[\s\S]*?\.manager-table td\.promotion-table__status\s*\{[^}]*white-space:\s*nowrap\s*;/);
+  assert.match(styles, /\.manager-table td\.employee-table__actions,[\s\S]*?\.manager-table td\.promotion-table__actions\s*\{[^}]*white-space:\s*normal\s*;/);
+  assert.match(styles, /\.manager-table td\.employee-table__name,[\s\S]*?\.manager-table td\.promotion-table__period\s*\{[^}]*overflow-wrap:\s*break-word\s*;[^}]*word-break:\s*normal\s*;[^}]*white-space:\s*normal\s*;/);
+  assert.ok(semanticColumnDeclarations.length >= 3);
+  for (const declarations of semanticColumnDeclarations) {
+    assert.doesNotMatch(declarations, /width:\s*\d+%\s*;/);
+  }
+  assert.doesNotMatch(desktopManagerStyles, /overflow-wrap:\s*anywhere|word-break:\s*break-all/);
   assert.match(styles, /\.manager-table--promotions \.table-date-range\s*\{[^}]*white-space:\s*normal\s*;/);
   assert.match(styles, /\.table-scroll\s*\{[^}]*overflow-x:\s*auto\s*;/s);
   assert.match(styles, /\.data-table--xwide\s*\{[^}]*--table-min-width:\s*1220px\s*;/s);
+  assert.match(globalCellRule, /padding:\s*13px 16px\s*;/);
+  assert.match(globalBreakableRule, /overflow-wrap:\s*anywhere\s*;/);
 });
