@@ -84,3 +84,21 @@ test('MH-04 dashboards use live services and remain protected by role routes', (
   assert.match(manager, /listManagerStocktakes/);
   assert.doesNotMatch(`${cashier}${warehouse}${manager}`, /mockData|demoMetrics|hardcodedKpi/i);
 });
+
+test('cashier dashboard spacing and sidebar remain scoped away from manager scrolling', () => {
+  const css = readFileSync(new URL('../src/assets/app.css', import.meta.url), 'utf8');
+
+  assert.match(
+    css,
+    /\.cashier-shift-page \.role-metric-grid \+ \.cashier-shift-workspace,[\s\S]*?\{[^}]*margin-top:\s*24px\s*;/,
+  );
+  assert.match(
+    css,
+    /@media\s*\(min-width:\s*1121px\)[\s\S]*?\.cashier-portal \.portal-sidebar\s*\{[^}]*max-height:\s*none\s*;[^}]*overflow-y:\s*visible\s*;/,
+  );
+  assert.match(
+    css,
+    /@media\s*\(min-width:\s*1121px\)[\s\S]*?\.manager-portal \.portal-sidebar\s*\{[^}]*max-height:\s*calc\(100dvh\s*-\s*124px\)\s*;[^}]*overflow-y:\s*auto\s*;/,
+  );
+  assert.doesNotMatch(css, /\.cashier-portal \.portal-sidebar\s*\{[^}]*overflow-y:\s*auto\s*;/);
+});

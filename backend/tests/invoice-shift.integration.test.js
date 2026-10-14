@@ -48,13 +48,19 @@ async function cleanupTestRows() {
         JOIN dbo.PHIEU_TRA AS return_header ON return_header.MaPT = return_line.MaPT
         WHERE return_header.MaHD LIKE 'C34%';
         DELETE FROM dbo.PHIEU_TRA WHERE MaHD LIKE 'C34%';
-        DELETE FROM dbo.THANH_TOAN WHERE MaHD LIKE 'C34%';
+        DELETE FROM dbo.THANH_TOAN
+        WHERE MaHD LIKE 'C34%'
+           OR MaHD IN ('HDMV183EI2QXU', 'HDMV17Z7USWVZ', 'OTHER001');
         DELETE lot_output
         FROM dbo.CHI_TIET_XUAT_LO AS lot_output
         JOIN dbo.CHI_TIET_HOA_DON AS detail ON detail.MaCTHD = lot_output.MaCTHD
         WHERE detail.MaHD LIKE 'C34%';
-        DELETE FROM dbo.CHI_TIET_HOA_DON WHERE MaHD LIKE 'C34%';
-        DELETE FROM dbo.HOA_DON WHERE MaHD LIKE 'C34%';
+        DELETE FROM dbo.CHI_TIET_HOA_DON
+        WHERE MaHD LIKE 'C34%'
+           OR MaHD IN ('HDMV183EI2QXU', 'HDMV17Z7USWVZ', 'OTHER001');
+        DELETE FROM dbo.HOA_DON
+        WHERE MaHD LIKE 'C34%'
+           OR MaHD IN ('HDMV183EI2QXU', 'HDMV17Z7USWVZ', 'OTHER001');
         DELETE FROM dbo.CA_LAM_VIEC WHERE MaNV LIKE 'C34%';
         DELETE FROM dbo.LO_HANG WHERE MaLo LIKE 'C34%';
         DELETE FROM dbo.SAN_PHAM WHERE MaSP LIKE 'C34%';
@@ -140,7 +146,10 @@ integrationTest('invoice search/detail and close-shift reconciliation enforce C3
         ('C34CARD001', DATEADD(MINUTE, -60, @FixtureTime), @ShiftOne, NULL, 20000, 0, 20000, 0, 0, 'PAID', N'C34 card sale'),
         ('C34CANCEL1', DATEADD(MINUTE, -40, @FixtureTime), @ShiftOne, NULL, 0, 0, 0, 0, 0, 'CANCELLED', NULL),
         ('C34DRAFT01', DATEADD(MINUTE, -20, @FixtureTime), @ShiftOne, NULL, 0, 0, 0, 0, 0, 'DRAFT', NULL),
-        ('C34OTHER01', DATEADD(MINUTE, -10, @FixtureTime), @ShiftTwo, NULL, 10000, 0, 10000, 0, 0, 'PAID', NULL);
+        ('C34OTHER01', DATEADD(MINUTE, -10, @FixtureTime), @ShiftTwo, NULL, 10000, 0, 10000, 0, 0, 'PAID', NULL),
+        ('HDMV183EI2QXU', DATEADD(MINUTE, -8, @FixtureTime), @ShiftTwo, NULL, 0, 0, 0, 0, 0, 'PAID', NULL),
+        ('HDMV17Z7USWVZ', DATEADD(MINUTE, -7, @FixtureTime), @ShiftTwo, NULL, 0, 0, 0, 0, 0, 'PAID', NULL),
+        ('OTHER001', DATEADD(MINUTE, -6, @FixtureTime), @ShiftTwo, NULL, 0, 0, 0, 0, 0, 'PAID', NULL);
 
       INSERT INTO dbo.CHI_TIET_HOA_DON (MaHD, MaSP, SoLuong, DonGiaBan, TienGiam)
       VALUES ('C34PAID001', 'C34P001', 3, 10000, 0);
@@ -201,6 +210,57 @@ integrationTest('invoice search/detail and close-shift reconciliation enforce C3
   });
   assert.equal(result.response.status, 200);
   assert.deepEqual(result.payload.data.items.map((invoice) => invoice.invoiceId), ['C34PAID001']);
+
+  result = await requestJson(baseUrl, '/api/invoices?invoiceId=183', {
+    token: tokens.manager,
+  });
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.payload.data.items.map((invoice) => invoice.invoiceId), ['HDMV183EI2QXU']);
+
+  result = await requestJson(baseUrl, '/api/invoices?invoiceId=HDMV&page=1&pageSize=10', {
+    token: tokens.manager,
+  });
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(
+    result.payload.data.items.map((invoice) => invoice.invoiceId).sort(),
+    ['HDMV17Z7USWVZ', 'HDMV183EI2QXU'].sort(),
+  );
+
+  result = await requestJson(baseUrl, '/api/invoices?invoiceId=HDMV17Z7USWVZ', {
+    token: tokens.manager,
+  });
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.payload.data.items.map((invoice) => invoice.invoiceId), ['HDMV17Z7USWVZ']);
+
+  result = await requestJson(baseUrl, '/api/invoices?invoiceId=ZZZZ', {
+    token: tokens.manager,
+  });
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.payload.data.items, []);
+  assert.equal(result.payload.data.pagination.totalItems, 0);
+
+  result = await requestJson(
+    baseUrl,
+    `/api/invoices?invoiceId=HDMV&from=${fixtureDate}&to=${fixtureDate}`,
+    { token: tokens.manager },
+  );
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(
+    result.payload.data.items.map((invoice) => invoice.invoiceId).sort(),
+    ['HDMV17Z7USWVZ', 'HDMV183EI2QXU'].sort(),
+  );
+
+  result = await requestJson(baseUrl, '/api/invoices/HDMV183EI2QXU', {
+    token: tokens.manager,
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.invoice.invoiceId, 'HDMV183EI2QXU');
+
+  result = await requestJson(baseUrl, '/api/invoices/183', {
+    token: tokens.manager,
+  });
+  assert.equal(result.response.status, 404);
+  assert.equal(result.payload.error.code, 'INVOICE_NOT_FOUND');
 
   result = await requestJson(baseUrl, '/api/invoices/C34PAID001', {
     token: tokens.manager,

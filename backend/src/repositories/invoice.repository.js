@@ -48,7 +48,7 @@ class InvoiceRepository extends BaseRepository {
         JOIN dbo.CA_LAM_VIEC AS work_shift ON work_shift.MaCa = invoice.MaCa
         JOIN dbo.NHAN_VIEN AS employee ON employee.MaNV = work_shift.MaNV
         LEFT JOIN dbo.KHACH_HANG AS customer ON customer.MaKH = invoice.MaKH
-        WHERE (@InvoiceId IS NULL OR invoice.MaHD = @InvoiceId)
+        WHERE (@InvoiceId IS NULL OR CHARINDEX(@InvoiceId, invoice.MaHD) > 0)
           AND (@CashierId IS NULL OR work_shift.MaNV = @CashierId)
           AND (@UtcFrom IS NULL OR invoice.NgayLap >= @UtcFrom)
           AND (@UtcToExclusive IS NULL OR invoice.NgayLap < @UtcToExclusive)

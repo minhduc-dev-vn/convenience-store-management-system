@@ -2243,6 +2243,12 @@ article.workspace-card:hover {
   max-width: 920px;
 }
 
+.cashier-shift-page .role-metric-grid + .cashier-shift-workspace,
+.cashier-shift-page .role-metric-grid + .shift-active-card,
+.cashier-shift-page .role-metric-grid + .cashier-open-form {
+  margin-top: 24px;
+}
+
 .cashier-open-form {
   display: grid;
   max-width: 660px;
@@ -2361,14 +2367,14 @@ article.workspace-card:hover {
 .pos-workspace {
   display: grid;
   margin-top: 18px;
-  grid-template-columns: minmax(280px, 0.38fr) minmax(520px, 1fr);
+  grid-template-columns: minmax(360px, 0.68fr) minmax(0, 1fr);
   align-items: start;
   gap: 18px;
 }
 
 .pos-panel {
   min-width: 0;
-  padding: 22px;
+  padding: 18px;
   border: 1px solid var(--line);
   border-radius: 22px;
   background: var(--surface);
@@ -2377,10 +2383,10 @@ article.workspace-card:hover {
 
 .pos-panel__heading {
   display: flex;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .pos-panel__heading h2 {
@@ -2414,8 +2420,8 @@ article.workspace-card:hover {
 
 .pos-search-placeholder,
 .pos-cart-empty {
-  margin: 18px 0 0;
-  padding: 20px;
+  margin: 14px 0 0;
+  padding: 16px;
   border: 1px dashed var(--line-strong);
   border-radius: 14px;
   color: var(--muted);
@@ -2426,13 +2432,13 @@ article.workspace-card:hover {
 
 .pos-product-results {
   display: grid;
-  margin-top: 18px;
+  margin-top: 14px;
   gap: 9px;
 }
 
 .pos-product-result {
   display: grid;
-  padding: 13px;
+  padding: 11px;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
@@ -3773,6 +3779,13 @@ article.workspace-card:hover {
 }
 
 @media (min-width: 1121px) {
+  .cashier-portal .portal-sidebar {
+    height: fit-content;
+    max-height: none;
+    overflow-y: visible;
+    overscroll-behavior-y: auto;
+  }
+
   .manager-portal .portal-sidebar {
     min-height: 0;
     max-height: calc(100dvh - 124px);

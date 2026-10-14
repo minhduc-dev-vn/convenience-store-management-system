@@ -61,6 +61,23 @@ test('invoice query validates inclusive date filters and stable pagination', () 
   }
 });
 
+test('partial invoice id is trimmed and reaches the repository unchanged', async () => {
+  let received;
+  const service = new InvoiceService({
+    invoiceRepository: {
+      async listInvoices(filters) {
+        received = filters;
+        return { items: [], totalItems: 0 };
+      },
+    },
+  });
+
+  await service.listInvoices(managerIdentity, { invoiceId: '  183  ' });
+
+  assert.equal(received.invoiceId, '183');
+  assert.equal(normalizeInvoiceQuery({ invoiceId: '' }).invoiceId, null);
+});
+
 test('CASHIER and MANAGER can search invoices while other roles are rejected', async () => {
   let received;
   const service = new InvoiceService({

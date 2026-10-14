@@ -73,6 +73,11 @@ test('C35 routes, role menus and print regions are wired without invoice mutatio
   assert.match(navigation, /\/cashier\/invoices/);
   assert.match(navigation, /\/manager\/invoices/);
   assert.match(workspace, /Chọn để xử lý đổi\/trả/);
+  assert.match(workspace, /await listInvoices\(/);
+  assert.match(workspace, /maxLength="15"/);
+  assert.match(workspace, /placeholder="Nhập toàn bộ hoặc một phần mã hóa đơn"/);
+  assert.match(workspace, /onClick=\{\(\) => loadDetail\(row\.invoiceId\)\}/);
+  assert.match(workspace, /await getInvoice\(invoiceId\)/);
   assert.doesNotMatch(workspace, /apiClient\.(post|patch|put|delete)/);
   assert.match(css, /\.invoice-print-area/);
   assert.match(css, /\.shift-handoff-print-area/);

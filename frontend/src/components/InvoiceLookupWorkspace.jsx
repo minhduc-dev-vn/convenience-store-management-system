@@ -213,7 +213,13 @@ function InvoiceLookupWorkspace({ role }) {
         }}
       >
         <FormField htmlFor={`${role}-invoice-id`} label="Mã hóa đơn">
-          <input id={`${role}-invoice-id`} maxLength="15" value={filters.invoiceId} onChange={(event) => setFilters((current) => ({ ...current, invoiceId: event.target.value }))} />
+          <input
+            id={`${role}-invoice-id`}
+            maxLength="15"
+            placeholder="Nhập toàn bộ hoặc một phần mã hóa đơn"
+            value={filters.invoiceId}
+            onChange={(event) => setFilters((current) => ({ ...current, invoiceId: event.target.value }))}
+          />
         </FormField>
         <FormField htmlFor={`${role}-invoice-from`} label="Từ ngày">
           <input id={`${role}-invoice-from`} type="date" value={filters.from} onChange={(event) => setFilters((current) => ({ ...current, from: event.target.value }))} />

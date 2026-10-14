@@ -151,3 +151,18 @@ test('POS shows a non-blocking carry-over warning with a dashboard action', () =
   assert.match(source, /<Notice tone="warning">/);
   assert.doesNotMatch(source, /isCarryOver[^\n]*(disabled|setShift\(null\)|SHIFT_REQUIRED)/);
 });
+
+test('POS allocates a wider desktop search panel and preserves the mobile stack', () => {
+  const css = readFileSync(new URL('../src/assets/app.css', import.meta.url), 'utf8');
+
+  assert.match(
+    css,
+    /\.pos-workspace\s*\{[^}]*grid-template-columns:\s*minmax\(360px,\s*0\.68fr\)\s+minmax\(0,\s*1fr\)\s*;/s,
+  );
+  assert.doesNotMatch(css, /minmax\(280px,\s*0\.38fr\)\s+minmax\(520px,\s*1fr\)/);
+  assert.match(css, /\.pos-panel\s*\{[^}]*padding:\s*18px\s*;/s);
+  assert.match(
+    css,
+    /@media\s*\(max-width:\s*900px\)[\s\S]*?\.pos-workspace\s*\{[^}]*grid-template-columns:\s*1fr\s*;/,
+  );
+});
