@@ -1,14 +1,18 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import uteLogo from '../assets/ute_logo.png';
-import { getPrimaryNavigation } from './navigation';
+import {
+  getPrimaryNavigation,
+  isCashierPortalPath,
+  isPortalPath,
+} from './navigation';
 
 function AppLayout() {
   const { isAuthenticated, logout, user } = useAuth();
   const { pathname } = useLocation();
   const navigation = getPrimaryNavigation(isAuthenticated, user?.role);
-  const isPortalRoute = /^\/(customer|cashier|warehouse|manager)(?:\/|$)/.test(pathname);
-  const isCashierRoute = /^\/cashier(?:\/|$)/.test(pathname);
+  const isPortalRoute = isPortalPath(pathname);
+  const isCashierRoute = isCashierPortalPath(pathname);
   const portalModifier = isPortalRoute ? ' app-shell--portal' : '';
   const cashierModifier = isCashierRoute ? ' app-shell--cashier' : '';
 
@@ -44,10 +48,12 @@ function AppLayout() {
         <Outlet />
       </main>
 
-      <footer className={`site-footer${isPortalRoute ? ' site-footer--portal' : ''}`}>
-        <span>Hệ thống quản lý cửa hàng tiện lợi</span>
-        <span>ReactJS · Vite · REST API</span>
-      </footer>
+      {!isPortalRoute && (
+        <footer className="site-footer">
+          <span>Hệ thống quản lý cửa hàng tiện lợi</span>
+          <span>ReactJS · Vite · REST API</span>
+        </footer>
+      )}
     </div>
   );
 }

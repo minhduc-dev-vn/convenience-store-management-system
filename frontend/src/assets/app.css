@@ -3495,8 +3495,7 @@ article.workspace-card:hover {
 }
 
 .site-header--portal,
-.page-content--portal,
-.site-footer--portal {
+.page-content--portal {
   width: min(var(--portal-max-width), calc(100% - (var(--portal-gutter) * 2)));
 }
 
@@ -3789,8 +3788,7 @@ article.workspace-card:hover {
     overflow: hidden;
   }
 
-  .app-shell--cashier > .site-header,
-  .app-shell--cashier > .site-footer {
+  .app-shell--cashier > .site-header {
     flex-shrink: 0;
   }
 

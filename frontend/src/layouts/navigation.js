@@ -50,6 +50,16 @@ export const ROLE_NAVIGATION = Object.freeze({
   ]),
 });
 
+const PORTAL_PATH_PATTERN = /^\/(customer|cashier|warehouse|manager)(?:\/|$)/;
+
+export function isPortalPath(pathname = '') {
+  return PORTAL_PATH_PATTERN.test(pathname);
+}
+
+export function isCashierPortalPath(pathname = '') {
+  return /^\/cashier(?:\/|$)/.test(pathname);
+}
+
 export function getPrimaryNavigation(isAuthenticated, role) {
   if (!isAuthenticated) return PUBLIC_NAVIGATION;
   return [

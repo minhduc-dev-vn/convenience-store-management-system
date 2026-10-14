@@ -5,6 +5,8 @@ import { normalizeInventoryMode } from '../src/components/inventoryPresentation.
 import {
   getPrimaryNavigation,
   getRoleNavigation,
+  isCashierPortalPath,
+  isPortalPath,
 } from '../src/layouts/navigation.js';
 
 function paths(role) {
@@ -47,6 +49,27 @@ test('authenticated top navigation does not leak public or cross-role modules', 
     ['/cashier', '/account/change-password'],
   );
   assert.ok(getPrimaryNavigation(false).some((item) => item.to === '/products'));
+});
+
+test('public routes keep the footer while every role portal suppresses it', () => {
+  const appLayout = readFileSync(new URL('../src/layouts/AppLayout.jsx', import.meta.url), 'utf8');
+
+  for (const path of [
+    '/customer', '/customer/history',
+    '/cashier', '/cashier/pos',
+    '/warehouse', '/warehouse/inventory',
+    '/manager', '/manager/reports',
+  ]) {
+    assert.equal(isPortalPath(path), true, `${path} must be a footer-free portal route`);
+  }
+  for (const path of ['/', '/products', '/promotions', '/auth/login', '/account/change-password']) {
+    assert.equal(isPortalPath(path), false, `${path} must retain the public footer`);
+  }
+  assert.equal(isCashierPortalPath('/cashier/returns'), true);
+  assert.equal(isCashierPortalPath('/manager'), false);
+  assert.match(appLayout, /\{!isPortalRoute && \(/);
+  assert.match(appLayout, /<footer className="site-footer">/);
+  assert.doesNotMatch(appLayout, /site-footer--portal/);
 });
 
 test('inventory alert links accept only supported server filter modes', () => {
@@ -102,7 +125,7 @@ test('cashier dashboard spacing and sidebar remain scoped away from manager scro
     /@media\s*\(min-width:\s*1121px\)[\s\S]*?\.manager-portal \.portal-sidebar\s*\{[^}]*max-height:\s*calc\(100dvh\s*-\s*124px\)\s*;[^}]*overflow-y:\s*auto\s*;/,
   );
   assert.doesNotMatch(css, /\.cashier-portal \.portal-sidebar\s*\{[^}]*overflow-y:\s*auto\s*;/);
-  assert.match(appLayout, /const isCashierRoute = \/\^\\\/cashier/);
+  assert.match(appLayout, /const isCashierRoute = isCashierPortalPath\(pathname\)/);
   assert.match(appLayout, /app-shell--cashier/);
   assert.match(
     css,
@@ -120,4 +143,5 @@ test('cashier dashboard spacing and sidebar remain scoped away from manager scro
     css,
     /@media\s*\(max-width:\s*1120px\)[\s\S]*?\.app-shell--cashier\s*\{[^}]*height:\s*100dvh/,
   );
+  assert.doesNotMatch(css, /\.app-shell--cashier > \.site-footer/);
 });
