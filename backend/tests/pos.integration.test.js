@@ -46,7 +46,7 @@ async function cleanupTestRows() {
       text: `
         DELETE FROM dbo.CA_LAM_VIEC WHERE MaNV IN ('C29CASH', 'C29MGR', 'C29WARE');
         DELETE FROM dbo.LO_HANG WHERE MaLo LIKE 'C29%';
-        DELETE FROM dbo.SAN_PHAM WHERE MaSP LIKE 'C29%';
+        DELETE FROM dbo.SAN_PHAM WHERE MaSP LIKE 'C29%' OR MaSP = 'SP003';
         DELETE FROM dbo.LOAI_SAN_PHAM WHERE MaLoai LIKE 'C29%';
         DELETE FROM dbo.TAI_KHOAN WHERE TenDangNhap LIKE 'c29.%';
         DELETE FROM dbo.KHACH_HANG WHERE MaKH = 'C29CUST';
@@ -103,7 +103,8 @@ integrationTest('shift opening, current shift, sellable lookup and RBAC enforce 
         ('C29P003', N'C29 Inactive Product', 'C2900003', N'Hop', 12000, 1, 'C29CAT', 'INACTIVE'),
         ('C29P004', N'C29 Blocked Only', 'C2900004', N'Lon', 17000, 1, 'C29CAT', 'ACTIVE'),
         ('C29P005', N'C29 No Expiry', 'C2900005', N'Cai', 9000, 1, 'C29CAT', 'ACTIVE'),
-        ('C29P006', N'C29 Inactive Category Product', 'C2900006', N'Cai', 8000, 1, 'C29OFFCAT', 'ACTIVE');
+        ('C29P006', N'C29 Inactive Category Product', 'C2900006', N'Cai', 8000, 1, 'C29OFFCAT', 'ACTIVE'),
+        ('SP003', N'7Up 330ml', '8930000000003', N'Lon', 11000, 1, 'C29CAT', 'ACTIVE');
 
       DECLARE @Today DATE = CONVERT(DATE, SYSDATETIME());
       INSERT INTO dbo.LO_HANG (
@@ -115,7 +116,8 @@ integrationTest('shift opening, current shift, sellable lookup and RBAC enforce 
         ('C29LOT004', 'C29P003', 'C29-BATCH-4', DATEADD(DAY, -10, @Today), DATEADD(DAY, 50, @Today), 7000, 4, 'ACTIVE'),
         ('C29LOT005', 'C29P004', 'C29-BATCH-5', DATEADD(DAY, -10, @Today), DATEADD(DAY, 50, @Today), 10000, 4, 'BLOCKED'),
         ('C29LOT006', 'C29P005', 'C29-BATCH-6', DATEADD(DAY, -10, @Today), NULL, 5000, 2, 'ACTIVE'),
-        ('C29LOT007', 'C29P006', 'C29-BATCH-7', DATEADD(DAY, -10, @Today), DATEADD(DAY, 50, @Today), 5000, 2, 'ACTIVE');
+        ('C29LOT007', 'C29P006', 'C29-BATCH-7', DATEADD(DAY, -10, @Today), DATEADD(DAY, 50, @Today), 5000, 2, 'ACTIVE'),
+        ('C29LOT008', 'SP003', 'C29-BATCH-8', DATEADD(DAY, -10, @Today), DATEADD(DAY, 50, @Today), 6000, 6, 'ACTIVE');
     `,
     parameters: {
       PasswordHash: { type: sql.VarChar(255), value: passwordHash },
@@ -185,6 +187,43 @@ integrationTest('shift opening, current shift, sellable lookup and RBAC enforce 
   assert.equal(result.payload.data.shift.isCarryOver, false);
   assert.equal(result.payload.data.shift.businessDate, openedShift.businessDate);
 
+  for (const search of ['SP0', '003', 'P00', '7Up', '330', '893000']) {
+    result = await requestJson(
+      baseUrl,
+      `/api/pos/products?page=1&pageSize=20&search=${encodeURIComponent(search)}`,
+      { token: tokens.cashier },
+    );
+    assert.equal(result.response.status, 200, `search ${search} should succeed`);
+    assert.equal(
+      result.payload.data.items.some((item) => item.productId === 'SP003'),
+      true,
+      `search ${search} should include SP003`,
+    );
+  }
+
+  result = await requestJson(baseUrl, '/api/pos/products?search=SP003', {
+    token: tokens.cashier,
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.items[0].productId, 'SP003');
+
+  result = await requestJson(baseUrl, '/api/pos/products?search=ZZZZ', {
+    token: tokens.cashier,
+  });
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.payload.data.items, []);
+  assert.equal(result.payload.data.pagination.totalItems, 0);
+
+  for (const search of ['%', '_', '[']) {
+    result = await requestJson(
+      baseUrl,
+      `/api/pos/products?search=${encodeURIComponent(search)}`,
+      { token: tokens.cashier },
+    );
+    assert.equal(result.response.status, 200);
+    assert.deepEqual(result.payload.data.items, []);
+  }
+
   result = await requestJson(baseUrl, '/api/pos/shifts/open', {
     method: 'POST', token: tokens.cashier, body: { openingCash: 0 },
   });
@@ -218,6 +257,12 @@ integrationTest('shift opening, current shift, sellable lookup and RBAC enforce 
   assert.equal(result.response.status, 200);
   assert.equal(result.payload.data.product.productId, 'C29P001');
   assert.equal(result.payload.data.product.availableStock, 8);
+
+  result = await requestJson(baseUrl, '/api/pos/products/barcode/8930000000003', {
+    token: tokens.cashier,
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.data.product.productId, 'SP003');
 
   for (const barcode of ['C2900002', 'C2900003', 'C2900004', 'C2900006']) {
     result = await requestJson(baseUrl, `/api/pos/products/barcode/${barcode}`, {

@@ -2409,13 +2409,17 @@ article.workspace-card:hover {
 
 .pos-search {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
 .pos-search .form-field {
+  width: 100%;
   margin: 0;
+}
+
+.pos-search .button {
+  justify-self: end;
 }
 
 .pos-search-placeholder,
@@ -3779,11 +3783,41 @@ article.workspace-card:hover {
 }
 
 @media (min-width: 1121px) {
+  .app-shell--cashier {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-shell--cashier > .site-header,
+  .app-shell--cashier > .site-footer {
+    flex-shrink: 0;
+  }
+
+  .app-shell--cashier > .page-content {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .cashier-portal {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   .cashier-portal .portal-sidebar {
+    position: static;
     height: fit-content;
     max-height: none;
     overflow-y: visible;
     overscroll-behavior-y: auto;
+  }
+
+  .cashier-portal .portal-content {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
   }
 
   .manager-portal .portal-sidebar {
@@ -4231,6 +4265,11 @@ article.workspace-card:hover {
   .receipt-meta,
   .receipt-payment {
     grid-template-columns: 1fr;
+  }
+
+  .pos-search .button {
+    width: 100%;
+    justify-self: stretch;
   }
 
   .pos-shift-strip,

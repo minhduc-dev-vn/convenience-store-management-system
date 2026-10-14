@@ -224,7 +224,6 @@ test('product search requires an OPEN shift and returns sellable stock snapshots
     page: 2,
     pageSize: 10,
     search: 'C29%_~[',
-    searchPattern: 'C29~%~_~~~[%',
   });
   assert.deepEqual(result.pagination, {
     page: 2, pageSize: 10, totalItems: 21, totalPages: 3,

@@ -80,3 +80,50 @@ test('current shift query derives carry-over from Vietnam business dates', async
   assert.equal(captured.parameters.CurrentUtc.value, currentUtc);
   assert.equal(captured.parameters.EmployeeId.value, 'NV001');
 });
+
+test('sellable search uses ranked literal substrings while barcode lookup stays exact', async () => {
+  const calls = [];
+  const executor = {
+    request() {
+      const parameters = {};
+      return {
+        input(name, type, value) { parameters[name] = { type, value }; return this; },
+        async query(text) {
+          calls.push({ parameters, text });
+          return { recordset: [] };
+        },
+      };
+    },
+  };
+  const repository = new PosRepository({
+    poolProvider: async () => executor,
+    sqlDriver: {
+      Int: 'Int',
+      NVarChar: sqlType('NVarChar'),
+      VarChar: sqlType('VarChar'),
+    },
+  });
+
+  await repository.searchSellableProducts({
+    page: 1,
+    pageSize: 8,
+    search: '%_[',
+  });
+
+  assert.match(calls[0].text, /CHARINDEX\(@Search, sellable\.MaSP\) > 0/);
+  assert.match(calls[0].text, /CHARINDEX\(@Search, sellable\.TenSP\) > 0/);
+  assert.match(calls[0].text, /CHARINDEX\(@Search, sellable\.MaVach\) > 0/);
+  assert.match(calls[0].text, /WHEN sellable\.MaSP = @Search THEN 0/);
+  assert.match(calls[0].text, /WHEN sellable\.MaVach = @Search THEN 1/);
+  assert.match(calls[0].text, /WHEN CHARINDEX\(@Search, sellable\.MaSP\) = 1 THEN 2/);
+  assert.match(calls[0].text, /WHEN CHARINDEX\(@Search, sellable\.TenSP\) = 1 THEN 3/);
+  assert.doesNotMatch(calls[0].text, /LIKE @SearchPattern/);
+  assert.equal(calls[0].parameters.Search.value, '%_[');
+  assert.equal(Object.hasOwn(calls[0].parameters, 'SearchPattern'), false);
+
+  await repository.findSellableProductByBarcode('8930000000003');
+
+  assert.match(calls[1].text, /WHERE MaVach = @Barcode/);
+  assert.doesNotMatch(calls[1].text, /CHARINDEX\(@Barcode/);
+  assert.equal(calls[1].parameters.Barcode.value, '8930000000003');
+});

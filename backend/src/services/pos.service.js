@@ -53,10 +53,6 @@ function normalizeMoney(value, fieldName) {
   return value;
 }
 
-function escapeLike(value) {
-  return value.replace(/~/g, '~~').replace(/%/g, '~%').replace(/_/g, '~_').replace(/\[/g, '~[');
-}
-
 function normalizeProductQuery(query = {}) {
   const page = parsePositiveInteger(query.page, 'page', DEFAULT_PAGE, 2_147_483_647);
   const pageSize = parsePositiveInteger(query.pageSize, 'pageSize', DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
@@ -70,7 +66,6 @@ function normalizeProductQuery(query = {}) {
     page,
     pageSize,
     search,
-    searchPattern: search ? `${escapeLike(search)}%` : null,
   };
 }
 

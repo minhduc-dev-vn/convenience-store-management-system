@@ -166,3 +166,31 @@ test('POS allocates a wider desktop search panel and preserves the mobile stack'
     /@media\s*\(max-width:\s*900px\)[\s\S]*?\.pos-workspace\s*\{[^}]*grid-template-columns:\s*1fr\s*;/,
   );
 });
+
+test('POS search keeps scanner semantics in a full-width vertical form', () => {
+  const component = readFileSync(
+    new URL('../src/components/pos/ProductSearch.jsx', import.meta.url),
+    'utf8',
+  );
+  const page = readFileSync(
+    new URL('../src/pages/cashier/CashierPosPage.jsx', import.meta.url),
+    'utf8',
+  );
+  const css = readFileSync(new URL('../src/assets/app.css', import.meta.url), 'utf8');
+
+  assert.match(component, /<form className="pos-search" onSubmit=\{handleSubmit\}>/);
+  assert.match(component, /onSearch\(query, \{ barcodeFirst: true \}\)/);
+  assert.match(component, /ref=\{inputRef\}/);
+  assert.match(component, /id="pos-product-query"/);
+  assert.match(component, /placeholder="Quét mã hoặc nhập từ khóa…"/);
+  assert.match(component, /<button className="button button--primary" type="submit"/);
+  assert.match(page, /<ProductSearch/);
+  assert.match(page, /getPosProductByBarcode\(normalized\)/);
+  assert.match(css, /\.pos-search\s*\{[^}]*grid-template-columns:\s*1fr\s*;/s);
+  assert.match(css, /\.pos-search \.form-field\s*\{[^}]*width:\s*100%\s*;/s);
+  assert.match(css, /\.pos-search \.button\s*\{[^}]*justify-self:\s*end\s*;/s);
+  assert.match(
+    css,
+    /@media\s*\(max-width:\s*680px\)[\s\S]*?\.pos-search \.button\s*\{[^}]*width:\s*100%\s*;[^}]*justify-self:\s*stretch\s*;/,
+  );
+});

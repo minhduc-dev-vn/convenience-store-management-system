@@ -485,7 +485,7 @@ class PosRepository extends BaseRepository {
     }
   }
 
-  async searchSellableProducts({ page, pageSize, search, searchPattern }, transaction = null) {
+  async searchSellableProducts({ page, pageSize, search }, transaction = null) {
     const result = await this.query({
       text: `
         ${SELLABLE_PRODUCT_CTE}
@@ -494,14 +494,16 @@ class PosRepository extends BaseRepository {
           COUNT_BIG(*) OVER () AS TongSoBanGhi
         FROM SellableProducts AS sellable
         WHERE @Search IS NULL
-           OR sellable.MaSP LIKE @SearchPattern ESCAPE N'~'
-           OR sellable.TenSP LIKE @SearchPattern ESCAPE N'~'
-           OR sellable.MaVach = @Search
+           OR CHARINDEX(@Search, sellable.MaSP) > 0
+           OR CHARINDEX(@Search, sellable.TenSP) > 0
+           OR CHARINDEX(@Search, sellable.MaVach) > 0
         ORDER BY
           CASE
             WHEN sellable.MaSP = @Search THEN 0
             WHEN sellable.MaVach = @Search THEN 1
-            ELSE 2
+            WHEN CHARINDEX(@Search, sellable.MaSP) = 1 THEN 2
+            WHEN CHARINDEX(@Search, sellable.TenSP) = 1 THEN 3
+            ELSE 4
           END,
           sellable.TenSP,
           sellable.MaSP
@@ -511,7 +513,6 @@ class PosRepository extends BaseRepository {
         Offset: { type: this.sql.Int, value: (page - 1) * pageSize },
         PageSize: { type: this.sql.Int, value: pageSize },
         Search: { type: this.sql.NVarChar(150), value: search },
-        SearchPattern: { type: this.sql.NVarChar(304), value: searchPattern },
       },
       transaction,
     });

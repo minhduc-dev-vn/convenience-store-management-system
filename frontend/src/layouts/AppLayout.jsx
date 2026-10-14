@@ -8,10 +8,12 @@ function AppLayout() {
   const { pathname } = useLocation();
   const navigation = getPrimaryNavigation(isAuthenticated, user?.role);
   const isPortalRoute = /^\/(customer|cashier|warehouse|manager)(?:\/|$)/.test(pathname);
+  const isCashierRoute = /^\/cashier(?:\/|$)/.test(pathname);
   const portalModifier = isPortalRoute ? ' app-shell--portal' : '';
+  const cashierModifier = isCashierRoute ? ' app-shell--cashier' : '';
 
   return (
-    <div className={`app-shell${portalModifier}`}>
+    <div className={`app-shell${portalModifier}${cashierModifier}`}>
       <header className={`site-header${isPortalRoute ? ' site-header--portal' : ''}`}>
         <NavLink className="brand" to="/" aria-label="Về trang tổng quan">
           <img className="brand-logo" src={uteLogo} alt="" aria-hidden="true" />

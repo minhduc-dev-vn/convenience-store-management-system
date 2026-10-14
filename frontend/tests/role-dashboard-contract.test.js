@@ -87,6 +87,7 @@ test('MH-04 dashboards use live services and remain protected by role routes', (
 
 test('cashier dashboard spacing and sidebar remain scoped away from manager scrolling', () => {
   const css = readFileSync(new URL('../src/assets/app.css', import.meta.url), 'utf8');
+  const appLayout = readFileSync(new URL('../src/layouts/AppLayout.jsx', import.meta.url), 'utf8');
 
   assert.match(
     css,
@@ -101,4 +102,22 @@ test('cashier dashboard spacing and sidebar remain scoped away from manager scro
     /@media\s*\(min-width:\s*1121px\)[\s\S]*?\.manager-portal \.portal-sidebar\s*\{[^}]*max-height:\s*calc\(100dvh\s*-\s*124px\)\s*;[^}]*overflow-y:\s*auto\s*;/,
   );
   assert.doesNotMatch(css, /\.cashier-portal \.portal-sidebar\s*\{[^}]*overflow-y:\s*auto\s*;/);
+  assert.match(appLayout, /const isCashierRoute = \/\^\\\/cashier/);
+  assert.match(appLayout, /app-shell--cashier/);
+  assert.match(
+    css,
+    /@media\s*\(min-width:\s*1121px\)[\s\S]*?\.app-shell--cashier\s*\{[^}]*height:\s*100dvh\s*;[^}]*overflow:\s*hidden\s*;/,
+  );
+  assert.match(
+    css,
+    /\.cashier-portal \.portal-sidebar\s*\{[^}]*position:\s*static\s*;[^}]*overflow-y:\s*visible\s*;/,
+  );
+  assert.match(
+    css,
+    /\.cashier-portal \.portal-content\s*\{[^}]*min-height:\s*0\s*;[^}]*overflow-y:\s*auto\s*;/,
+  );
+  assert.doesNotMatch(
+    css,
+    /@media\s*\(max-width:\s*1120px\)[\s\S]*?\.app-shell--cashier\s*\{[^}]*height:\s*100dvh/,
+  );
 });
