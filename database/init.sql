@@ -24,5 +24,5 @@ GO
 :r .\seed\01_roles.sql
 :r .\seed\02_development_data.sql
 
-PRINT 'Database initialization completed: 23 tables plus auth, catalog, receiving, inventory, FEFO sale, return, stocktake, audit and business-report objects are ready.';
+PRINT 'Pre-migration (pre-003/pre-004/pre-005/pre-006) bootstrap completed. Run the Node migration runner before using this database.';
 GO

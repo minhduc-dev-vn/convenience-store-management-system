@@ -1,0 +1,6 @@
+﻿"Index","ReadsWithout","ReadsWith","ReadReductionPercent","CpuWithoutMs","CpuWithMs","ElapsedWithoutMs","ElapsedWithMs","PlanWithout","PlanWith","ResultSignature","Equivalent"
+"UQ_TAI_KHOAN_TenDangNhap","183","3","98.36","2","0","2","0","Index Scan [TAI_KHOAN].[IX_TAI_KHOAN_TrangThai_MaVaiTro]; Clustered Index Seek [TAI_KHOAN].[PK_TAI_KHOAN]","Index Seek [TAI_KHOAN].[UQ_TAI_KHOAN_TenDangNhap]","1|-936143403","True"
+"IX_LO_HANG_MaSP_HanSuDung_ConTon","33","3","90.91","0","0","2","0","Index Seek [LO_HANG].[IX_LO_HANG_FEFO]; Clustered Index Seek [LO_HANG].[PK_LO_HANG]","Index Seek [LO_HANG].[IX_LO_HANG_MaSP_HanSuDung_ConTon]","10|-1264292432","True"
+"IX_HOA_DON_BaoCao_TrangThai_NgayLap","102","81","20.59","3","2","3","3","Index Seek [HOA_DON].[IX_HOA_DON_NgayLap_TrangThai]","Index Seek [HOA_DON].[IX_HOA_DON_BaoCao_TrangThai_NgayLap]","9072|539801600.00","True"
+"IX_NHAT_KY_HE_THONG_TenBang_MaBanGhi_ThoiGian","1690","4","99.76","15","0","17","0","Index Scan [NHAT_KY_HE_THONG].[IX_NHAT_KY_HE_THONG_ThoiGian]","Index Seek [NHAT_KY_HE_THONG].[IX_NHAT_KY_HE_THONG_TenBang_MaBanGhi_ThoiGian]","40|1581947875","True"
+"IX_PHIEU_NHAP_TrangThai_NgayNhap","814","50","93.86","8","1","9","1","Clustered Index Scan [PHIEU_NHAP].[PK_PHIEU_NHAP]","Index Seek [PHIEU_NHAP].[IX_PHIEU_NHAP_TrangThai_NgayNhap]","5000|330636400","True"

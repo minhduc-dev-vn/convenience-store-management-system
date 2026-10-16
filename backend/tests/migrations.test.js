@@ -80,11 +80,19 @@ test('migration discovery ignores the template and orders strict filenames', asy
   });
 });
 
-test('repository migrations keep baseline first and add incremental product image and timezone fixes', async () => {
+test('repository migrations keep baseline first and apply all incremental schema fixes', async () => {
   const migrations = await discoverMigrations(path.join(repositoryRoot, 'database/migrations'));
   assert.deepEqual(
     migrations.map((migration) => migration.id),
-    ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
+    [
+      '000_baseline',
+      '001_add_product_image_url',
+      '002_fix_business_timezone',
+      '003_normalize_inventory_transaction_3nf',
+      '004_add_dbms_user_defined_functions',
+      '005_add_dbms_business_triggers',
+      '006_add_dbms_database_roles',
+    ],
   );
 
   const productImageMigration = migrations[1].sqlText;
@@ -104,6 +112,38 @@ test('repository migrations keep baseline first and add incremental product imag
     timezoneMigrationPreamble,
     /UPDATE\s+dbo\.(HOA_DON|THANH_TOAN|PHIEU_TRA|CA_LAM_VIEC)/i,
   );
+
+  const normalizationMigration = migrations[3].sqlText;
+  assert.match(normalizationMigration, /DROP CONSTRAINT FK_GIAO_DICH_KHO_SAN_PHAM/i);
+  assert.match(normalizationMigration, /DROP COLUMN MaSP/i);
+  assert.match(normalizationMigration, /exactly 30 foreign keys/i);
+  assert.doesNotMatch(normalizationMigration, /^\s*GO\s*$/im);
+
+  const functionsMigration = migrations[4].sqlText;
+  assert.match(functionsMigration, /ufn_LO_HANG_PhanLoaiHanDung/i);
+  assert.match(functionsMigration, /ufn_TON_KHO_TheoSanPham/i);
+  assert.match(functionsMigration, /ufn_SAN_PHAM_CoTheBan/i);
+  assert.match(functionsMigration, /ufn_HOA_DON_PhanBoCoTheTra/i);
+  assert.match(functionsMigration, /exactly five dbo user-defined functions/i);
+  assert.doesNotMatch(functionsMigration, /^\s*GO\s*$/im);
+
+  const triggersMigration = migrations[5].sqlText;
+  assert.match(triggersMigration, /trg_GIAO_DICH_KHO_AppendOnly/i);
+  assert.match(triggersMigration, /trg_CHI_TIET_PHIEU_NHAP_ChiSuaKhiDraft/i);
+  assert.match(triggersMigration, /trg_CHI_TIET_HOA_DON_ChiSuaKhiDraft/i);
+  assert.match(triggersMigration, /trg_LO_HANG_BaoVeSanPhamSauPhatSinh/i);
+  assert.match(triggersMigration, /exactly five enabled dbo table triggers/i);
+  assert.doesNotMatch(triggersMigration, /^\s*GO\s*$/im);
+
+  const securityMigration = migrations[6].sqlText;
+  assert.match(securityMigration, /CREATE ROLE dbms_customer AUTHORIZATION dbo/i);
+  assert.match(securityMigration, /GRANT SELECT ON OBJECT::dbo\.vw_SAN_PHAM_DANH_MUC TO dbms_customer/i);
+  assert.match(securityMigration, /GRANT EXECUTE ON OBJECT::dbo\.usp_HOA_DON_HoanTatBanHang TO dbms_cashier/i);
+  assert.match(securityMigration, /GRANT EXECUTE ON OBJECT::dbo\.usp_PHIEU_NHAP_XacNhan TO dbms_warehouse/i);
+  assert.match(securityMigration, /GRANT EXECUTE ON OBJECT::dbo\.usp_BAO_CAO_DoanhThuTongQuan TO dbms_manager/i);
+  assert.match(securityMigration, /DENY SELECT, INSERT, UPDATE, DELETE ON OBJECT::dbo\.TAI_KHOAN/i);
+  assert.doesNotMatch(securityMigration, /CREATE\s+LOGIN/i);
+  assert.doesNotMatch(securityMigration, /^\s*GO\s*$/im);
 });
 
 test('migration checksum canonicalizes line endings and UTF-8 BOM without hiding SQL changes', () => {
@@ -305,12 +345,13 @@ test('production migration environment rejects unsafe values before config parsi
   ));
 });
 
-test('bootstrap entry points reset metadata locally and exclude development seed in production', async () => {
-  const [dropScript, localInit, productionInit, sharedSchema] = await Promise.all([
+test('bootstrap entry points leave migration history to the Node runner and exclude development data in production', async () => {
+  const [dropScript, localInit, productionInit, sharedSchema, inventorySchema] = await Promise.all([
     fs.readFile(path.join(repositoryRoot, 'database/schema/00_drop_core_schema.sql'), 'utf8'),
     fs.readFile(path.join(repositoryRoot, 'database/init.sql'), 'utf8'),
     fs.readFile(path.join(repositoryRoot, 'database/init.production.sql'), 'utf8'),
     fs.readFile(path.join(repositoryRoot, 'database/init.schema.sql'), 'utf8'),
+    fs.readFile(path.join(repositoryRoot, 'database/schema/03_inventory.sql'), 'utf8'),
   ]);
 
   assert.match(dropScript, /DROP TABLE dbo\.SCHEMA_MIGRATIONS/i);
@@ -319,8 +360,16 @@ test('bootstrap entry points reset metadata locally and exclude development seed
   assert.match(productionInit, /:r \.\\init\.schema\.sql/i);
   assert.match(productionInit, /:r \.\\seed\\01_roles\.sql/i);
   assert.doesNotMatch(productionInit, /:r .*02_development_data\.sql/i);
+  assert.doesNotMatch(localInit, /SCHEMA_MIGRATIONS|03_migration_history/i);
+  assert.doesNotMatch(productionInit, /SCHEMA_MIGRATIONS|03_migration_history/i);
+  await assert.rejects(
+    fs.access(path.join(repositoryRoot, 'database/seed/03_migration_history.sql')),
+    (error) => error.code === 'ENOENT',
+  );
   assert.match(productionInit, /Production bootstrap requires a new database with no dbo tables/i);
   assert.match(sharedSchema, /:r \.\\schema\\00_drop_core_schema\.sql/i);
+  assert.match(inventorySchema, /GIAO_DICH_KHO[\s\S]*MaSP VARCHAR\(10\) NOT NULL/i);
+  assert.match(inventorySchema, /FK_GIAO_DICH_KHO_SAN_PHAM/i);
 });
 
 test('system database names are rejected case-insensitively', () => {

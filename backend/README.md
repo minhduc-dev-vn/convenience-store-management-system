@@ -46,14 +46,16 @@ npm run db:migrate
 
 `db:migrate:status` chỉ đọc và hiển thị `APPLIED`/`PENDING`. `db:migrate` yêu cầu cờ an toàn rõ ràng, dùng checksum SHA-256, SQL Server application lock và transaction riêng cho từng file. Xem đầy đủ quy trình baseline, production và rollback tại [`database/migrations/README.md`](../database/migrations/README.md).
 
+Migration 006 tạo bốn database role least-privilege tương ứng `CUSTOMER`, `CASHIER`, `WAREHOUSE`, `MANAGER`. Đây là lớp phòng thủ SQL độc lập: backend vẫn dùng một technical connection pool và không impersonate SQL principal theo JWT. Chi tiết quyền và local SQL login nằm trong [`docs/dbms/SECURITY.md`](../docs/dbms/SECURITY.md).
+
 Checksum migration canonicalize UTF-8 BOM và line ending `CRLF`/`CR` thành LF trước khi hash và thực thi, nên cùng SQL không false-fail khi đi từ Windows qua GitHub sang Linux/Render. Whitespace khác và nội dung SQL thật không bị bỏ qua; migration đã apply vẫn bất biến.
 
 Local Windows Authentication dùng `DB_DRIVER=msnodesqlv8`. Production/Azure SQL bắt buộc `DB_DRIVER=tedious`, `DB_TRUSTED_CONNECTION=false`, SQL authentication, `DB_PORT=1433`, `DB_INSTANCE` rỗng, `DB_ENCRYPT=true` và `DB_TRUST_SERVER_CERTIFICATE=false`; migration CLI từ chối cấu hình production không đạt các điều kiện này trước khi kết nối. Không đặt `ALLOW_DB_MIGRATIONS=true` cho web service chạy thường trực; chỉ bật trong terminal/release job thực hiện migration.
 
 Ba workflow database tách biệt:
 
-- Local/test clean build: chạy `database/init.sql`; có development seed và reset migration metadata.
-- Production first bootstrap: chạy `database/init.production.sql` đúng một lần trên database mới/rỗng, sau đó chạy `npm run db:migrate` để ghi baseline.
+- Local/test clean build: chạy `database/init.sql` để tạo bootstrap pre-003/pre-004/pre-005/pre-006 và development seed, sau đó bắt buộc chạy `npm run db:migrate` để tạo migration history, schema chuẩn hóa, 5 UDF, 5 trigger và 4 custom database role.
+- Production first bootstrap: chạy `database/init.production.sql` đúng một lần trên database mới/rỗng, sau đó bắt buộc chạy `npm run db:migrate` trước khi phục vụ traffic; init không tự ghi metadata migration.
 - Existing production update: chỉ chạy `npm run db:migrate`; không chạy lại init script.
 
 ## Chạy API
@@ -74,6 +76,20 @@ Các endpoint kiểm tra trạng thái:
 
 - `GET /api/health`: liveness của tiến trình, không phụ thuộc database.
 - `GET /api/health/db`: readiness của SQL Server; trả `503 DATABASE_UNAVAILABLE` khi chưa sẵn sàng.
+
+## Local DBMS demo accounts
+
+Phase 7 cung cấp utility idempotent `scripts/setup-dbms-demo-accounts.js` để tạo bốn application account local trong `ConvenienceStore_DBMS`. Đây là account `dbo.TAI_KHOAN`, không phải bốn SQL Server login của Phase 5. Utility chỉ chạy với local Windows trusted authentication, bị chặn ở production và không log password/hash.
+
+```powershell
+$env:DBMS_DEMO_MANAGER_PASSWORD='<runtime-only>'
+$env:DBMS_DEMO_CASHIER_PASSWORD='<runtime-only>'
+$env:DBMS_DEMO_WAREHOUSE_PASSWORD='<runtime-only>'
+$env:DBMS_DEMO_CUSTOMER_PASSWORD='<runtime-only>'
+npm run db:setup-demo
+```
+
+Chạy lại không duplicate và không reset password. Chỉ dùng `npm run db:setup-demo -- --reset-password` khi chủ động muốn đổi credential từ bốn biến runtime. Xem kiến trúc, E2E evidence và cleanup policy tại [`docs/dbms/APPLICATION_INTEGRATION.md`](../docs/dbms/APPLICATION_INTEGRATION.md); kịch bản thuyết trình nằm trong [`docs/dbms/DEMO_RUNBOOK.md`](../docs/dbms/DEMO_RUNBOOK.md).
 
 ## Kiểm thử
 

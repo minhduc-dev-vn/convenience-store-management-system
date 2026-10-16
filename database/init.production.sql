@@ -70,5 +70,5 @@ BEGIN
 END;
 GO
 
-PRINT 'Production bootstrap completed: 23 core tables, database objects and four canonical roles; no development seed was created.';
+PRINT 'Production pre-migration (pre-003/pre-004/pre-005/pre-006) bootstrap completed with four canonical application roles, no custom database roles and no development seed. Run the Node migration runner before serving traffic.';
 GO

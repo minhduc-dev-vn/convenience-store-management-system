@@ -97,12 +97,9 @@ class InvoiceRepository extends BaseRepository {
         WHERE invoice.MaHD = @InvoiceId;
 
         WITH ReturnedByLine AS (
-          SELECT return_line.MaCTHD, SUM(return_line.SoLuongTra) AS SoLuongDaTra
-          FROM dbo.CHI_TIET_PHIEU_TRA AS return_line
-          JOIN dbo.PHIEU_TRA AS return_header ON return_header.MaPT = return_line.MaPT
-          WHERE return_header.MaHD = @InvoiceId
-            AND return_header.TrangThai = 'COMPLETED'
-          GROUP BY return_line.MaCTHD
+          SELECT MaCTHD, SUM(SoLuongDaTra) AS SoLuongDaTra
+          FROM dbo.ufn_HOA_DON_PhanBoCoTheTra(@InvoiceId)
+          GROUP BY MaCTHD
         )
         SELECT
           detail.MaCTHD,
@@ -141,32 +138,15 @@ class InvoiceRepository extends BaseRepository {
         WHERE payment.MaHD = @InvoiceId
         ORDER BY payment.ThoiGian, payment.MaThanhToan;
 
-        WITH ReturnedByLot AS (
-          SELECT
-            return_line.MaCTHD,
-            return_line.MaLo,
-            SUM(return_line.SoLuongTra) AS SoLuongDaTra
-          FROM dbo.CHI_TIET_PHIEU_TRA AS return_line
-          JOIN dbo.PHIEU_TRA AS return_header ON return_header.MaPT = return_line.MaPT
-          WHERE return_header.MaHD = @InvoiceId
-            AND return_header.TrangThai = 'COMPLETED'
-          GROUP BY return_line.MaCTHD, return_line.MaLo
-        )
         SELECT
-          lot_output.MaCTHD,
-          lot_output.MaLo,
-          lot.SoLo,
-          lot_output.SoLuong AS SoLuongXuat,
-          COALESCE(returned.SoLuongDaTra, 0) AS SoLuongDaTra,
-          lot_output.SoLuong - COALESCE(returned.SoLuongDaTra, 0) AS SoLuongConLaiCoTheTra
-        FROM dbo.CHI_TIET_XUAT_LO AS lot_output
-        JOIN dbo.CHI_TIET_HOA_DON AS detail ON detail.MaCTHD = lot_output.MaCTHD
-        JOIN dbo.LO_HANG AS lot ON lot.MaLo = lot_output.MaLo
-        LEFT JOIN ReturnedByLot AS returned
-          ON returned.MaCTHD = lot_output.MaCTHD
-         AND returned.MaLo = lot_output.MaLo
-        WHERE detail.MaHD = @InvoiceId
-        ORDER BY lot_output.MaCTHD, lot_output.MaLo;
+          MaCTHD,
+          MaLo,
+          SoLo,
+          SoLuongXuat,
+          SoLuongDaTra,
+          SoLuongConLaiCoTheTra
+        FROM dbo.ufn_HOA_DON_PhanBoCoTheTra(@InvoiceId)
+        ORDER BY MaCTHD, MaLo;
 
         SELECT
           return_header.MaPT,

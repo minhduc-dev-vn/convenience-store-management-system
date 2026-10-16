@@ -124,6 +124,20 @@ integrationTest('shift opening, current shift, sellable lookup and RBAC enforce 
     },
   });
 
+  const udfPackaging = await repository.query({
+    text: `
+      SELECT
+        CASE WHEN OBJECT_ID(N'dbo.ufn_SAN_PHAM_CoTheBan', N'IF') IS NOT NULL
+          THEN 1 ELSE 0 END AS HasSellableProductUdf,
+        CASE WHEN OBJECT_ID(N'dbo.ufn_TON_KHO_TheoSanPham', N'IF') IS NOT NULL
+          THEN 1 ELSE 0 END AS HasInventorySummaryUdf;
+    `,
+  });
+  assert.deepEqual(udfPackaging.recordset[0], {
+    HasSellableProductUdf: 1,
+    HasInventorySummaryUdf: 1,
+  });
+
   const tokens = {};
   for (const role of ['cashier', 'manager', 'warehouse', 'customer']) {
     const login = await requestJson(baseUrl, '/api/auth/login', {

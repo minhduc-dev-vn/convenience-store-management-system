@@ -202,6 +202,13 @@ BEGIN TRY
         THROW 52507, 'Lot balances after the FEFO sale are incorrect.', 1;
 
     IF (SELECT COUNT(*) FROM dbo.GIAO_DICH_KHO WHERE MaThamChieu = 'C28HD001' AND LoaiGiaoDich = 'SALE') <> 3
+       OR (
+           SELECT COUNT(DISTINCT lot.MaSP)
+           FROM dbo.GIAO_DICH_KHO AS movement
+           JOIN dbo.LO_HANG AS lot ON lot.MaLo = movement.MaLo
+           WHERE movement.MaThamChieu = 'C28HD001'
+             AND movement.LoaiGiaoDich = 'SALE'
+       ) <> 2
        OR EXISTS (
            SELECT 1
            FROM dbo.GIAO_DICH_KHO

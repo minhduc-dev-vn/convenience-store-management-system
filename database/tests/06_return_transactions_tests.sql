@@ -172,11 +172,13 @@ BEGIN TRY
        OR NOT EXISTS (SELECT 1 FROM dbo.LO_HANG WHERE MaLo = 'C36LOT001' AND SoLuongTon = 1)
        OR NOT EXISTS (
            SELECT 1
-           FROM dbo.GIAO_DICH_KHO
-           WHERE MaThamChieu = 'C36PT001'
-             AND MaLo = 'C36LOT001'
-             AND LoaiGiaoDich = 'RETURN'
-             AND SoLuongBienDong = 1
+           FROM dbo.GIAO_DICH_KHO AS movement
+           JOIN dbo.LO_HANG AS lot ON lot.MaLo = movement.MaLo
+           WHERE movement.MaThamChieu = 'C36PT001'
+             AND movement.MaLo = 'C36LOT001'
+             AND lot.MaSP = 'C36P001'
+             AND movement.LoaiGiaoDich = 'RETURN'
+             AND movement.SoLuongBienDong = 1
        )
        OR NOT EXISTS (SELECT 1 FROM dbo.KHACH_HANG WHERE MaKH = 'C36KH001' AND DiemTichLuy = 13)
        OR NOT EXISTS (SELECT 1 FROM dbo.HOA_DON WHERE MaHD = 'C36HD001' AND TrangThai = 'PAID')

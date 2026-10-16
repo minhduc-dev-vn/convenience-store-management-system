@@ -52,6 +52,7 @@ test('invoice list uses a parameterized literal substring while detail stays exa
   await repository.findInvoiceDetail('183');
 
   assert.match(calls[1].text, /WHERE invoice\.MaHD = @InvoiceId;/);
+  assert.match(calls[1].text, /dbo\.ufn_HOA_DON_PhanBoCoTheTra\(@InvoiceId\)/);
   assert.doesNotMatch(calls[1].text, /CHARINDEX\(@InvoiceId, invoice\.MaHD\)/);
   assert.equal(calls[1].parameters.InvoiceId.value, '183');
 });

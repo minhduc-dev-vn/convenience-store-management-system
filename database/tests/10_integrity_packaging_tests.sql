@@ -63,8 +63,8 @@ IF (
       AND EXISTS (
           SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = core_table.name
       )
-) <> 31
-    THROW 53003, 'The documented core schema must contain exactly 31 foreign keys.', 1;
+) <> 30
+    THROW 53003, 'The normalized core schema must contain exactly 30 foreign keys.', 1;
 
 IF EXISTS (
     SELECT 1
@@ -77,6 +77,21 @@ IF EXISTS (
       AND (foreign_key.is_disabled = 1 OR foreign_key.is_not_trusted = 1)
 )
     THROW 53004, 'All dbo foreign keys must be enabled and trusted.', 1;
+
+IF COL_LENGTH(N'dbo.GIAO_DICH_KHO', N'MaSP') IS NOT NULL
+   OR OBJECT_ID(N'dbo.FK_GIAO_DICH_KHO_SAN_PHAM', N'F') IS NOT NULL
+    THROW 53013, 'GIAO_DICH_KHO must derive MaSP through LO_HANG after 3NF normalization.', 1;
+
+IF (
+    SELECT COUNT(*)
+    FROM sys.columns AS column_definition
+    JOIN sys.tables AS core_table ON core_table.object_id = column_definition.object_id
+    WHERE core_table.schema_id = SCHEMA_ID('dbo')
+      AND EXISTS (
+          SELECT 1 FROM @CoreTables AS expected WHERE expected.TableName = core_table.name
+      )
+) <> 163
+    THROW 53014, 'The normalized 23-table core schema must contain exactly 163 columns.', 1;
 
 IF (
     SELECT COUNT(*)
@@ -121,6 +136,33 @@ IF (
       )
 ) <> 8
     THROW 53007, 'The documented schema-level UNIQUE constraints must be preserved.', 1;
+
+IF (
+    SELECT COUNT(*)
+    FROM sys.objects
+    WHERE schema_id = SCHEMA_ID(N'dbo')
+      AND type IN ('FN', 'IF', 'TF')
+) <> 5
+    THROW 53015, 'The Phase 3 schema must contain exactly five dbo user-defined functions.', 1;
+
+IF (
+    SELECT COUNT(*)
+    FROM sys.triggers AS trigger_definition
+    JOIN sys.tables AS parent_table ON parent_table.object_id = trigger_definition.parent_id
+    WHERE trigger_definition.parent_class = 1
+      AND trigger_definition.is_ms_shipped = 0
+      AND parent_table.schema_id = SCHEMA_ID(N'dbo')
+) <> 5
+   OR EXISTS (
+       SELECT 1
+       FROM sys.triggers AS trigger_definition
+       JOIN sys.tables AS parent_table ON parent_table.object_id = trigger_definition.parent_id
+       WHERE trigger_definition.parent_class = 1
+         AND trigger_definition.is_ms_shipped = 0
+         AND parent_table.schema_id = SCHEMA_ID(N'dbo')
+         AND trigger_definition.is_disabled = 1
+   )
+    THROW 53016, 'The Phase 4 schema must contain exactly five enabled dbo table triggers.', 1;
 
 IF EXISTS (
     SELECT 1

@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "db:migrate": "node scripts/db-migrate.js up",
     "db:migrate:status": "node scripts/db-migrate.js status",
+    "db:setup-demo": "node scripts/setup-dbms-demo-accounts.js",
     "test": "node --test",
     "test:db": "node --test --test-concurrency=1",
     "test:migrations": "node --test --test-concurrency=1 tests/migrations.test.js tests/migrations.integration.test.js tests/migrations.bootstrap.integration.test.js",

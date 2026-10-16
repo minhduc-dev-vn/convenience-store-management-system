@@ -225,11 +225,13 @@ BEGIN TRY
 
     IF (
         SELECT COUNT(*)
-        FROM dbo.GIAO_DICH_KHO
-        WHERE MaThamChieu = 'PNC22001'
-          AND MaLo = 'LOC22001'
-          AND LoaiGiaoDich = 'IMPORT'
-          AND SoLuongBienDong = 3
+        FROM dbo.GIAO_DICH_KHO AS movement
+        JOIN dbo.LO_HANG AS lot ON lot.MaLo = movement.MaLo
+        WHERE movement.MaThamChieu = 'PNC22001'
+          AND movement.MaLo = 'LOC22001'
+          AND lot.MaSP = 'SPDEV001'
+          AND movement.LoaiGiaoDich = 'IMPORT'
+          AND movement.SoLuongBienDong = 3
     ) <> 1
         THROW 52311, 'Successful confirmation did not append exactly one IMPORT transaction.', 1;
 

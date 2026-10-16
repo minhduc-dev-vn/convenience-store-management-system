@@ -21,6 +21,10 @@ Phạm vi không bao gồm nhiều chi nhánh, đặt hàng trực tuyến, giao
 - Cung cấp dữ liệu tra cứu, audit và báo cáo từ nguồn SQL Server thống nhất.
 - Có thể dựng lại, kiểm thử và chạy trên một máy mới bằng tài liệu trong repository.
 
+Tài liệu chứng minh frontend → backend → SQL Server và kịch bản demo Phase 7 nằm tại [Application integration](docs/dbms/APPLICATION_INTEGRATION.md) và [Demo runbook](docs/dbms/DEMO_RUNBOOK.md).
+
+Hồ sơ chốt DBMS gồm [Final rubric matrix](docs/dbms/FINAL_RUBRIC_MATRIX.md) và [Final audit](docs/dbms/FINAL_AUDIT.md).
+
 ## 3. Chức năng chính
 
 ### Khách hàng
@@ -123,7 +127,7 @@ Database có đúng 23 bảng core:
 
 Không có bảng `DON_VI_TINH` hoặc `LICH_SU_GIA`: đơn vị tính nằm trên `SAN_PHAM`, còn lịch sử giá lấy từ audit log. Tồn kho được tính từ các lô, không lưu một tổng tồn trùng lặp trên sản phẩm.
 
-`database/init.sql` dựng lại schema và development seed, đồng thời reset migration history; chỉ dùng cho development/test. `database/init.production.sql` chỉ bootstrap production database mới/rỗng một lần, seed đúng bốn role và không có dữ liệu DEV. Production đã có baseline chỉ cập nhật bằng Node migration runner. Xem [database/README.md](database/README.md) để biết đầy đủ thứ tự script, test, backup và restore.
+`database/init.sql` dựng trạng thái bootstrap pre-003/pre-004/pre-005/pre-006 và development seed; chỉ dùng cho development/test. Sau init bắt buộc chạy Node migration runner để áp dụng 000–006, chuẩn hóa schema, tạo 5 UDF, tổng cộng 5 trigger và 4 custom database role. `database/init.production.sql` chỉ bootstrap production database mới/rỗng một lần, seed đúng bốn application role và không có dữ liệu DEV; production chưa được phục vụ traffic cho đến khi mọi migration là `APPLIED`. Production đã có baseline chỉ cập nhật bằng Node migration runner. Xem [database/README.md](database/README.md) để biết đầy đủ thứ tự script, test, backup và restore.
 
 ## 7. Yêu cầu hệ thống
 
@@ -207,13 +211,19 @@ Từ thư mục `database/`:
 ```powershell
 sqlcmd -S ".\SQLEXPRESS" -E -C -i ".\create_database.sql"
 sqlcmd -S ".\SQLEXPRESS" -E -C -I -d "ConvenienceStore" -b -f 65001 -i ".\init.sql"
+
+cd ..\backend
+npm run db:migrate:status
+$env:ALLOW_DB_MIGRATIONS='true'
+npm run db:migrate
+npm run db:migrate:status
 ```
 
 Nếu dùng default instance, thay `-S ".\SQLEXPRESS"` bằng `-S "localhost"`. Nếu dùng SQL Authentication, thay `-E` bằng thông tin đăng nhập được cấp qua cơ chế an toàn của môi trường; không ghi credential vào script hoặc tài liệu.
 
 Seed nền tạo bốn role chuẩn và dữ liệu catalog/kho tối thiểu, nhưng không tạo tài khoản dùng chung. Khách hàng có thể tự đăng ký. Tài khoản nhân viên demo phải được cấp riêng trong database demo bởi người quản trị; không dùng credential cố định trong repository.
 
-Production first bootstrap dùng `database/init.production.sql` đúng một lần trên database mới/rỗng, sau đó chạy `npm run db:migrate` từ `backend/` để ghi baseline. Các lần cập nhật production tiếp theo chỉ chạy migration; không chạy lại bất kỳ init script nào.
+Production first bootstrap dùng `database/init.production.sql` đúng một lần trên database mới/rỗng, sau đó bắt buộc chạy `npm run db:migrate` từ `backend/`. Chỉ Node runner tạo `SCHEMA_MIGRATIONS`, tính checksum và ghi 000–006 là `APPLIED`. Không chạy lại bất kỳ init script nào trên production đã có dữ liệu.
 
 ## 11. Chạy project
 
@@ -410,7 +420,7 @@ Quy ước trạng thái `Đạt` nghĩa là đã có implementation, đã tích
 | MH-27 | `/customer/history` | CUSTOMER | Đạt |
 | MH-28 | `/customer/profile` | CUSTOMER | Đạt |
 
-Các route xác thực hỗ trợ refresh trực tiếp qua SPA fallback. Menu theo role chỉ là UX; backend vẫn kiểm tra JWT, role và ownership cho mọi API bảo vệ.
+Các route xác thực hỗ trợ refresh trực tiếp qua SPA fallback. Menu theo role chỉ là UX; backend vẫn kiểm tra JWT, role và ownership cho mọi API bảo vệ. SQL Server có thêm bốn database role least-privilege tương ứng về ngữ nghĩa, nhưng backend vẫn dùng technical connection pool thay vì đổi SQL principal theo JWT; xem [mô hình SQL Server security](docs/dbms/SECURITY.md).
 
 ## 16. Kịch bản demo bốn vai trò
 
@@ -449,10 +459,11 @@ Chi tiết trạng thái loading/error/empty, responsive và thao tác cần qua
 Bản hiện tại đã được xác minh trên Node.js 24, npm 11, SQL Server Express và ODBC Driver 18:
 
 - Clean database init và seed: đạt, đúng 23 bảng core.
-- Full database integrity/transaction/report suite: đạt.
-- Backend unit/contract suite: 126 pass, 17 integration test được tách riêng.
-- Backend SQL-backed suite chạy tuần tự: 143/143 pass.
-- Frontend suite: 74/74 pass.
+- Full database integrity/transaction/report/security suite: 13/13 đạt.
+- Backend unit/contract suite: 157 pass, 21 integration test được tách riêng.
+- Backend SQL-backed suite chạy tuần tự: 176 pass, 2 bootstrap-only test được tách riêng.
+- Migration suite với toàn bộ opt-in: 15/15 pass; clean bootstrap áp dụng 000–006 và lần hai skip 7/7.
+- Frontend suite: 104/104 pass.
 - Production build: đạt.
 - Production preview route smoke: 31/31 pass.
 - Liveness, database readiness, public catalog và Vite proxy: HTTP 200.
@@ -483,5 +494,6 @@ Các mục trên là giới hạn đã biết, không làm sai các luồng đã
 - [Backend setup, test và production checklist](backend/README.md)
 - [Frontend vận hành, MH-01–MH-28 và demo flow](frontend/README.md)
 - [Database init, test, backup và restore](database/README.md)
+- [Thiết kế 5 database trigger](docs/dbms/TRIGGERS.md)
 - [Backend environment mẫu](backend/.env.example)
 - [Frontend environment mẫu](frontend/.env.example)

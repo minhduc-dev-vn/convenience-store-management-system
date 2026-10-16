@@ -117,6 +117,7 @@ test('sellable search uses ranked literal substrings while barcode lookup stays 
   assert.match(calls[0].text, /WHEN sellable\.MaVach = @Search THEN 1/);
   assert.match(calls[0].text, /WHEN CHARINDEX\(@Search, sellable\.MaSP\) = 1 THEN 2/);
   assert.match(calls[0].text, /WHEN CHARINDEX\(@Search, sellable\.TenSP\) = 1 THEN 3/);
+  assert.match(calls[0].text, /dbo\.ufn_SAN_PHAM_CoTheBan\(@BusinessDate\)/);
   assert.doesNotMatch(calls[0].text, /LIKE @SearchPattern/);
   assert.equal(calls[0].parameters.Search.value, '%_[');
   assert.equal(Object.hasOwn(calls[0].parameters, 'SearchPattern'), false);
@@ -124,6 +125,7 @@ test('sellable search uses ranked literal substrings while barcode lookup stays 
   await repository.findSellableProductByBarcode('8930000000003');
 
   assert.match(calls[1].text, /WHERE MaVach = @Barcode/);
+  assert.match(calls[1].text, /dbo\.ufn_SAN_PHAM_CoTheBan\(@BusinessDate\)/);
   assert.doesNotMatch(calls[1].text, /CHARINDEX\(@Barcode/);
   assert.equal(calls[1].parameters.Barcode.value, '8930000000003');
 });

@@ -215,14 +215,22 @@ IF NOT EXISTS (SELECT 1 FROM dbo.KIEM_KE WHERE MaKK = 'C39KK001' AND TrangThai =
    OR NOT EXISTS (SELECT 1 FROM dbo.LO_HANG WHERE MaLo = 'C39L002' AND SoLuongTon = 8)
    OR (SELECT COUNT(*) FROM dbo.GIAO_DICH_KHO WHERE MaThamChieu = 'C39KK001') <> 2
    OR NOT EXISTS (
-       SELECT 1 FROM dbo.GIAO_DICH_KHO
-       WHERE MaThamChieu = 'C39KK001' AND MaLo = 'C39L001'
-         AND LoaiGiaoDich = 'ADJUSTMENT' AND SoLuongBienDong = -3 AND MaNV = 'C39MG001'
+       SELECT 1
+       FROM dbo.GIAO_DICH_KHO AS movement
+       JOIN dbo.LO_HANG AS lot ON lot.MaLo = movement.MaLo
+       WHERE movement.MaThamChieu = 'C39KK001' AND movement.MaLo = 'C39L001'
+         AND lot.MaSP = 'C39P001'
+         AND movement.LoaiGiaoDich = 'ADJUSTMENT'
+         AND movement.SoLuongBienDong = -3 AND movement.MaNV = 'C39MG001'
    )
    OR NOT EXISTS (
-       SELECT 1 FROM dbo.GIAO_DICH_KHO
-       WHERE MaThamChieu = 'C39KK001' AND MaLo = 'C39L002'
-         AND LoaiGiaoDich = 'ADJUSTMENT' AND SoLuongBienDong = 3 AND MaNV = 'C39MG001'
+       SELECT 1
+       FROM dbo.GIAO_DICH_KHO AS movement
+       JOIN dbo.LO_HANG AS lot ON lot.MaLo = movement.MaLo
+       WHERE movement.MaThamChieu = 'C39KK001' AND movement.MaLo = 'C39L002'
+         AND lot.MaSP = 'C39P002'
+         AND movement.LoaiGiaoDich = 'ADJUSTMENT'
+         AND movement.SoLuongBienDong = 3 AND movement.MaNV = 'C39MG001'
    )
     THROW 52709, 'Approval did not atomically apply signed ADJUSTMENT movements and APPROVED status.', 1;
 

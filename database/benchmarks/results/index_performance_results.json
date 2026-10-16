@@ -1,0 +1,72 @@
+﻿[
+    {
+        "Index":  "UQ_TAI_KHOAN_TenDangNhap",
+        "ReadsWithout":  183,
+        "ReadsWith":  3,
+        "ReadReductionPercent":  98.36,
+        "CpuWithoutMs":  2,
+        "CpuWithMs":  0,
+        "ElapsedWithoutMs":  2,
+        "ElapsedWithMs":  0,
+        "PlanWithout":  "Index Scan [TAI_KHOAN].[IX_TAI_KHOAN_TrangThai_MaVaiTro]; Clustered Index Seek [TAI_KHOAN].[PK_TAI_KHOAN]",
+        "PlanWith":  "Index Seek [TAI_KHOAN].[UQ_TAI_KHOAN_TenDangNhap]",
+        "ResultSignature":  "1|-936143403",
+        "Equivalent":  true
+    },
+    {
+        "Index":  "IX_LO_HANG_MaSP_HanSuDung_ConTon",
+        "ReadsWithout":  33,
+        "ReadsWith":  3,
+        "ReadReductionPercent":  90.91,
+        "CpuWithoutMs":  0,
+        "CpuWithMs":  0,
+        "ElapsedWithoutMs":  2,
+        "ElapsedWithMs":  0,
+        "PlanWithout":  "Index Seek [LO_HANG].[IX_LO_HANG_FEFO]; Clustered Index Seek [LO_HANG].[PK_LO_HANG]",
+        "PlanWith":  "Index Seek [LO_HANG].[IX_LO_HANG_MaSP_HanSuDung_ConTon]",
+        "ResultSignature":  "10|-1264292432",
+        "Equivalent":  true
+    },
+    {
+        "Index":  "IX_HOA_DON_BaoCao_TrangThai_NgayLap",
+        "ReadsWithout":  102,
+        "ReadsWith":  81,
+        "ReadReductionPercent":  20.59,
+        "CpuWithoutMs":  3,
+        "CpuWithMs":  2,
+        "ElapsedWithoutMs":  3,
+        "ElapsedWithMs":  3,
+        "PlanWithout":  "Index Seek [HOA_DON].[IX_HOA_DON_NgayLap_TrangThai]",
+        "PlanWith":  "Index Seek [HOA_DON].[IX_HOA_DON_BaoCao_TrangThai_NgayLap]",
+        "ResultSignature":  "9072|539801600.00",
+        "Equivalent":  true
+    },
+    {
+        "Index":  "IX_NHAT_KY_HE_THONG_TenBang_MaBanGhi_ThoiGian",
+        "ReadsWithout":  1690,
+        "ReadsWith":  4,
+        "ReadReductionPercent":  99.76,
+        "CpuWithoutMs":  15,
+        "CpuWithMs":  0,
+        "ElapsedWithoutMs":  17,
+        "ElapsedWithMs":  0,
+        "PlanWithout":  "Index Scan [NHAT_KY_HE_THONG].[IX_NHAT_KY_HE_THONG_ThoiGian]",
+        "PlanWith":  "Index Seek [NHAT_KY_HE_THONG].[IX_NHAT_KY_HE_THONG_TenBang_MaBanGhi_ThoiGian]",
+        "ResultSignature":  "40|1581947875",
+        "Equivalent":  true
+    },
+    {
+        "Index":  "IX_PHIEU_NHAP_TrangThai_NgayNhap",
+        "ReadsWithout":  814,
+        "ReadsWith":  50,
+        "ReadReductionPercent":  93.86,
+        "CpuWithoutMs":  8,
+        "CpuWithMs":  1,
+        "ElapsedWithoutMs":  9,
+        "ElapsedWithMs":  1,
+        "PlanWithout":  "Clustered Index Scan [PHIEU_NHAP].[PK_PHIEU_NHAP]",
+        "PlanWith":  "Index Seek [PHIEU_NHAP].[IX_PHIEU_NHAP_TrangThai_NgayNhap]",
+        "ResultSignature":  "5000|330636400",
+        "Equivalent":  true
+    }
+]

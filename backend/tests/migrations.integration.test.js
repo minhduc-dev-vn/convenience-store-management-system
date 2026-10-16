@@ -36,6 +36,30 @@ async function cleanupTestObjects(pool) {
   `);
 }
 
+async function restorePreNormalizationStockTransactionShape(pool) {
+  await pool.request().batch(`
+    IF COL_LENGTH(N'dbo.GIAO_DICH_KHO', N'MaSP') IS NULL
+    BEGIN
+      ALTER TABLE dbo.GIAO_DICH_KHO ADD MaSP VARCHAR(10) NULL;
+      EXEC(N'
+        UPDATE movement
+        SET MaSP = lot.MaSP
+        FROM dbo.GIAO_DICH_KHO AS movement
+        JOIN dbo.LO_HANG AS lot ON lot.MaLo = movement.MaLo;
+
+        ALTER TABLE dbo.GIAO_DICH_KHO ALTER COLUMN MaSP VARCHAR(10) NOT NULL;
+      ');
+    END;
+
+    IF OBJECT_ID(N'dbo.FK_GIAO_DICH_KHO_SAN_PHAM', N'F') IS NULL
+      EXEC(N'
+        ALTER TABLE dbo.GIAO_DICH_KHO WITH CHECK
+          ADD CONSTRAINT FK_GIAO_DICH_KHO_SAN_PHAM
+          FOREIGN KEY (MaSP) REFERENCES dbo.SAN_PHAM (MaSP);
+      ');
+  `);
+}
+
 integrationTest('migration runner handles baseline, idempotency, rollback, checksum, ordering and locking', async () => {
   const settings = getDatabaseSettings();
   assert.match(
@@ -63,6 +87,7 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
 
   try {
     await pool.connect();
+    await restorePreNormalizationStockTransactionShape(pool);
     await pool.request().batch(`
       IF OBJECT_ID(N'dbo.SCHEMA_MIGRATIONS', N'U') IS NOT NULL
         DROP TABLE dbo.SCHEMA_MIGRATIONS;
@@ -88,7 +113,7 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
     assert.equal(freshStatus.trackingTableExists, false);
     assert.deepEqual(
       freshStatus.migrations.map((migration) => migration.status),
-      ['PENDING', 'PENDING', 'PENDING'],
+      ['PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING'],
     );
 
     const absentCheck = await pool.request().query(`
@@ -97,17 +122,31 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
     assert.equal(absentCheck.recordset[0].IsAbsent, 1, 'status must not create migration metadata');
 
     const firstRun = await migrate(productionMigrationsDirectory);
-    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED', 'APPLIED']);
+    assert.deepEqual(
+      firstRun.results.map((migration) => migration.action),
+      ['APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED'],
+    );
 
     const secondRun = await migrate(productionMigrationsDirectory);
-    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED', 'SKIPPED', 'SKIPPED']);
+    assert.deepEqual(
+      secondRun.results.map((migration) => migration.action),
+      ['SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED'],
+    );
 
     const baselineRows = await pool.request().query(`
       SELECT MigrationId FROM dbo.SCHEMA_MIGRATIONS ORDER BY MigrationId;
     `);
     assert.deepEqual(
       baselineRows.recordset.map((row) => row.MigrationId),
-      ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
+      [
+        '000_baseline',
+        '001_add_product_image_url',
+        '002_fix_business_timezone',
+        '003_normalize_inventory_transaction_3nf',
+        '004_add_dbms_user_defined_functions',
+        '005_add_dbms_business_triggers',
+        '006_add_dbms_database_roles',
+      ],
     );
 
     const imageSchema = await pool.request().query(`
@@ -130,6 +169,22 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
       ),
       '002_fix_business_timezone.sql': await fs.readFile(
         path.join(productionMigrationsDirectory, '002_fix_business_timezone.sql'),
+        'utf8',
+      ),
+      '003_normalize_inventory_transaction_3nf.sql': await fs.readFile(
+        path.join(productionMigrationsDirectory, '003_normalize_inventory_transaction_3nf.sql'),
+        'utf8',
+      ),
+      '004_add_dbms_user_defined_functions.sql': await fs.readFile(
+        path.join(productionMigrationsDirectory, '004_add_dbms_user_defined_functions.sql'),
+        'utf8',
+      ),
+      '005_add_dbms_business_triggers.sql': await fs.readFile(
+        path.join(productionMigrationsDirectory, '005_add_dbms_business_triggers.sql'),
+        'utf8',
+      ),
+      '006_add_dbms_database_roles.sql': await fs.readFile(
+        path.join(productionMigrationsDirectory, '006_add_dbms_database_roles.sql'),
         'utf8',
       ),
     });
@@ -222,6 +277,7 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
     );
 
     await cleanupTestObjects(pool);
+    await restorePreNormalizationStockTransactionShape(pool);
     await migrate(productionMigrationsDirectory);
 
     await lockHolderPool.connect();
@@ -260,6 +316,7 @@ integrationTest('migration runner handles baseline, idempotency, rollback, check
     let restoreError;
     try {
       await cleanupTestObjects(pool);
+      await restorePreNormalizationStockTransactionShape(pool);
       await migrate(productionMigrationsDirectory);
     } catch (error) {
       restoreError = error;

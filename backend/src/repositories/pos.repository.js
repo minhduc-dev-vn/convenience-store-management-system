@@ -5,39 +5,6 @@ const { getSqlDriver } = require('../config/database.driver');
 const { getSqlErrorNumber } = require('../utils/sql-error');
 const { BaseRepository } = require('./base.repository');
 
-const SELLABLE_PRODUCT_CTE = `
-  WITH SellableProducts AS (
-    SELECT
-      product.MaSP,
-      product.TenSP,
-      product.MaVach,
-      product.DonViTinh,
-      product.GiaBan,
-      product.MaLoai,
-      category.TenLoai,
-      SUM(CONVERT(BIGINT, lot.SoLuongTon)) AS TonKhaDung
-    FROM dbo.SAN_PHAM AS product
-    JOIN dbo.LOAI_SAN_PHAM AS category
-      ON category.MaLoai = product.MaLoai
-     AND category.TrangThai = 'ACTIVE'
-    JOIN dbo.LO_HANG AS lot
-      ON lot.MaSP = product.MaSP
-     AND lot.TrangThai = 'ACTIVE'
-     AND lot.SoLuongTon > 0
-     AND (
-       lot.HanSuDung IS NULL
-       OR lot.HanSuDung > CONVERT(
-         DATE,
-         (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
-       )
-     )
-    WHERE product.TrangThai = 'ACTIVE'
-    GROUP BY
-      product.MaSP, product.TenSP, product.MaVach, product.DonViTinh,
-      product.GiaBan, product.MaLoai, category.TenLoai
-  )
-`;
-
 class PosRepository extends BaseRepository {
   constructor(options = {}) {
     super(options);
@@ -346,6 +313,11 @@ class PosRepository extends BaseRepository {
     });
     const result = await this.query({
       text: `
+        DECLARE @BusinessDate DATE = CONVERT(
+          DATE,
+          (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+        );
+
         SELECT
           product.MaSP,
           product.TenSP,
@@ -356,29 +328,12 @@ class PosRepository extends BaseRepository {
           category.MaLoai,
           category.TenLoai,
           category.TrangThai AS TrangThaiLoai,
-          COALESCE(SUM(
-            CASE
-              WHEN lot.TrangThai = 'ACTIVE'
-               AND lot.SoLuongTon > 0
-               AND (
-                 lot.HanSuDung IS NULL
-                 OR lot.HanSuDung > CONVERT(
-                   DATE,
-                   (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
-                 )
-               )
-                THEN CONVERT(BIGINT, lot.SoLuongTon)
-              ELSE CONVERT(BIGINT, 0)
-            END
-          ), 0) AS TonKhaDung
+          COALESCE(sellable.TonKhaDung, CONVERT(BIGINT, 0)) AS TonKhaDung
         FROM dbo.SAN_PHAM AS product
         JOIN dbo.LOAI_SAN_PHAM AS category ON category.MaLoai = product.MaLoai
-        LEFT JOIN dbo.LO_HANG AS lot ON lot.MaSP = product.MaSP
+        LEFT JOIN dbo.ufn_SAN_PHAM_CoTheBan(@BusinessDate) AS sellable
+          ON sellable.MaSP = product.MaSP
         WHERE product.MaSP IN (${placeholders.join(', ')})
-        GROUP BY
-          product.MaSP, product.TenSP, product.MaVach, product.DonViTinh,
-          product.GiaBan, product.TrangThai,
-          category.MaLoai, category.TenLoai, category.TrangThai
       `,
       parameters,
       transaction,
@@ -488,11 +443,15 @@ class PosRepository extends BaseRepository {
   async searchSellableProducts({ page, pageSize, search }, transaction = null) {
     const result = await this.query({
       text: `
-        ${SELLABLE_PRODUCT_CTE}
+        DECLARE @BusinessDate DATE = CONVERT(
+          DATE,
+          (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+        );
+
         SELECT
           sellable.*,
           COUNT_BIG(*) OVER () AS TongSoBanGhi
-        FROM SellableProducts AS sellable
+        FROM dbo.ufn_SAN_PHAM_CoTheBan(@BusinessDate) AS sellable
         WHERE @Search IS NULL
            OR CHARINDEX(@Search, sellable.MaSP) > 0
            OR CHARINDEX(@Search, sellable.TenSP) > 0
@@ -525,9 +484,13 @@ class PosRepository extends BaseRepository {
   async findSellableProductByBarcode(barcode, transaction = null) {
     const result = await this.query({
       text: `
-        ${SELLABLE_PRODUCT_CTE}
+        DECLARE @BusinessDate DATE = CONVERT(
+          DATE,
+          (SYSUTCDATETIME() AT TIME ZONE 'UTC') AT TIME ZONE 'SE Asia Standard Time'
+        );
+
         SELECT TOP (1) *
-        FROM SellableProducts
+        FROM dbo.ufn_SAN_PHAM_CoTheBan(@BusinessDate)
         WHERE MaVach = @Barcode
       `,
       parameters: {

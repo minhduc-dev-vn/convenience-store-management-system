@@ -3,7 +3,20 @@ SET XACT_ABORT ON;
 GO
 
 -- Destructive clean rebuilds are local/test/bootstrap-only. Reset migration
--- metadata so the recorded history cannot outlive the schema it describes.
+-- metadata and Phase 5 database principals with the schema; only the Node
+-- migration runner recreates them. Server-level logins are intentionally not
+-- changed by this database-scoped clean-build script.
+IF DATABASE_PRINCIPAL_ID(N'dbms_customer_user') IS NOT NULL DROP USER dbms_customer_user;
+IF DATABASE_PRINCIPAL_ID(N'dbms_cashier_user') IS NOT NULL DROP USER dbms_cashier_user;
+IF DATABASE_PRINCIPAL_ID(N'dbms_warehouse_user') IS NOT NULL DROP USER dbms_warehouse_user;
+IF DATABASE_PRINCIPAL_ID(N'dbms_manager_user') IS NOT NULL DROP USER dbms_manager_user;
+
+IF DATABASE_PRINCIPAL_ID(N'dbms_customer') IS NOT NULL DROP ROLE dbms_customer;
+IF DATABASE_PRINCIPAL_ID(N'dbms_cashier') IS NOT NULL DROP ROLE dbms_cashier;
+IF DATABASE_PRINCIPAL_ID(N'dbms_warehouse') IS NOT NULL DROP ROLE dbms_warehouse;
+IF DATABASE_PRINCIPAL_ID(N'dbms_manager') IS NOT NULL DROP ROLE dbms_manager;
+GO
+
 IF OBJECT_ID(N'dbo.SCHEMA_MIGRATIONS', N'U') IS NOT NULL
     DROP TABLE dbo.SCHEMA_MIGRATIONS;
 GO
@@ -14,6 +27,11 @@ DROP PROCEDURE IF EXISTS dbo.usp_NHAT_KY_HE_THONG_Ghi;
 DROP PROCEDURE IF EXISTS dbo.usp_TAI_KHOAN_LayTheoTenDangNhap;
 DROP VIEW IF EXISTS dbo.vw_NHAT_KY_HE_THONG_CHI_TIET;
 DROP VIEW IF EXISTS dbo.vw_TAI_KHOAN_VAI_TRO;
+DROP FUNCTION IF EXISTS dbo.ufn_SAN_PHAM_CoTheBan;
+DROP FUNCTION IF EXISTS dbo.ufn_TON_KHO_TheoSanPham;
+DROP FUNCTION IF EXISTS dbo.ufn_LO_HANG_TheoSanPham;
+DROP FUNCTION IF EXISTS dbo.ufn_LO_HANG_PhanLoaiHanDung;
+DROP FUNCTION IF EXISTS dbo.ufn_HOA_DON_PhanBoCoTheTra;
 GO
 
 IF OBJECT_ID('dbo.NHAT_KY_HE_THONG', 'U') IS NOT NULL DROP TABLE dbo.NHAT_KY_HE_THONG;

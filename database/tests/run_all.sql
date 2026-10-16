@@ -20,6 +20,10 @@ GO
 :r .\tests\08_audit_log_tests.sql
 :r .\tests\09_business_report_tests.sql
 :r .\tests\10_integrity_packaging_tests.sql
+:r .\tests\11_user_defined_function_tests.sql
+:r .\tests\12_trigger_tests.sql
+:r .\tests\13_security_tests.sql
+:r .\tests\14_index_inventory_tests.sql
 
-PRINT 'Full database test suite passed: integrity, receiving, inventory, FEFO sale, return, stocktake, audit, reporting and Vietnam business-time semantics.';
+PRINT 'Full database test suite passed: integrity, UDF, triggers, SQL security, index inventory, receiving, inventory, FEFO sale, return, stocktake, audit, reporting and Vietnam business-time semantics.';
 GO

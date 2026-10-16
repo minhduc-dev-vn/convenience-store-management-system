@@ -2,12 +2,15 @@
 
 const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
+const fs = require('node:fs/promises');
+const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const { getDatabaseSettings } = require('../src/config/database.config');
 const { getSqlDriver } = require('../src/config/database.driver');
 const {
   createMigrationPool,
+  getMigrationStatus,
   runMigrations,
 } = require('../src/utils/migration-runner');
 
@@ -17,6 +20,18 @@ const sqlcmdExecutable = process.env.SQLCMD_PATH?.trim() || 'sqlcmd';
 const bootstrapIntegrationEnabled = process.env.RUN_DB_INTEGRATION_TESTS === 'true'
   && process.env.RUN_DB_BOOTSTRAP_TESTS === 'true';
 const bootstrapTest = bootstrapIntegrationEnabled ? test : test.skip;
+const normalizationIntegrationEnabled = process.env.RUN_DB_INTEGRATION_TESTS === 'true'
+  && process.env.RUN_DB_NORMALIZATION_TESTS === 'true';
+const normalizationTest = normalizationIntegrationEnabled ? test : test.skip;
+const currentMigrationIds = [
+  '000_baseline',
+  '001_add_product_image_url',
+  '002_fix_business_timezone',
+  '003_normalize_inventory_transaction_3nf',
+  '004_add_dbms_user_defined_functions',
+  '005_add_dbms_business_triggers',
+  '006_add_dbms_database_roles',
+];
 
 const coreTables = [
   'VAI_TRO',
@@ -209,6 +224,27 @@ async function readBootstrapState(pool) {
         WHERE object_id = OBJECT_ID(N'dbo.vw_SAN_PHAM_DANH_MUC', N'V')
           AND name = N'ImageUrl'
       ) THEN 1 ELSE 0 END AS ProductViewHasImageUrl,
+      CASE WHEN COL_LENGTH(N'dbo.GIAO_DICH_KHO', N'MaSP') IS NULL
+             AND OBJECT_ID(N'dbo.FK_GIAO_DICH_KHO_SAN_PHAM', N'F') IS NULL
+        THEN 1 ELSE 0 END AS HasNormalizedStockTransaction,
+      (SELECT COUNT(*)
+       FROM sys.foreign_keys
+       WHERE schema_id = SCHEMA_ID(N'dbo')) AS ForeignKeyCount,
+      (SELECT COUNT(*)
+       FROM sys.objects
+       WHERE schema_id = SCHEMA_ID(N'dbo')
+         AND type IN ('FN', 'IF', 'TF')) AS FunctionCount,
+      (SELECT COUNT(*)
+       FROM sys.triggers AS trigger_definition
+       JOIN sys.tables AS parent_table ON parent_table.object_id = trigger_definition.parent_id
+       WHERE trigger_definition.parent_class = 1
+         AND trigger_definition.is_ms_shipped = 0
+         AND parent_table.schema_id = SCHEMA_ID(N'dbo')) AS TriggerCount,
+      (SELECT COUNT(*)
+       FROM sys.database_principals
+       WHERE type = 'R'
+         AND is_fixed_role = 0
+         AND name IN (N'dbms_customer', N'dbms_cashier', N'dbms_warehouse', N'dbms_manager')) AS CustomRoleCount,
       CASE WHEN OBJECT_ID(N'dbo.SCHEMA_MIGRATIONS', N'U') IS NOT NULL THEN 1 ELSE 0 END AS HasMigrationTable;
   `);
 
@@ -220,7 +256,7 @@ async function readBootstrapState(pool) {
   };
 }
 
-function assertBootstrapState(state, { developmentSeedExpected }) {
+function assertBootstrapState(state, { developmentSeedExpected, normalizedExpected }) {
   assert.equal(state.counts.CoreTableCount, 23);
   assert.deepEqual(state.roles, ['CASHIER', 'CUSTOMER', 'MANAGER', 'WAREHOUSE']);
   assert.deepEqual(
@@ -236,6 +272,11 @@ function assertBootstrapState(state, { developmentSeedExpected }) {
       HasTrustedForeignKey: state.objects.HasTrustedForeignKey,
       HasProductImageColumn: state.objects.HasProductImageColumn,
       ProductViewHasImageUrl: state.objects.ProductViewHasImageUrl,
+      HasNormalizedStockTransaction: state.objects.HasNormalizedStockTransaction,
+      ForeignKeyCount: state.objects.ForeignKeyCount,
+      FunctionCount: state.objects.FunctionCount,
+      TriggerCount: state.objects.TriggerCount,
+      CustomRoleCount: state.objects.CustomRoleCount,
     },
     {
       HasView: 1,
@@ -245,7 +286,25 @@ function assertBootstrapState(state, { developmentSeedExpected }) {
       HasTrustedForeignKey: 1,
       HasProductImageColumn: 1,
       ProductViewHasImageUrl: 1,
+      HasNormalizedStockTransaction: normalizedExpected ? 1 : 0,
+      ForeignKeyCount: normalizedExpected ? 30 : 31,
+      FunctionCount: normalizedExpected ? 5 : 0,
+      TriggerCount: normalizedExpected ? 5 : 1,
+      CustomRoleCount: normalizedExpected ? 4 : 0,
     },
+  );
+}
+
+async function assertAllMigrationsPending(pool, databaseName) {
+  const status = await getMigrationStatus({
+    pool,
+    migrationsDirectory,
+    expectedDatabaseName: databaseName,
+  });
+  assert.equal(status.trackingTableExists, false);
+  assert.deepEqual(
+    status.migrations.map((migration) => migration.status),
+    ['PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING'],
   );
 }
 
@@ -258,6 +317,21 @@ async function readAppliedMigrationIds(pool) {
   return result.recordset.map((row) => row.MigrationId);
 }
 
+async function createPre003MigrationsDirectory() {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'convenience-store-pre003-'));
+  for (const fileName of [
+    '000_baseline.sql',
+    '001_add_product_image_url.sql',
+    '002_fix_business_timezone.sql',
+  ]) {
+    await fs.copyFile(
+      path.join(migrationsDirectory, fileName),
+      path.join(directory, fileName),
+    );
+  }
+  return directory;
+}
+
 async function runLocalBootstrapFlow(baseSettings, sql, databaseName) {
   await runSqlcmd(baseSettings, { databaseName, inputFile: '.\\init.sql' });
 
@@ -267,7 +341,11 @@ async function runLocalBootstrapFlow(baseSettings, sql, databaseName) {
     const initialState = await readBootstrapState(pool);
     assert.equal(initialState.counts.DboTableCount, 23);
     assert.equal(initialState.objects.HasMigrationTable, 0);
-    assertBootstrapState(initialState, { developmentSeedExpected: true });
+    assertBootstrapState(initialState, {
+      developmentSeedExpected: true,
+      normalizedExpected: false,
+    });
+    await assertAllMigrationsPending(pool, databaseName);
 
     const firstRun = await runMigrations({
       pool,
@@ -277,11 +355,15 @@ async function runLocalBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED', 'APPLIED']);
     assert.deepEqual(
-      await readAppliedMigrationIds(pool),
-      ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
+      firstRun.results.map((migration) => migration.action),
+      ['APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED'],
     );
+    assert.deepEqual(await readAppliedMigrationIds(pool), currentMigrationIds);
+    assertBootstrapState(await readBootstrapState(pool), {
+      developmentSeedExpected: true,
+      normalizedExpected: true,
+    });
   } finally {
     await pool.close().catch(() => {});
   }
@@ -292,8 +374,13 @@ async function runLocalBootstrapFlow(baseSettings, sql, databaseName) {
   try {
     await pool.connect();
     const rebuiltState = await readBootstrapState(pool);
+    assert.equal(rebuiltState.counts.DboTableCount, 23);
     assert.equal(rebuiltState.objects.HasMigrationTable, 0, 'clean init must reset migration metadata');
-    assertBootstrapState(rebuiltState, { developmentSeedExpected: true });
+    assertBootstrapState(rebuiltState, {
+      developmentSeedExpected: true,
+      normalizedExpected: false,
+    });
+    await assertAllMigrationsPending(pool, databaseName);
 
     const reapplied = await runMigrations({
       pool,
@@ -303,11 +390,15 @@ async function runLocalBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(reapplied.results.map((migration) => migration.action), ['APPLIED', 'APPLIED', 'APPLIED']);
     assert.deepEqual(
-      await readAppliedMigrationIds(pool),
-      ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
+      reapplied.results.map((migration) => migration.action),
+      ['APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED'],
     );
+    assert.deepEqual(await readAppliedMigrationIds(pool), currentMigrationIds);
+    assertBootstrapState(await readBootstrapState(pool), {
+      developmentSeedExpected: true,
+      normalizedExpected: true,
+    });
   } finally {
     await pool.close().catch(() => {});
   }
@@ -322,7 +413,11 @@ async function runProductionBootstrapFlow(baseSettings, sql, databaseName) {
     const initialState = await readBootstrapState(pool);
     assert.equal(initialState.counts.DboTableCount, 23);
     assert.equal(initialState.objects.HasMigrationTable, 0);
-    assertBootstrapState(initialState, { developmentSeedExpected: false });
+    assertBootstrapState(initialState, {
+      developmentSeedExpected: false,
+      normalizedExpected: false,
+    });
+    await assertAllMigrationsPending(pool, databaseName);
 
     const firstRun = await runMigrations({
       pool,
@@ -332,11 +427,15 @@ async function runProductionBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(firstRun.results.map((migration) => migration.action), ['APPLIED', 'APPLIED', 'APPLIED']);
     assert.deepEqual(
-      await readAppliedMigrationIds(pool),
-      ['000_baseline', '001_add_product_image_url', '002_fix_business_timezone'],
+      firstRun.results.map((migration) => migration.action),
+      ['APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED'],
     );
+    assert.deepEqual(await readAppliedMigrationIds(pool), currentMigrationIds);
+    assertBootstrapState(await readBootstrapState(pool), {
+      developmentSeedExpected: false,
+      normalizedExpected: true,
+    });
 
     const secondRun = await runMigrations({
       pool,
@@ -346,13 +445,19 @@ async function runProductionBootstrapFlow(baseSettings, sql, databaseName) {
       allowMigrations: true,
       lockTimeoutMs: 5000,
     });
-    assert.deepEqual(secondRun.results.map((migration) => migration.action), ['SKIPPED', 'SKIPPED', 'SKIPPED']);
+    assert.deepEqual(
+      secondRun.results.map((migration) => migration.action),
+      ['SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED'],
+    );
 
     const migratedState = await readBootstrapState(pool);
     assert.equal(migratedState.counts.CoreTableCount, 23);
     assert.equal(migratedState.counts.DboTableCount, 24);
     assert.equal(migratedState.objects.HasMigrationTable, 1);
-    assertBootstrapState(migratedState, { developmentSeedExpected: false });
+    assertBootstrapState(migratedState, {
+      developmentSeedExpected: false,
+      normalizedExpected: true,
+    });
   } finally {
     await pool.close().catch(() => {});
   }
@@ -391,5 +496,226 @@ bootstrapTest('local and production bootstrap execute end to end on isolated SQL
     for (const databaseName of createdDatabases.reverse()) {
       await dropCreatedDatabase(baseSettings, databaseName);
     }
+  }
+});
+
+normalizationTest('migration 003 preserves valid stock movements and rolls back inconsistent legacy data', {
+  timeout: 120000,
+}, async () => {
+  const baseSettings = getDatabaseSettings();
+  const databaseName = assertDedicatedTestDatabaseName(
+    process.env.DB_MIGRATION_003_TEST_NAME,
+    'DB_MIGRATION_003_TEST_NAME',
+  );
+  assert.notEqual(databaseName.toLowerCase(), baseSettings.config.database.toLowerCase());
+  assert.match(baseSettings.config.database, /test/i, 'DB_NAME must identify a dedicated test database.');
+
+  const sql = getSqlDriver(baseSettings.driver);
+  const databaseSettings = databaseSettingsFor(baseSettings, databaseName);
+  const pre003MigrationsDirectory = await createPre003MigrationsDirectory();
+  let pool;
+  let databaseCreated = false;
+
+  async function connectPool() {
+    pool = createMigrationPool(databaseSettings, sql);
+    await pool.connect();
+  }
+
+  async function migrate(migrationDirectory) {
+    return runMigrations({
+      pool,
+      sql,
+      migrationsDirectory: migrationDirectory,
+      expectedDatabaseName: databaseName,
+      allowMigrations: true,
+      lockTimeoutMs: 5000,
+    });
+  }
+
+  try {
+    await createDatabase(baseSettings, databaseName);
+    databaseCreated = true;
+    await runSqlcmd(baseSettings, { databaseName, inputFile: '.\\init.sql' });
+    await connectPool();
+
+    const pre003Run = await migrate(pre003MigrationsDirectory);
+    assert.deepEqual(
+      pre003Run.results.map((migration) => migration.action),
+      ['APPLIED', 'APPLIED', 'APPLIED'],
+    );
+
+    const pre003Shape = await pool.request().query(`
+      SELECT
+        CASE WHEN COL_LENGTH(N'dbo.GIAO_DICH_KHO', N'MaSP') IS NOT NULL THEN 1 ELSE 0 END AS MaSPPresent,
+        CASE WHEN OBJECT_ID(N'dbo.FK_GIAO_DICH_KHO_SAN_PHAM', N'F') IS NOT NULL THEN 1 ELSE 0 END AS ProductForeignKeyPresent;
+    `);
+    assert.deepEqual(
+      Object.fromEntries(Object.entries(pre003Shape.recordset[0]).map(([key, value]) => [key, Number(value)])),
+      { MaSPPresent: 1, ProductForeignKeyPresent: 1 },
+    );
+
+    const legacyInsert = await pool.request().batch(`
+      INSERT INTO dbo.SAN_PHAM (
+        MaSP, TenSP, DonViTinh, GiaBan, MucTonToiThieu, MaLoai, TrangThai
+      )
+      VALUES ('C27P001', N'Sản phẩm migration 003', N'Cái', 12000, 1, 'LDEV001', 'ACTIVE');
+
+      INSERT INTO dbo.LO_HANG (
+        MaLo, MaSP, SoLo, NgaySanXuat, HanSuDung, GiaNhap, SoLuongTon, TrangThai
+      )
+      VALUES ('C27L001', 'C27P001', 'C27-LOT-001', '2026-01-01', '2027-01-01', 8000, 7, 'ACTIVE');
+
+      INSERT INTO dbo.GIAO_DICH_KHO (
+        MaSP, MaLo, LoaiGiaoDich, SoLuongBienDong,
+        ThoiGian, MaThamChieu, MaNV, GhiChu
+      )
+      VALUES (
+        'C27P001', 'C27L001', 'IMPORT', 7,
+        '2026-10-01T03:04:05', 'C27REF001', 'NVDEV001', N'Fixture bảo toàn migration 003'
+      );
+
+      SELECT
+        MaGiaoDich, MaSP, MaLo, LoaiGiaoDich, SoLuongBienDong,
+        ThoiGian, MaThamChieu, MaNV, GhiChu
+      FROM dbo.GIAO_DICH_KHO
+      WHERE MaThamChieu = 'C27REF001';
+    `);
+    assert.equal(legacyInsert.recordset.length, 1);
+    const before = legacyInsert.recordset[0];
+    assert.ok(before.MaGiaoDich);
+
+    const normalizationRun = await migrate(migrationsDirectory);
+    assert.deepEqual(
+      normalizationRun.results.map((migration) => migration.action),
+      ['SKIPPED', 'SKIPPED', 'SKIPPED', 'APPLIED', 'APPLIED', 'APPLIED', 'APPLIED'],
+    );
+
+    const preserved = await pool.request().query(`
+      SELECT
+        movement.MaGiaoDich,
+        movement.MaLo,
+        movement.LoaiGiaoDich,
+        movement.SoLuongBienDong,
+        movement.ThoiGian,
+        movement.MaThamChieu,
+        movement.MaNV,
+        movement.GhiChu,
+        lot.MaSP AS DerivedMaSP
+      FROM dbo.GIAO_DICH_KHO AS movement
+      JOIN dbo.LO_HANG AS lot ON lot.MaLo = movement.MaLo
+      WHERE movement.MaThamChieu = 'C27REF001';
+
+      SELECT
+        CASE WHEN COL_LENGTH(N'dbo.GIAO_DICH_KHO', N'MaSP') IS NULL THEN 1 ELSE 0 END AS MaSPRemoved,
+        CASE WHEN OBJECT_ID(N'dbo.FK_GIAO_DICH_KHO_SAN_PHAM', N'F') IS NULL THEN 1 ELSE 0 END AS ProductForeignKeyRemoved,
+        CASE WHEN OBJECT_ID(N'dbo.FK_GIAO_DICH_KHO_LO_HANG', N'F') IS NOT NULL THEN 1 ELSE 0 END AS LotForeignKeyPresent,
+        (SELECT COUNT(*) FROM dbo.GIAO_DICH_KHO WHERE MaThamChieu = 'C27REF001') AS MovementCount;
+
+      SELECT MigrationId, ExecutionTimeMs, AppliedAt
+      FROM dbo.SCHEMA_MIGRATIONS
+      ORDER BY MigrationId;
+    `);
+    const after = preserved.recordsets[0][0];
+    assert.deepEqual(
+      {
+        MaGiaoDich: String(after.MaGiaoDich),
+        MaLo: after.MaLo,
+        LoaiGiaoDich: after.LoaiGiaoDich,
+        SoLuongBienDong: after.SoLuongBienDong,
+        ThoiGian: after.ThoiGian.toISOString(),
+        MaThamChieu: after.MaThamChieu,
+        MaNV: after.MaNV,
+        GhiChu: after.GhiChu,
+        DerivedMaSP: after.DerivedMaSP,
+      },
+      {
+        MaGiaoDich: String(before.MaGiaoDich),
+        MaLo: before.MaLo,
+        LoaiGiaoDich: before.LoaiGiaoDich,
+        SoLuongBienDong: before.SoLuongBienDong,
+        ThoiGian: before.ThoiGian.toISOString(),
+        MaThamChieu: before.MaThamChieu,
+        MaNV: before.MaNV,
+        GhiChu: before.GhiChu,
+        DerivedMaSP: before.MaSP,
+      },
+    );
+    assert.deepEqual(
+      Object.fromEntries(Object.entries(preserved.recordsets[1][0]).map(([key, value]) => [key, Number(value)])),
+      {
+        MaSPRemoved: 1,
+        ProductForeignKeyRemoved: 1,
+        LotForeignKeyPresent: 1,
+        MovementCount: 1,
+      },
+    );
+    assert.deepEqual(
+      preserved.recordsets[2].map((row) => row.MigrationId),
+      currentMigrationIds,
+    );
+    assert.ok(preserved.recordsets[2].every((row) => row.AppliedAt instanceof Date));
+    assert.ok(preserved.recordsets[2].every((row) => Number(row.ExecutionTimeMs) >= 0));
+
+    const secondRun = await migrate(migrationsDirectory);
+    assert.deepEqual(
+      secondRun.results.map((migration) => migration.action),
+      ['SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED', 'SKIPPED'],
+    );
+
+    await pool.close();
+    pool = undefined;
+    await runSqlcmd(baseSettings, { databaseName, inputFile: '.\\init.sql' });
+    await connectPool();
+    await migrate(pre003MigrationsDirectory);
+
+    await pool.request().batch(`
+      INSERT INTO dbo.SAN_PHAM (
+        MaSP, TenSP, DonViTinh, GiaBan, MucTonToiThieu, MaLoai, TrangThai
+      )
+      VALUES ('C27P002', N'Sản phẩm sai lịch sử', N'Cái', 15000, 1, 'LDEV001', 'ACTIVE');
+
+      INSERT INTO dbo.GIAO_DICH_KHO (
+        MaSP, MaLo, LoaiGiaoDich, SoLuongBienDong,
+        ThoiGian, MaThamChieu, MaNV, GhiChu
+      )
+      VALUES (
+        'C27P002', 'LODEV001', 'IMPORT', 1,
+        '2026-10-02T03:04:05', 'C27BAD001', 'NVDEV001', N'Fixture mismatch migration 003'
+      );
+    `);
+
+    await assert.rejects(
+      migrate(migrationsDirectory),
+      (error) => error.code === 'MIGRATION_FAILED'
+        && /003_normalize_inventory_transaction_3nf/.test(error.message)
+        && /historical product\/lot values conflict/i.test(error.cause?.message || ''),
+    );
+
+    const rolledBack = await pool.request().query(`
+      SELECT
+        CASE WHEN COL_LENGTH(N'dbo.GIAO_DICH_KHO', N'MaSP') IS NOT NULL THEN 1 ELSE 0 END AS MaSPStillPresent,
+        CASE WHEN OBJECT_ID(N'dbo.FK_GIAO_DICH_KHO_SAN_PHAM', N'F') IS NOT NULL THEN 1 ELSE 0 END AS ProductForeignKeyStillPresent,
+        (SELECT COUNT(*) FROM dbo.GIAO_DICH_KHO
+         WHERE MaThamChieu = 'C27BAD001' AND MaSP = 'C27P002' AND MaLo = 'LODEV001') AS InvalidMovementPreserved,
+        (SELECT COUNT(*) FROM dbo.SCHEMA_MIGRATIONS
+         WHERE MigrationId = '003_normalize_inventory_transaction_3nf') AS NormalizationMetadataCount;
+    `);
+    assert.deepEqual(
+      Object.fromEntries(Object.entries(rolledBack.recordset[0]).map(([key, value]) => [key, Number(value)])),
+      {
+        MaSPStillPresent: 1,
+        ProductForeignKeyStillPresent: 1,
+        InvalidMovementPreserved: 1,
+        NormalizationMetadataCount: 0,
+      },
+    );
+    assert.deepEqual(
+      await readAppliedMigrationIds(pool),
+      currentMigrationIds.slice(0, 3),
+    );
+  } finally {
+    if (pool) await pool.close().catch(() => {});
+    if (databaseCreated) await dropCreatedDatabase(baseSettings, databaseName);
+    await fs.rm(pre003MigrationsDirectory, { recursive: true, force: true });
   }
 });
