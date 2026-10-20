@@ -485,3 +485,7 @@ Các mục trên là giới hạn đã biết, không làm sai các luồng đã
 - [Database init, test, backup và restore](database/README.md)
 - [Backend environment mẫu](backend/.env.example)
 - [Frontend environment mẫu](frontend/.env.example)
+
+## Hướng dẫn sử dụng hệ thống quản lý cửa hàng tiện lợi
+
+- [Xem tài liệu hướng dẫn sử dụng dạng PDF trên GitHub](https://github.com/minhduc-dev-vn/convenience-store-management-system/blob/ae551bf73e4458fd747c5e43764d509641814d53/docs/HUONG_DAN_SU_DUNG_HE_THONG_QUAN_LY_CUA_HANG_TIEN_LOI.pdf)
