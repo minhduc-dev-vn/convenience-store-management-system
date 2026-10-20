@@ -1,0 +1,196 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import {
+  addProductToCart,
+  buildQuotePayload,
+  removeCartItem,
+  updateCartQuantity,
+} from '../src/components/pos/cart.js';
+import {
+  buildCheckoutPayload,
+  calculateCashChange,
+  checkoutOptionsKey,
+  createInvoiceId,
+} from '../src/components/pos/checkout.js';
+import {
+  buildPosBarcodePath,
+  buildPosProductSearchPath,
+  buildPosReceiptPath,
+} from '../src/services/posQuery.js';
+
+const product = Object.freeze({
+  availableStock: 3,
+  barcode: '893000001',
+  name: 'Sản phẩm thử',
+  price: 12000,
+  productId: 'SP01',
+  unit: 'Chai',
+});
+
+test('POS paths match C29 search and barcode contracts', () => {
+  assert.equal(
+    buildPosProductSearchPath({ page: 2, pageSize: 8, search: 'Sữa tươi', status: 'ACTIVE' }),
+    '/pos/products?page=2&pageSize=8&search=S%E1%BB%AFa+t%C6%B0%C6%A1i',
+  );
+  assert.equal(buildPosBarcodePath('893/01'), '/pos/products/barcode/893%2F01');
+  assert.equal(buildPosReceiptPath('HD/01'), '/pos/invoices/HD%2F01');
+  assert.throws(() => buildPosBarcodePath('  '));
+});
+
+test('cart add, quantity update and remove respect sellable stock', () => {
+  let cart = addProductToCart([], product);
+  assert.equal(cart[0].quantity, 1);
+  cart = addProductToCart(cart, product);
+  assert.equal(cart[0].quantity, 2);
+  cart = updateCartQuantity(cart, 'SP01', '3');
+  assert.equal(cart[0].quantity, 3);
+  assert.throws(() => addProductToCart(cart, product), /tồn khả dụng/);
+  assert.throws(() => updateCartQuantity(cart, 'SP01', '0'));
+  assert.deepEqual(removeCartItem(cart, 'SP01'), []);
+});
+
+test('quote payload contains only server-authoritative product ids and quantities', () => {
+  const cart = [{ ...product, quantity: 2, clientTotal: 1, discount: 999999 }];
+  const payload = buildQuotePayload(cart);
+  assert.deepEqual(payload, { items: [{ productId: 'SP01', quantity: 2 }] });
+  assert.equal(Object.hasOwn(payload.items[0], 'price'), false);
+  assert.equal(Object.hasOwn(payload.items[0], 'discount'), false);
+  assert.equal(Object.hasOwn(payload.items[0], 'total'), false);
+  assert.throws(() => buildQuotePayload([]));
+});
+
+test('quote payload adds only optional customer phone and explicit promotion id', () => {
+  const payload = buildQuotePayload([{ ...product, quantity: 1 }], {
+    customerPhone: ' 0901234567 ',
+    promotionId: ' KM01 ',
+  });
+  assert.deepEqual(payload, {
+    customerPhone: '0901234567',
+    items: [{ productId: 'SP01', quantity: 1 }],
+    promotionId: 'KM01',
+  });
+  assert.equal(checkoutOptionsKey({ customerPhone: ' 0901234567 ', promotionId: ' KM01 ' }), '0901234567::KM01');
+});
+
+test('checkout payload trusts quote total and never sends cash received or client price', () => {
+  const cart = [{ ...product, quantity: 2, clientTotal: 1 }];
+  const payload = buildCheckoutPayload({
+    cart,
+    cashReceived: '50000',
+    customerPhone: '0901234567',
+    externalTransactionId: 'ignored-for-cash',
+    invoiceId: 'HDTEST001',
+    method: 'CASH',
+    note: ' Giao dịch thử ',
+    promotionId: 'KM01',
+    quote: { totals: { totalAmount: 24000 } },
+  });
+  assert.deepEqual(payload, {
+    customerPhone: '0901234567',
+    invoiceId: 'HDTEST001',
+    items: [{ productId: 'SP01', quantity: 2 }],
+    note: 'Giao dịch thử',
+    payment: { amount: 24000, method: 'CASH' },
+    promotionId: 'KM01',
+  });
+  assert.equal(Object.hasOwn(payload, 'cashReceived'), false);
+  assert.equal(Object.hasOwn(payload.items[0], 'price'), false);
+  assert.equal(calculateCashChange('50000', 24000), 26000);
+});
+
+test('checkout validation preserves input and rejects insufficient cash before submission', () => {
+  const cart = [{ ...product, quantity: 1 }];
+  const snapshot = structuredClone(cart);
+  assert.throws(() => buildCheckoutPayload({
+    cart,
+    cashReceived: '9999',
+    invoiceId: 'HDTEST002',
+    method: 'CASH',
+    quote: { totals: { totalAmount: 10000 } },
+  }), /chưa đủ/);
+  assert.deepEqual(cart, snapshot);
+
+  const transfer = buildCheckoutPayload({
+    cart,
+    externalTransactionId: 'SIM-01',
+    invoiceId: 'HDTEST003',
+    method: 'TRANSFER',
+    quote: { totals: { totalAmount: 10000 } },
+  });
+  assert.deepEqual(transfer.payment, {
+    amount: 10000,
+    externalTransactionId: 'SIM-01',
+    method: 'TRANSFER',
+  });
+});
+
+test('generated invoice id is deterministic, non-empty and within schema length', () => {
+  const invoiceId = createInvoiceId(1_795_000_000_000, 0.5);
+  assert.match(invoiceId, /^HD[A-Z0-9]+$/);
+  assert.ok(invoiceId.length <= 15);
+  assert.equal(createInvoiceId(1_795_000_000_000, 0.5), invoiceId);
+});
+
+test('receipt stylesheet provides a dedicated print-only layout', () => {
+  const css = readFileSync(new URL('../src/assets/app.css', import.meta.url), 'utf8');
+  assert.match(css, /@media print/);
+  assert.match(css, /\.receipt-print-area/);
+  assert.match(css, /\.no-print/);
+  assert.match(css, /visibility:\s*visible/);
+});
+
+test('POS shows a non-blocking carry-over warning with a dashboard action', () => {
+  const source = readFileSync(
+    new URL('../src/pages/cashier/CashierPosPage.jsx', import.meta.url),
+    'utf8',
+  );
+  assert.match(source, /shift\.isCarryOver/);
+  assert.match(source, /Bạn đang bán hàng trên ca được mở từ ngày trước\./);
+  assert.match(source, /<Link to="\/cashier">Về tổng quan ca<\/Link>/);
+  assert.match(source, /<Notice tone="warning">/);
+  assert.doesNotMatch(source, /isCarryOver[^\n]*(disabled|setShift\(null\)|SHIFT_REQUIRED)/);
+});
+
+test('POS allocates a wider desktop search panel and preserves the mobile stack', () => {
+  const css = readFileSync(new URL('../src/assets/app.css', import.meta.url), 'utf8');
+
+  assert.match(
+    css,
+    /\.pos-workspace\s*\{[^}]*grid-template-columns:\s*minmax\(360px,\s*0\.68fr\)\s+minmax\(0,\s*1fr\)\s*;/s,
+  );
+  assert.doesNotMatch(css, /minmax\(280px,\s*0\.38fr\)\s+minmax\(520px,\s*1fr\)/);
+  assert.match(css, /\.pos-panel\s*\{[^}]*padding:\s*18px\s*;/s);
+  assert.match(
+    css,
+    /@media\s*\(max-width:\s*900px\)[\s\S]*?\.pos-workspace\s*\{[^}]*grid-template-columns:\s*1fr\s*;/,
+  );
+});
+
+test('POS search keeps scanner semantics in a full-width vertical form', () => {
+  const component = readFileSync(
+    new URL('../src/components/pos/ProductSearch.jsx', import.meta.url),
+    'utf8',
+  );
+  const page = readFileSync(
+    new URL('../src/pages/cashier/CashierPosPage.jsx', import.meta.url),
+    'utf8',
+  );
+  const css = readFileSync(new URL('../src/assets/app.css', import.meta.url), 'utf8');
+
+  assert.match(component, /<form className="pos-search" onSubmit=\{handleSubmit\}>/);
+  assert.match(component, /onSearch\(query, \{ barcodeFirst: true \}\)/);
+  assert.match(component, /ref=\{inputRef\}/);
+  assert.match(component, /id="pos-product-query"/);
+  assert.match(component, /placeholder="Quét mã hoặc nhập từ khóa…"/);
+  assert.match(component, /<button className="button button--primary" type="submit"/);
+  assert.match(page, /<ProductSearch/);
+  assert.match(page, /getPosProductByBarcode\(normalized\)/);
+  assert.match(css, /\.pos-search\s*\{[^}]*grid-template-columns:\s*1fr\s*;/s);
+  assert.match(css, /\.pos-search \.form-field\s*\{[^}]*width:\s*100%\s*;/s);
+  assert.match(css, /\.pos-search \.button\s*\{[^}]*justify-self:\s*end\s*;/s);
+  assert.match(
+    css,
+    /@media\s*\(max-width:\s*680px\)[\s\S]*?\.pos-search \.button\s*\{[^}]*width:\s*100%\s*;[^}]*justify-self:\s*stretch\s*;/,
+  );
+});

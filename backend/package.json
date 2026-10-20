@@ -1,0 +1,30 @@
+{
+  "name": "convenience-store-management-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "REST API for the convenience store management system",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "db:migrate": "node scripts/db-migrate.js up",
+    "db:migrate:status": "node scripts/db-migrate.js status",
+    "test": "node --test",
+    "test:db": "node --test --test-concurrency=1",
+    "test:migrations": "node --test --test-concurrency=1 tests/migrations.test.js tests/migrations.integration.test.js tests/migrations.bootstrap.integration.test.js",
+    "test:security": "node --test tests/security.test.js tests/sql-security.test.js tests/error.middleware.test.js tests/auth.middleware.test.js tests/auth.http.test.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^18.0.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mssql": "^12.7.2"
+  },
+  "optionalDependencies": {
+    "msnodesqlv8": "^5.5.0"
+  }
+}

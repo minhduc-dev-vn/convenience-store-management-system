@@ -1,0 +1,100 @@
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+GO
+
+ALTER TABLE dbo.VAI_TRO WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.NHAN_VIEN WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.KHACH_HANG WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.TAI_KHOAN WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.CA_LAM_VIEC WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.LOAI_SAN_PHAM WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.SAN_PHAM WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.KHUYEN_MAI WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.KHUYEN_MAI_SAN_PHAM WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.NHA_CUNG_CAP WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.PHIEU_NHAP WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.LO_HANG WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.CHI_TIET_PHIEU_NHAP WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.KIEM_KE WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.CHI_TIET_KIEM_KE WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.GIAO_DICH_KHO WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.HOA_DON WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.CHI_TIET_HOA_DON WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.CHI_TIET_XUAT_LO WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.THANH_TOAN WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.PHIEU_TRA WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.CHI_TIET_PHIEU_TRA WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE dbo.NHAT_KY_HE_THONG WITH CHECK CHECK CONSTRAINT ALL;
+GO
+
+DECLARE @RequiredChecks TABLE (ConstraintName SYSNAME NOT NULL PRIMARY KEY);
+
+INSERT INTO @RequiredChecks (ConstraintName)
+VALUES
+    ('CK_KHACH_HANG_DiemTichLuy'),
+    ('CK_SAN_PHAM_GiaBan'),
+    ('CK_SAN_PHAM_MucTonToiThieu'),
+    ('CK_KHUYEN_MAI_ThoiGian'),
+    ('CK_LO_HANG_HanSuDung'),
+    ('CK_LO_HANG_SoLuongTon'),
+    ('CK_CHI_TIET_PHIEU_NHAP_SoLuong'),
+    ('CK_CHI_TIET_KIEM_KE_SoLuongHeThong'),
+    ('CK_CHI_TIET_KIEM_KE_SoLuongThucTe'),
+    ('CK_CHI_TIET_HOA_DON_SoLuong'),
+    ('CK_CHI_TIET_HOA_DON_TienGiam'),
+    ('CK_CHI_TIET_XUAT_LO_SoLuong'),
+    ('CK_CHI_TIET_PHIEU_TRA_SoLuongTra');
+
+IF EXISTS (
+    SELECT 1
+    FROM @RequiredChecks AS required
+    LEFT JOIN sys.check_constraints AS actual
+        ON actual.name = required.ConstraintName
+       AND OBJECT_SCHEMA_NAME(actual.parent_object_id) = 'dbo'
+    WHERE actual.object_id IS NULL
+)
+BEGIN
+    THROW 51010, 'One or more required core CHECK constraints are missing.', 1;
+END;
+
+IF EXISTS (
+    SELECT 1
+    FROM sys.check_constraints
+    WHERE OBJECT_SCHEMA_NAME(parent_object_id) = 'dbo'
+      AND (is_disabled = 1 OR is_not_trusted = 1)
+)
+BEGIN
+    THROW 51011, 'All dbo CHECK constraints must be enabled and trusted.', 1;
+END;
+GO
+
+DECLARE @RequiredDefaults TABLE (ConstraintName SYSNAME NOT NULL PRIMARY KEY);
+
+INSERT INTO @RequiredDefaults (ConstraintName)
+VALUES
+    ('DF_KHACH_HANG_DiemTichLuy'),
+    ('DF_KHACH_HANG_HangThanhVien'),
+    ('DF_TAI_KHOAN_TrangThai'),
+    ('DF_SAN_PHAM_MucTonToiThieu'),
+    ('DF_PHIEU_NHAP_TongTien'),
+    ('DF_LO_HANG_SoLuongTon'),
+    ('DF_HOA_DON_TongTienHang'),
+    ('DF_HOA_DON_TongGiamGia'),
+    ('DF_HOA_DON_TongThanhToan'),
+    ('DF_CHI_TIET_HOA_DON_TienGiam');
+
+IF EXISTS (
+    SELECT 1
+    FROM @RequiredDefaults AS required
+    LEFT JOIN sys.default_constraints AS actual
+        ON actual.name = required.ConstraintName
+       AND OBJECT_SCHEMA_NAME(actual.parent_object_id) = 'dbo'
+    WHERE actual.object_id IS NULL
+)
+BEGIN
+    THROW 51012, 'One or more required core DEFAULT constraints are missing.', 1;
+END;
+GO
+
+PRINT 'Core CHECK, DEFAULT, UNIQUE and foreign-key constraints are enabled and validated.';
+GO
