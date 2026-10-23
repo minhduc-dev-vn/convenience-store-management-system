@@ -34,10 +34,12 @@ test('persistent timestamp writers use UTC rather than SQL Server local time', (
     'database/schema/01_identity.sql',
     'database/schema/03_inventory.sql',
     'database/schema/04_sales_returns_audit.sql',
-    'database/procedures/07_receiving_transactions.sql',
-    'database/procedures/09_sale_transactions.sql',
-    'database/procedures/10_return_transactions.sql',
-    'database/procedures/11_stocktake_transactions.sql',
+    'database/procedures/07_usp_PHIEU_NHAP_LuuNhap.sql',
+    'database/procedures/11_usp_PHIEU_NHAP_XacNhan.sql',
+    'database/procedures/15_usp_HOA_DON_HoanTatBanHang.sql',
+    'database/procedures/17_usp_PHIEU_TRA_HoanTat.sql',
+    'database/procedures/18_usp_KIEM_KE_Tao.sql',
+    'database/procedures/20_usp_KIEM_KE_PheDuyetDieuChinh.sql',
     'backend/src/repositories/auth.repository.js',
     'backend/src/repositories/pos.repository.js',
   ];
@@ -60,7 +62,10 @@ test('database drivers and business-date filters preserve the UTC contract', () 
     assert.doesNotMatch(source, /CONVERT\([^\n]*invoice\.NgayLap/i);
   }
 
-  const reports = read('database/procedures/13_business_reports.sql');
+  const reports = filesUnder('database/procedures', '.sql')
+    .filter((file) => /usp_BAO_CAO_/i.test(path.basename(file)))
+    .map(read)
+    .join('\n');
   assert.match(reports, /event\.NgayGiaoDich\s*>=\s*@TuNgayUtc/);
   assert.match(reports, /event\.NgayGiaoDich\s*<\s*@DenNgayKeTiepUtc/);
   assert.match(

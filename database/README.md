@@ -34,7 +34,7 @@ Sau các bước trên, Node migration runner áp dụng 000–006. Migration 00
 - `schema/` chỉ khai báo bảng và constraint gắn trực tiếp với bảng; standalone index nằm duy nhất trong `indexes/`.
 - `indexes/` chỉ chứa session setting cần thiết và DDL `DROP INDEX IF EXISTS` / `CREATE INDEX`; truy vấn kiểm chứng nằm trong `tests/`.
 - `functions/` và `triggers/` dùng một object mỗi file, viết trực tiếp bằng `CREATE OR ALTER`, không bọc bằng `EXEC sys.sp_executesql`.
-- `views/` và `procedures/` lần lượt chỉ chứa view và stored procedure; transaction nghiệp vụ được đóng gói trong stored procedure tương ứng.
+- `views/` và `procedures/` dùng một object mỗi file; transaction nghiệp vụ được đóng gói trong stored procedure tương ứng.
 - `migrations/` là lịch sử triển khai bất biến. Cách đóng gói trong migration có thể khác source trình bày để đáp ứng batch rule và checksum của runner.
 
 > `init.sql` dựng lại toàn bộ 23 bảng core ở trạng thái trung gian pre-003, reset migration history và sẽ xóa dữ liệu hiện có. Chỉ chạy trên database development/test đã được chọn rõ ràng; script này có development seed. Database chỉ hoàn chỉnh sau khi migration runner báo tất cả migration `APPLIED`.

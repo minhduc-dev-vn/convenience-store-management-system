@@ -33,15 +33,15 @@ Ngày audit: 2026-10-16. Nhánh: `dbms-requirements`. Trạng thái trong bảng
 | Requirement | Required | Actual | Status | Source | Test | Demo evidence |
 |---|---:|---|---|---|---|---|
 | Stored Procedures | `>= 5` | 29 SP trong 10 nhóm nghiệp vụ | PASS | [`database/procedures/`](../../database/procedures/) | SQL suite + backend DB integration | Login, receiving, checkout, return, stocktake, reports |
-| Nhiều loại operation | Add/edit/delete/search/statistics | Create/update, cancel/logical delete, search, detail, statistics/reporting | PASS | Procedure files 03–13 | Tests 02–09 | CRUD, cancel receipt, product/invoice search, manager reports |
+| Nhiều loại operation | Add/edit/delete/search/statistics | Create/update, cancel/logical delete, search, detail, statistics/reporting | PASS | [`database/procedures/`](../../database/procedures/) | Tests 02–09 | CRUD, cancel receipt, product/invoice search, manager reports |
 | UDF | `>= 5` | Đúng 5 inline TVF | PASS | [`database/functions/`](../../database/functions/), migration [`004`](../../database/migrations/004_add_dbms_user_defined_functions.sql), [`FUNCTIONS.md`](./FUNCTIONS.md) | [`11_user_defined_function_tests.sql`](../../database/tests/11_user_defined_function_tests.sql) | POS và return gọi hai UDF trực tiếp |
-| TRY...CATCH | Có | 11 transaction SP có `BEGIN TRY/BEGIN CATCH` | PASS | Procedure files 07, 09, 10, 11 | Tests 03, 05, 06, 07 | Forced failure và rollback/no partial write |
+| TRY...CATCH | Có | 11 transaction SP có `BEGIN TRY/BEGIN CATCH` | PASS | Các procedure nhận hàng, bán hàng, trả hàng và kiểm kê | Tests 03, 05, 06, 07 | Forced failure và rollback/no partial write |
 
 ## D. Transactions
 
 | Requirement | Required | Actual | Status | Source | Test | Demo evidence |
 |---|---:|---|---|---|---|---|
-| Business transaction workflows | `>= 5` | 11 SP có BEGIN/COMMIT/ROLLBACK, savepoint-aware | PASS | Procedure files 07, 09, 10, 11 | Tests 03, 05, 06, 07 | Receiving, sale, return, stocktake create/count/approve |
+| Business transaction workflows | `>= 5` | 11 SP có BEGIN/COMMIT/ROLLBACK, savepoint-aware | PASS | Các procedure nhận hàng, bán hàng, trả hàng và kiểm kê | Tests 03, 05, 06, 07 | Receiving, sale, return, stocktake create/count/approve |
 | Integrity guaranteed | Có | XACT_ABORT, TRY/CATCH, savepoint, DB constraints/triggers | PASS | Transaction SPs + migration 005 | SQL suite + backend DB integration | Insufficient-stock request tạo 0 invoice/payment/movement |
 | Concurrency hoặc recovery | Ít nhất một | Có cả locking/idempotency và backup/restore recovery | PASS | `UPDLOCK/HOLDLOCK`, filtered unique indexes, [`backup_restore_test.sql`](../../database/maintenance/backup_restore_test.sql) | Transaction suites + migration lock test | Over-sell/over-return guard; backup/restore runbook |
 
