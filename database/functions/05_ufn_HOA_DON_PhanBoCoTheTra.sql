@@ -37,6 +37,3 @@ RETURN
       AND @MaHD IS NOT NULL
 );
 GO
-
-PRINT 'Invoice returnable-allocation function is ready.';
-GO

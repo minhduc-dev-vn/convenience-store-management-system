@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "name": "DBMS - Source trình bày",
+      "path": "database"
+    }
+  ],
+  "settings": {
+    "explorer.compactFolders": false,
+    "files.associations": {
+      "*.sql": "sql"
+    },
+    "files.exclude": {
+      "**/benchmarks": true,
+      "**/maintenance": true,
+      "**/migrations": true,
+      "**/tests": true
+    }
+  }
+}

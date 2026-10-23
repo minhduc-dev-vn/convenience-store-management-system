@@ -1,6 +1,6 @@
 # User-defined functions
 
-Phase 3 bổ sung đúng 5 user-defined function thuộc schema `dbo`. Cả năm đều là inline table-valued function (inline TVF): chỉ đọc/tính toán, không có side effect, không dùng dynamic SQL và nhận ngày tham chiếu tường minh. Migration authoritative là `database/migrations/004_add_dbms_user_defined_functions.sql`; các file trong `database/functions/` là source được nhóm theo dependency để review và demo.
+Phase 3 bổ sung đúng 5 user-defined function thuộc schema `dbo`. Cả năm đều là inline table-valued function (inline TVF): chỉ đọc/tính toán, không có side effect, không dùng dynamic SQL và nhận ngày tham chiếu tường minh. Migration authoritative là `database/migrations/004_add_dbms_user_defined_functions.sql`; `database/functions/` chứa năm source trình bày, mỗi file đúng một `CREATE OR ALTER FUNCTION`, được đánh số theo dependency để chạy trực tiếp trong SSMS.
 
 ## Tổng quan thiết kế
 

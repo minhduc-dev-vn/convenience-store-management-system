@@ -77,25 +77,5 @@ BEGIN
 END;
 GO
 
-DROP TRIGGER IF EXISTS dbo.trg_NHAT_KY_HE_THONG_AppendOnly;
-GO
-
-CREATE TRIGGER dbo.trg_NHAT_KY_HE_THONG_AppendOnly
-ON dbo.NHAT_KY_HE_THONG
-AFTER UPDATE, DELETE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    -- Privileged principals retain a controlled maintenance path for schema rebuilds
-    -- and test-fixture cleanup. Application principals cannot mutate audit history.
-    IF COALESCE(IS_SRVROLEMEMBER('sysadmin'), 0) = 1
-       OR COALESCE(IS_ROLEMEMBER('db_owner'), 0) = 1
-        RETURN;
-
-    THROW 51820, 'Audit log entries are append-only and cannot be updated or deleted.', 1;
-END;
-GO
-
-PRINT 'Parameterized audit lookup and append-only enforcement are ready.';
+PRINT 'Parameterized audit lookup procedure is ready.';
 GO

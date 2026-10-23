@@ -20,7 +20,7 @@ Ngày audit: 2026-10-16. Nhánh: `dbms-requirements`. Trạng thái trong bảng
 | Requirement | Required | Actual | Status | Source | Test | Demo evidence |
 |---|---:|---|---|---|---|---|
 | Meaningful CHECK/UNIQUE/DEFAULT | `>= 5` | 56 CHECK + 8 UNIQUE + 41 DEFAULT; owner, date, status, quantity, secret-safety rules | PASS | [`database/constraints/`](../../database/constraints/), schema DDL | Tests 01, 02, 03, 10 | Xem năm negative cases trong [`FINAL_AUDIT.md`](./FINAL_AUDIT.md) |
-| Triggers | `>= 5` | Đúng 5 application trigger, đều enabled | PASS | Migration [`005`](../../database/migrations/005_add_dbms_business_triggers.sql), [`TRIGGERS.md`](./TRIGGERS.md) | [`12_trigger_tests.sql`](../../database/tests/12_trigger_tests.sql) | Direct-DML guard trong [`DEMO_RUNBOOK.md`](./DEMO_RUNBOOK.md) |
+| Triggers | `>= 5` | Đúng 5 application trigger, đều enabled | PASS | [`database/triggers/`](../../database/triggers/), migration [`005`](../../database/migrations/005_add_dbms_business_triggers.sql), [`TRIGGERS.md`](./TRIGGERS.md) | [`12_trigger_tests.sql`](../../database/tests/12_trigger_tests.sql) | Direct-DML guard trong [`DEMO_RUNBOOK.md`](./DEMO_RUNBOOK.md) |
 | Views | `>= 5` | 16 view | PASS | [`database/views/`](../../database/views/) | Tests 01–10 | App dùng account/product/stocktake/audit/inventory-report views |
 | Indexes | `>= 5` | 43 standalone index ngoài 23 PK và 8 UQ-backed index | PASS | [`database/indexes/`](../../database/indexes/) | [`14_index_inventory_tests.sql`](../../database/tests/14_index_inventory_tests.sql) | Metadata inventory |
 | Non-PK index | `>= 1` | 43; gồm unique, filtered và covering | PASS | [`INDEXES.md`](./INDEXES.md) | Test 14 | `UQ_TAI_KHOAN_TenDangNhap` và bốn workload khác |
@@ -34,7 +34,7 @@ Ngày audit: 2026-10-16. Nhánh: `dbms-requirements`. Trạng thái trong bảng
 |---|---:|---|---|---|---|---|
 | Stored Procedures | `>= 5` | 29 SP trong 10 nhóm nghiệp vụ | PASS | [`database/procedures/`](../../database/procedures/) | SQL suite + backend DB integration | Login, receiving, checkout, return, stocktake, reports |
 | Nhiều loại operation | Add/edit/delete/search/statistics | Create/update, cancel/logical delete, search, detail, statistics/reporting | PASS | Procedure files 03–13 | Tests 02–09 | CRUD, cancel receipt, product/invoice search, manager reports |
-| UDF | `>= 5` | Đúng 5 inline TVF | PASS | Migration [`004`](../../database/migrations/004_add_dbms_user_defined_functions.sql), [`FUNCTIONS.md`](./FUNCTIONS.md) | [`11_user_defined_function_tests.sql`](../../database/tests/11_user_defined_function_tests.sql) | POS và return gọi hai UDF trực tiếp |
+| UDF | `>= 5` | Đúng 5 inline TVF | PASS | [`database/functions/`](../../database/functions/), migration [`004`](../../database/migrations/004_add_dbms_user_defined_functions.sql), [`FUNCTIONS.md`](./FUNCTIONS.md) | [`11_user_defined_function_tests.sql`](../../database/tests/11_user_defined_function_tests.sql) | POS và return gọi hai UDF trực tiếp |
 | TRY...CATCH | Có | 11 transaction SP có `BEGIN TRY/BEGIN CATCH` | PASS | Procedure files 07, 09, 10, 11 | Tests 03, 05, 06, 07 | Forced failure và rollback/no partial write |
 
 ## D. Transactions

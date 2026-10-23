@@ -1,6 +1,6 @@
 # Database triggers
 
-Phase 4 bổ sung bốn trigger bảo vệ invariant nghiệp vụ vào trigger audit đã có, đưa trạng thái cuối lên đúng 5 trigger `dbo`. Migration authoritative là `database/migrations/005_add_dbms_business_triggers.sql`; clean bootstrap vẫn chỉ có trigger audit để runner thực sự áp dụng migration 005.
+Phase 4 bổ sung bốn trigger bảo vệ invariant nghiệp vụ vào trigger audit đã có, đưa trạng thái cuối lên đúng 5 trigger `dbo`. Migration authoritative là `database/migrations/005_add_dbms_business_triggers.sql`; `database/triggers/` chứa năm source trình bày, mỗi file đúng một `CREATE OR ALTER TRIGGER` và không dùng dynamic SQL. Clean bootstrap vẫn chỉ include trigger audit để runner thực sự áp dụng migration 005.
 
 Các trigger đều là `AFTER`, xử lý `inserted`/`deleted` theo tập hợp, dùng `SET NOCOUNT ON`, không mở/commit transaction và không tự sửa dữ liệu. Cùng contract với trigger audit hiện hữu, `sysadmin` và thành viên `db_owner` có đường bảo trì dữ liệu; các invariant dưới đây áp dụng cho principal ứng dụng không đặc quyền. Phase 5 sẽ cấu hình quyền ứng dụng theo nguyên tắc này.
 

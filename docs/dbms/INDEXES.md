@@ -4,7 +4,7 @@
 
 Index là cấu trúc vật lý giúp SQL Server tìm và sắp xếp tập hàng phù hợp mà không phải đọc toàn bộ bảng. Hệ thống cửa hàng cần index cho đăng nhập, tra cứu tồn theo lô, báo cáo hóa đơn, điều tra audit và danh sách nhập hàng. Index không thay đổi kết quả truy vấn; nó chỉ cung cấp access path khác cho optimizer.
 
-Baseline cuối có 23 PK-backed index, 8 index backing `UNIQUE` constraint và 43 standalone index, tổng cộng 74 physical index trên 23 bảng nghiệp vụ. Trong 43 standalone index có 33 nonunique, 10 unique, 14 filtered và 24 có cột `INCLUDE`. `SCHEMA_MIGRATIONS` là bảng kỹ thuật nên không tính vào baseline nghiệp vụ.
+Baseline cuối có 23 PK-backed index, 8 index backing `UNIQUE` constraint và 43 standalone index, tổng cộng 74 physical index trên 23 bảng nghiệp vụ. Trong 43 standalone index có 33 nonunique, 10 unique, 14 filtered và 24 có cột `INCLUDE`. `SCHEMA_MIGRATIONS` là bảng kỹ thuật nên không tính vào baseline nghiệp vụ. Toàn bộ 43 standalone index được khai báo tập trung trong `database/indexes/`; các file schema không khai báo standalone index và phần kiểm chứng metadata nằm riêng trong `database/tests/14_index_inventory_tests.sql`.
 
 - **PK-backed**: được SQL Server tạo để thực thi khóa chính; không tính là standalone evidence.
 - **Unique constraint-backed**: thực thi candidate key khai báo bằng constraint.

@@ -98,6 +98,7 @@ Backend tuân theo luồng `Route -> Middleware -> Controller -> Service -> Repo
 │   └── README.md
 ├── database/
 │   ├── constraints/
+│   ├── functions/
 │   ├── indexes/
 │   ├── maintenance/
 │   ├── migrations/
@@ -105,6 +106,7 @@ Backend tuân theo luồng `Route -> Middleware -> Controller -> Service -> Repo
 │   ├── schema/
 │   ├── seed/
 │   ├── tests/
+│   ├── triggers/
 │   ├── views/
 │   ├── create_database.sql
 │   ├── init.schema.sql
@@ -491,6 +493,7 @@ Các mục trên là giới hạn đã biết, không làm sai các luồng đã
 
 ## 19. Tài liệu dự án
 
+- [Workspace SQL gọn dành cho vấn đáp](DBMS_VAN_DAP.code-workspace) — mở file này bằng VS Code để chỉ tập trung vào source database; migration và bằng chứng kiểm thử chỉ được ẩn khỏi Explorer, không bị xóa.
 - [Backend setup, test và production checklist](backend/README.md)
 - [Frontend vận hành, MH-01–MH-28 và demo flow](frontend/README.md)
 - [Database init, test, backup và restore](database/README.md)

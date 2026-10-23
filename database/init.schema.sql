@@ -36,3 +36,4 @@
 :r .\procedures\11_stocktake_transactions.sql
 :r .\procedures\12_audit_log_query.sql
 :r .\procedures\13_business_reports.sql
+:r .\triggers\01_trg_NHAT_KY_HE_THONG_AppendOnly.sql

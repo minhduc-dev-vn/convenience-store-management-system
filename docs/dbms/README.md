@@ -35,7 +35,7 @@ Nguồn được dùng để lập tài liệu:
 - `database/migrations/006_add_dbms_database_roles.sql`
 - `database/benchmarks/`
 
-Các thư mục `database/indexes/`, `database/views/`, `database/procedures/` và `database/functions/` được dùng để đối chiếu cách schema được truy vấn và cập nhật. Các file clean bootstrap cố ý biểu diễn pre-003/pre-004/pre-005/pre-006 để replay migration lịch sử; hồ sơ này mô tả trạng thái cuối sau khi Node runner áp dụng 000–006. Metadata của `ConvenienceStore_DBMS` được dùng làm phép kiểm tra chéo; benchmark index chỉ chạy trên database disposable riêng.
+Các thư mục `database/indexes/`, `database/views/`, `database/procedures/`, `database/functions/` và `database/triggers/` tách source theo đúng loại object để review và vấn đáp. Function và trigger dùng một object mỗi file với DDL trực tiếp, còn kiểm chứng index nằm trong `database/tests/`. Các file clean bootstrap cố ý biểu diễn pre-003/pre-004/pre-005/pre-006 để replay migration lịch sử; hồ sơ này mô tả trạng thái cuối sau khi Node runner áp dụng 000–006. Metadata của `ConvenienceStore_DBMS` được dùng làm phép kiểm tra chéo; benchmark index chỉ chạy trên database disposable riêng.
 
 ## Quy ước
 

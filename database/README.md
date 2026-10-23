@@ -19,13 +19,23 @@ Thư mục này là gói triển khai cơ sở dữ liệu của hệ thống qu
 5. `schema/04_sales_returns_audit.sql`: hóa đơn, thanh toán, trả hàng và nhật ký.
 6. `constraints/01_enforce_and_validate.sql`: bật, trust và xác minh các constraint/default quan trọng.
 7. `constraints/02_auth_account_audit.sql`: buộc account gắn đúng loại chủ sở hữu/role và chặn dữ liệu xác thực nhạy cảm trong audit payload.
-8. `indexes/01_lookup_indexes.sql`: bổ sung index lookup/filter và xác minh unique index nền.
-9. `indexes/02_auth_audit_indexes.sql`: xác minh covering index login và thêm index tra cứu audit theo bản ghi.
-10. Toàn bộ script trong `indexes/`, `views/` và `procedures/` theo thứ tự dependency của catalog, nhập hàng, tồn kho, FEFO, đổi trả, kiểm kê, audit và báo cáo. Các object ghi giao dịch kho tại đây tương thích baseline pre-003 để migration lịch sử 002 có thể chạy.
+8. `indexes/01_lookup_indexes.sql`: tạo các index lookup/filter dùng chung.
+9. `indexes/02_auth_audit_indexes.sql`: tạo covering index đăng nhập và index tra cứu audit theo bản ghi.
+10. Toàn bộ script còn lại trong `indexes/`, sau đó `views/` và `procedures/`, theo thứ tự dependency của catalog, nhập hàng, tồn kho, FEFO, đổi trả, kiểm kê, audit và báo cáo. Các object ghi giao dịch kho tại đây tương thích baseline pre-003 để migration lịch sử 002 có thể chạy.
 11. `seed/01_roles.sql`: seed bốn vai trò chuẩn.
 12. `seed/02_development_data.sql`: seed tối thiểu một nhân viên, danh mục, sản phẩm, nhà cung cấp và lô hàng development.
-13. `functions/`: source UDF theo dependency để review/demo; clean init không include thư mục này vì migration 004 là nguồn authoritative tạo UDF.
+13. `functions/`: source trình bày của 5 UDF, mỗi file chứa đúng một lệnh `CREATE OR ALTER FUNCTION`; clean init không include thư mục này vì migration 004 là nguồn triển khai authoritative.
+14. `triggers/`: source trình bày của 5 trigger, mỗi file chứa đúng một lệnh `CREATE OR ALTER TRIGGER`. Clean init chỉ include trigger audit baseline; bốn business trigger còn lại được migration 005 áp dụng.
+
 Sau các bước trên, Node migration runner áp dụng 000–006. Migration 004 tạo 5 inline TVF; migration 005 tạo 4 business trigger để tổng cộng đúng 5 trigger; migration 006 tạo 4 database role least-privilege. Không có SQL seed nào tạo hoặc ghi `SCHEMA_MIGRATIONS`.
+
+### Quy ước tổ chức source SQL
+
+- `schema/` chỉ khai báo bảng và constraint gắn trực tiếp với bảng; standalone index nằm duy nhất trong `indexes/`.
+- `indexes/` chỉ chứa session setting cần thiết và DDL `DROP INDEX IF EXISTS` / `CREATE INDEX`; truy vấn kiểm chứng nằm trong `tests/`.
+- `functions/` và `triggers/` dùng một object mỗi file, viết trực tiếp bằng `CREATE OR ALTER`, không bọc bằng `EXEC sys.sp_executesql`.
+- `views/` và `procedures/` lần lượt chỉ chứa view và stored procedure; transaction nghiệp vụ được đóng gói trong stored procedure tương ứng.
+- `migrations/` là lịch sử triển khai bất biến. Cách đóng gói trong migration có thể khác source trình bày để đáp ứng batch rule và checksum của runner.
 
 > `init.sql` dựng lại toàn bộ 23 bảng core ở trạng thái trung gian pre-003, reset migration history và sẽ xóa dữ liệu hiện có. Chỉ chạy trên database development/test đã được chọn rõ ràng; script này có development seed. Database chỉ hoàn chỉnh sau khi migration runner báo tất cả migration `APPLIED`.
 

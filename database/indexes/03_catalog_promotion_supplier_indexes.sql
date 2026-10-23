@@ -1,49 +1,47 @@
-SET NOCOUNT ON;
-SET XACT_ABORT ON;
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET NUMERIC_ROUNDABORT OFF;
 GO
 
-IF NOT EXISTS (
-    SELECT 1
-    FROM sys.indexes
-    WHERE object_id = OBJECT_ID('dbo.NHA_CUNG_CAP')
-      AND name = 'IX_NHA_CUNG_CAP_TenNCC_TrangThai'
-)
-BEGIN
-    CREATE INDEX IX_NHA_CUNG_CAP_TenNCC_TrangThai
-        ON dbo.NHA_CUNG_CAP (TenNCC, TrangThai)
-        INCLUDE (MaNCC, SDT, Email, DiaChi, MaSoThue);
-END;
+DROP INDEX IF EXISTS UX_SAN_PHAM_MaVach ON dbo.SAN_PHAM;
+GO
+CREATE UNIQUE INDEX UX_SAN_PHAM_MaVach
+    ON dbo.SAN_PHAM (MaVach)
+    WHERE MaVach IS NOT NULL;
 GO
 
-DECLARE @RequiredCatalogIndexes TABLE (
-    TableName SYSNAME NOT NULL,
-    IndexName SYSNAME NOT NULL,
-    PRIMARY KEY (TableName, IndexName)
-);
-
-INSERT INTO @RequiredCatalogIndexes (TableName, IndexName)
-VALUES
-    ('SAN_PHAM', 'UX_SAN_PHAM_MaVach'),
-    ('SAN_PHAM', 'IX_SAN_PHAM_TenSP_TrangThai'),
-    ('SAN_PHAM', 'IX_SAN_PHAM_MaLoai_TrangThai'),
-    ('KHUYEN_MAI', 'IX_KHUYEN_MAI_TrangThai_ThoiGian'),
-    ('KHUYEN_MAI_SAN_PHAM', 'IX_KHUYEN_MAI_SAN_PHAM_MaSP'),
-    ('NHA_CUNG_CAP', 'UQ_NHA_CUNG_CAP_SDT'),
-    ('NHA_CUNG_CAP', 'IX_NHA_CUNG_CAP_TenNCC_TrangThai'),
-    ('NHAT_KY_HE_THONG', 'IX_NHAT_KY_HE_THONG_TenBang_MaBanGhi_ThoiGian');
-
-IF EXISTS (
-    SELECT 1
-    FROM @RequiredCatalogIndexes AS required
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM sys.indexes AS actual
-        WHERE actual.object_id = OBJECT_ID(N'dbo.' + required.TableName)
-          AND actual.name = required.IndexName
-    )
-)
-    THROW 51040, 'One or more catalog/promotion/supplier query indexes are missing.', 1;
+DROP INDEX IF EXISTS IX_SAN_PHAM_MaLoai_TrangThai ON dbo.SAN_PHAM;
+GO
+CREATE INDEX IX_SAN_PHAM_MaLoai_TrangThai
+    ON dbo.SAN_PHAM (MaLoai, TrangThai);
 GO
 
-PRINT 'Catalog, promotion and supplier indexes are ready without duplicating existing lookup indexes.';
+DROP INDEX IF EXISTS IX_KHUYEN_MAI_TrangThai_ThoiGian ON dbo.KHUYEN_MAI;
+GO
+CREATE INDEX IX_KHUYEN_MAI_TrangThai_ThoiGian
+    ON dbo.KHUYEN_MAI (TrangThai, NgayBatDau, NgayKetThuc);
+GO
+
+DROP INDEX IF EXISTS IX_KHUYEN_MAI_SAN_PHAM_MaSP ON dbo.KHUYEN_MAI_SAN_PHAM;
+GO
+CREATE INDEX IX_KHUYEN_MAI_SAN_PHAM_MaSP
+    ON dbo.KHUYEN_MAI_SAN_PHAM (MaSP);
+GO
+
+DROP INDEX IF EXISTS UX_NHA_CUNG_CAP_MaSoThue ON dbo.NHA_CUNG_CAP;
+GO
+CREATE UNIQUE INDEX UX_NHA_CUNG_CAP_MaSoThue
+    ON dbo.NHA_CUNG_CAP (MaSoThue)
+    WHERE MaSoThue IS NOT NULL;
+GO
+
+DROP INDEX IF EXISTS IX_NHA_CUNG_CAP_TenNCC_TrangThai ON dbo.NHA_CUNG_CAP;
+GO
+CREATE INDEX IX_NHA_CUNG_CAP_TenNCC_TrangThai
+    ON dbo.NHA_CUNG_CAP (TenNCC, TrangThai)
+    INCLUDE (MaNCC, SDT, Email, DiaChi, MaSoThue);
 GO
